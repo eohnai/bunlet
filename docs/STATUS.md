@@ -4,13 +4,13 @@
 
 PR #13 is merged into main as `e856686`, including session cards and the allowance strip. Its six PR checks and automatic main run `41380394590` passed. Redundant PR #14 is closed; its card implementation is included in #13. Historical acceptance limits remain below.
 The user approved publishing the portable references and planning modular feature management. D7 accepts one app with Pet, Notch and Agents installed/uninstalled in Settings.
-`settings/feature-management` now has seven proposed tasks, FM1–FM7, with FM1 limited to catalog/preferences. The reference/specification commit and push are authorized; implementation has not begun. The active goal was cleared, and historical paused records are preserved.
+`settings/feature-management` has seven proposed tasks linked by the prepared `docs/goals/modular-features.md` goal. FM1 now specifies the catalog, versioned record, migration/recovery, API and five focused checks. Implementation has not begun; the umbrella goal is not activated. Historical paused records are preserved.
 Pre-existing untracked editor and CI planning files remain separate. Reference edits were restored from stash `5b1de05`, which is retained as a backup.
 
 ## Next
 
-1. Review the proposed `settings/feature-management` task list, beginning with FM1 availability/preferences. Approve implementation tasks before coding.
-2. Confirm the automatic checks after publishing the reference/specification commit; preserve all feature acceptance evidence and gaps.
+1. Review FM1's detailed plan and the umbrella goal for FM1–FM7. Approve the task list and goal execution before coding; preparing a goal does not activate it.
+2. Check automatic CI after publishing the FM1/goal planning records under the user's earlier publication instruction. Earlier reference commit `0fa8d24` and its automatic main run `41380923905` passed; preserve all feature acceptance evidence and gaps.
 3. Use `docs/notes/companion-ui-direction.md` to plan compact card disclosure and truthful connection/freshness states. Keep proposed UI refinements distinct from accepted product scope.
 4. Do codex-setup R4 architecture documentation before R2/R3 and their reviewed splits. Preserve R5/R6 and I3b1 qualification/acceptance prerequisites; Codex 0.164.0 is not qualified by this review.
 5. Preserve F10's reduced integration coverage and historical failures. Review F8b's remaining hosted drills on its owning branch before closing ci-foundation; quality-gates remains separate planning.

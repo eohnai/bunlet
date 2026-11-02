@@ -7,6 +7,8 @@ Status: proposed
 Let people keep only the parts they use in one native app: Desktop Pet, Notch and Agents.
 Pet works without either other feature. Settings owns feature availability; each feature retains its own behavior and services.
 The user approved planning and publishing this specification on 2026-11-02. Its implementation task list remains proposed.
+FM1–FM7 are linked by the prepared [modular-features goal](../../goals/modular-features.md).
+The goal is not activated; preparing it does not approve implementation or resume any older goal.
 
 ## Done when
 
@@ -139,14 +141,79 @@ FM1 proposes at most three changed implementation/test files:
 `Sources/NotchPet/AppFeature.swift`, `Sources/NotchPet/FeaturePreferences.swift`, and `Tests/NotchPetTests/FeaturePreferencesTests.swift`.
 Documentation/checkpoint records are separate. Add no package dependency or target.
 
-Define exact public members during FM1 review and keep the slice to four new production functions/accessors and five test cases maximum.
-Use parameterization for the eight feature sets. Check round-trip combinations, fresh defaults, both legacy opt-in paths,
-invalid/future records preserving recovery data, and preferences surviving removal/reinstall. These are planned checks, not test results.
-Use an isolated UserDefaults suite; never read the person's real preferences, provider configuration or credentials.
+### FM1 catalog and types
 
-Proposed verification: the focused `FeaturePreferencesTests` Swift Testing suite through the selected Xcode toolchain and a scratch directory
-outside the repository. FM1 approval should cover that focused run only. Later slices require their own named file/function/test budgets
-and appropriate checks; FM1 does not authorize their builds, launches or configuration changes.
+`AppFeature.swift` defines an internal `AppFeature: String, CaseIterable, Codable, Sendable` enum with stable IDs
+`pet`, `notch`, and `agents`, in that display order. It contains no service factories, window references or provider capability claims.
+Keep these app-composition types outside the independent Pet module and outside SessionState.
+
+`FeaturePreferences.swift` defines value results that distinguish a usable installed set from required recovery.
+A usable read carries its origin: stored, fresh default or legacy opt-in. Recovery carries a small reason enum,
+never raw saved bytes in an error description. Suggested reasons are invalid stored type, invalid record, unsupported version and invalid legacy value.
+An empty installed set is a valid choice, distinct from a recovery result. No inferred installed set is returned on recovery.
+
+### FM1 storage and migration
+
+Proposed key: `features.availability`, containing JSON `Data` with an integer `version` of 1 and an `installed` array of stable IDs.
+For example, a pet-only record represents `{"version":1,"installed":["pet"]}`. An empty array means no optional features installed.
+Encode IDs in catalog order, reject duplicates/unknown IDs, and bound input to 4,096 bytes before decoding.
+A non-Data value, malformed record, incompatible version or invalid IDs produces recovery and remains untouched.
+Version 1 may ignore extra JSON fields; a future incompatible format must use a different version.
+
+Reads are side-effect free. When the availability key is absent, inspect only `agentMonitoringEnabled` in the injected defaults:
+
+| Availability record | Legacy value | Read result |
+| --- | --- | --- |
+| Valid version 1 | Any value | Stored set wins, including the empty set |
+| Absent | Absent or boolean false | Fresh Pet-only set |
+| Absent | Boolean true | Legacy Pet + Notch + Agents set, preserving the previous opt-in |
+| Absent | Other stored type | Recovery; do not interpret a string/number as consent |
+| Present but invalid/unsupported | Any value | Recovery; do not fall back to the legacy flag |
+
+Only an explicit save writes the new record. Save must refuse to replace a recovery record; a future deliberate reset needs its own reviewed action.
+It never removes or rewrites the legacy flag, pet settings, unrelated keys or provider configuration. Persisting feature availability does not
+start services, grant consent, install hooks or reconnect providers. Later runtime tasks must still apply those separate rules.
+UserDefaults acceptance/read-back is the persistence seam; do not promise disk-level transactions, cross-process compare-and-swap or forced synchronization.
+
+### FM1 proposed API and limits
+
+Use a `@MainActor` `FeaturePreferences` namespace with explicitly injected `UserDefaults`; no default argument may silently select `.standard`.
+Proposed entry points are `read(from:) -> FeaturePreferenceRead` and `save(_:to:) -> FeaturePreferenceSaveResult`.
+Save accepts a typed `Set<AppFeature>`, returns success/recovery/write-failure distinctly and checks the current record before replacing it.
+Use a private record decoder shared by read/save; keep the total to four handwritten production functions/accessors maximum.
+Synthesized Codable/value-type members do not justify extra handwritten wrappers. Add no observers, tasks, AppKit/SwiftUI imports or dependencies.
+
+Read must not repair or persist migration automatically. Save canonicalizes the typed set and verifies the observed value after the write;
+reporting failure does not claim rollback or protection against an unrelated writer. Use a new isolated defaults suite per test,
+clean up only that suite, and never enumerate real preferences or provider environment/configuration.
+
+### FM1 five proposed checks
+
+Use at most five Swift Testing test cases, parameterized where appropriate:
+
+1. **Defaults and legacy classification:** absent/false/true/malformed legacy values return the specified source and installed set;
+   repeated reads do not add/change any preferences.
+2. **All eight sets:** save/reload each subset, including none; verify stored choices override a conflicting legacy flag and have deterministic ID ordering.
+3. **Invalid/future data:** parameterize malformed JSON, wrong stored type, oversized input, duplicate/unknown IDs and incompatible versions;
+   reads report recovery and a subsequent save preserves the original value and unrelated keys.
+4. **Migration across reopen:** read a legacy opt-in, explicitly save that set, create a fresh preferences handle and confirm the stored record
+   takes precedence after the legacy flag changes. The legacy key itself must survive untouched.
+5. **Remove/reinstall preferences:** change the selected set, reopen and restore it while preserving fictional pet size, setup state and unrelated preferences.
+   This checks installation-choice persistence, not runtime service teardown or actual hook removal.
+
+These are proposed checks, not test results. FM1 passes only when its focused tests and diff check pass and the diff stays within the three named files
+plus planning/status records. Its test count may include parameterized cases; report the actual framework count rather than promising five invocations.
+
+Proposed command after implementation approval:
+
+```sh
+env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/notch-pet-fm1/build --filter FeaturePreferencesTests
+git diff --check
+```
+
+The user requested FM1 planning, not implementation. Approval of FM1 alone would cover this focused run only.
+Approval to start the umbrella goal can cover FM1–FM7 and the goal's specified verification together; later slices still need their bounded plans recorded
+before edits. Neither kind of approval authorizes captures, installed-provider changes, additional dependencies or unrelated cleanup.
 
 ## Decisions and questions
 
