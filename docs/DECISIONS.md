@@ -141,3 +141,30 @@ It shows what remains before the limit without arithmetic. ^[inferred]
 
 **Consequences.** codex-allowance's "Percentages are labelled used" check is replaced for the notch. Its other U5 checks stand.
 Percent left is rounded down, so the notch never shows more allowance than is reported.
+
+## D7: Install and uninstall features from Settings
+
+- Status: accepted
+- Date: 2026-11-02
+
+**Context.** The user prefers Vorssaint's modular feature selection. They want Pet without Notch,
+and want people who do not use agent features to leave those features uninstalled.
+After distinguishing a feature hub from separate downloads, the user chose installing and uninstalling features in Settings.
+
+**Options.**
+- **One app with installable features in Settings:** one release; feature availability owns surfaces and service lifecycle.
+- **Separate pet-only download:** a smaller dedicated distribution; adds packaging and update paths.
+- **Presentation switches alone:** can hide controls while leaving their services available; insufficient for the requested feature removal.
+
+**Decision.** Retain one native app and let users install/uninstall Pet, Notch and Agents through Settings.
+Pet must work without Notch or Agents. An uninstalled feature disappears from ordinary feature navigation and starts no owned work;
+its entry remains available in the feature manager for reinstallation. Preserve preferences for reinstall.
+
+**Reasoning.** The user explicitly chose in-app feature installation so people can keep only the functionality they want.
+
+**Consequences.** This extends decision 0013's independent pet and optional services into a user-visible feature lifecycle.
+“Installed,” “enabled,” “connected” and “healthy” remain distinct. Installing Agents does not automatically authorize hook edits;
+provider Connect/setup retains its reviewed contract. Uninstall must stop owned tasks and surfaces, preserve unrelated configuration,
+and handle pending notices without inventing completion. Loaded code may remain resident until restart; separate downloadable binaries
+are not required by this decision. Dependency/removal rules, standalone desktop pet placement and bounded implementation tasks need planning.
+This records product behavior, not implementation approval, a new goal, resumed acceptance or a claim that current packaging implements it.

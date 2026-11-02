@@ -2,6 +2,11 @@
 
 Date: 2026-10-28
 
+Portable reference expanded: 2026-11-02. Start with [the implementation reference](#portable-implementation-reference)
+when Flux Island is unavailable on the development machine. For the combined Flux/Vorssaint UI direction,
+see [companion UI direction](companion-ui-direction.md). Source descriptions below explain behavior;
+accepted decisions and proposed adaptations remain distinct.
+
 ## Scope and evidence
 
 The user requested a comparison with the Flux Island installed on this Mac, accepted retaining SwiftUI/AppKit,
@@ -21,6 +26,166 @@ No packaged source, internal artwork, or captured session content is included in
 
 References below name entries inside that archive and their inspection-time line numbers.
 The extraction is temporary and is not a build input. A later Flux version may differ.
+
+## Portable implementation reference
+
+This section is sufficient for planning without the installed app, temporary extraction, internal guides,
+or the original chat images. It describes Flux Island 0.1.25, then states how each behavior relates to notch-pet.
+These are packaged-source findings, supplemented by the agent-settings image supplied by the user;
+they do not establish live compatibility for every listed agent.
+
+### What the agent settings look like
+
+The supplied reference shows a dark settings panel with a vertical list of agents. Each row has the agent name
+at the left, a status dot and status text beside it, and a trailing switch. Thin dividers separate rows.
+Enabled examples say **Active** with a green dot and a blue switch. A disabled example says **Disabled** with a gray dot
+and an off switch. The visible list includes Claude Code, Codex, Cursor, OpenCode, Kimi Code CLI, Gemini CLI,
+GitHub Copilot CLI, Hermes, Aiden CLI, Sara CLI and Oh My Pi. The image does not establish that every listed integration
+has delivered events, provides usage limits, or supports answering requests.
+
+The useful interaction is one understandable row per agent. In notch-pet, distinguish installing the Agents feature
+from connecting an individual provider. Installation makes the feature available; Connect configures a supported agent.
+Connection health needs separate evidence for configuration, receiver readiness and actual delivery.
+
+### How additional agents fit
+
+Flux uses multiple extension points rather than a universal switch that makes any CLI compatible:
+
+- **Setup managers** install, remove and check provider-specific hooks or plugins. The coordinator stores them by agent ID.
+- **Event adapters** translate provider payloads into shared session events. The bridge also has dedicated paths for plugin
+  and custom agent IDs, alongside its built-in adapters and pull integrations.
+- **A custom-agent registry** supplies identities, display names and configuration locations. It validates names and
+  configuration-path conflicts, watches for changes and updates the available managers and settings UI.
+- **A generic custom adapter** recognizes registered sources and a fixed set of hook-shaped events, including session start,
+  prompt submission and tool activity. Its inspected path is nonblocking. Registration alone does not supply permission responses,
+  questions, usage data or terminal navigation for an arbitrary program.
+
+The inspected coordinator registers 14 built-in setup managers: Claude, Codex, Coco, Trae, Trae CN, Cursor,
+OpenCode, Sara, Kimi, Gemini, Copilot CLI, Hermes, Aiden and Traex. Plugin declarations and registered custom agents
+add managers dynamically. This list describes setup registrations, not a tested capability matrix.
+
+For notch-pet, keep provider identity, event parsing, setup, usage, user actions and terminal navigation as distinct responsibilities.
+A provider can ship observation support before usage or actions. Shared views should render capabilities and snapshots,
+without embedding provider payload parsing or assuming that all providers have equivalent support.
+The exact Swift protocols and module split remain design work.
+
+### How a session appears in the island
+
+Flux's session row puts a phase icon beside a body containing a provider badge and session title.
+Metadata includes the terminal application when known, an elapsed timer, and a remote label when relevant.
+The body may also show the latest user prompt and current activity or last assistant message.
+Follow-up and delete controls are conditional parts of the row.
+
+The renderer filters the list before sorting visible sessions by latest update. Pending approvals and questions remain visible;
+child sessions are excluded from the top-level list. Hook-managed ended sessions are hidden by the inspected filter,
+and other visibility conditions vary by provider, prompt availability and completion dismissal.
+An actionable item can scroll into view, with that automatic scrolling suppressed while a follow-up editor is open.
+
+The elapsed timer in this renderer measures from session creation. It updates once per second while the phase differs
+from `completed`, then uses the session's update timestamp as the endpoint. Our accepted card timer instead measures the
+observed prompt turn. These are different measurements; importing the visual timer must not change its meaning.
+
+Notch-pet keeps provider/project/session identity, explicit state and the turn timer as the compact hierarchy.
+Its normal observations omit prompts, commands and assistant messages. Same-folder sessions remain distinguishable,
+and ended/unknown states and retained notices follow our shared-store rules rather than Flux's visibility filter.
+
+### What happens when an agent needs approval
+
+Flux presents a dedicated approval card with the tool name and request details. Where supplied, it can show code differences.
+For a bridge-handled request, the card exposes deny and allow-once actions. An additional persistent approval choice is
+conditional on permission suggestions or a special plan-mode case; it is not a universal button for all requests.
+
+Some requests have an external approval mode. Terminal-native and cloud-agent modes direct the user to the owning interface
+instead of offering local approval buttons. The coordinator rejects ordinary local bridge approval/denial for those modes.
+Thus an approval card is not evidence that Flux can approve that provider's request from the island.
+
+Our accepted scope is approve once or deny an exact supported local request. Before a button becomes available,
+the provider/version needs a verified response channel and request identity. Pending submission, acknowledged delivery,
+timeout and an uncertain outcome need distinct feedback. Showing an alert or clicking a button cannot by itself confirm
+that the agent resumed. Necessary request details belong to the separate action contract, not routine observation logs.
+
+### How questions and follow-ups work
+
+Flux's structured-question card supports multiple questions, single- or multiple-choice answers and, for selected providers,
+custom text. It builds a structured answer from the question and option positions. Cancel and terminal-return paths also exist.
+The inspected UI sends Codex, Kimi, Hermes and Copilot CLI question handling back to the CLI; custom input is enabled for
+Claude, OpenCode and Sara in that component. Do not generalize the rendered controls into uniform provider support.
+
+Follow-up text uses a separate editor for an existing completed session. In the inspected local terminal path, eligibility
+requires Claude or Codex, a nonremote jump target, and suitable tmux, iTerm or Apple Terminal targeting metadata.
+The editor disables submission while sending, requires nonempty text, supports Escape to cancel and Command/Control-Return
+to send, and keeps an error visible if delivery fails. Draft reset follows session identity.
+
+Notch-pet can adapt the explicit composer, draft ownership and progress/error feedback. Its accepted scope excludes terminal
+keystroke injection; a supported provider response mechanism must be established independently. Missing navigation should not
+disable a separately verified action channel. An incoming alert never requests keyboard focus; opening an editor is explicit intent.
+
+### How usage fits beside sessions
+
+Flux has a quota service separate from token statistics. Codex quota refresh uses an App Server connection with update handling
+and refresh/retry logic. Claude quota uses a status-line cache, with a separately managed wrapper around the existing status line.
+The quota service supplies a provider map to presentation; token statistics have a different service and units.
+
+Adapt the service ownership and failure recovery, preserving actual provider windows, reset timestamps, freshness and account
+confidence. A percentage needs an explicit used/remaining meaning. Token totals cannot establish subscription allowance,
+and the number of sessions must not multiply an account's limits. Our active-provider strip is a compact presentation of quota,
+not a requirement to reproduce Flux's entire statistics interface.
+
+### How the pet and island relate
+
+Flux has separate island and pet windows. Entering pet mode hides the island and sends visible session information to the pet.
+Dragging the pet so its bounds overlap the island's location restores the island. The app's bridge, quota and reconciliation
+services start in the ordinary coordinator path; changing surfaces does not demonstrate pet-only service isolation.
+
+Our accepted drag-out/overlap-return behavior remains with `pets/detachable-pet`. Under the later modular-feature decision,
+a user who installs only Pet must be able to use a desktop pet without installing Notch or Agents. Overlap-return applies only
+when the Notch feature is installed. The independent desktop placement and fallback behavior still need feature planning.
+
+### Scenarios to implement from this reference
+
+These are planning examples, not additional approved implementation tasks:
+
+1. **Pet only:** choose Pet; show the desktop companion and its controls. No session receiver, quota process, provider probe
+   or agent setup is needed. The feature manager stays reachable even with every optional surface removed.
+2. **First agent:** install Agents and connect a supported provider. Show setup/health evidence separately from the first
+   observed session. Add Notch only if the user wants that presentation surface; do not silently install it for Pet.
+3. **Two sessions in one project:** show separate identities, preserve selection during updates and place a confirmed request
+   ahead of routine activity without losing access to the other session.
+4. **Action unavailable:** keep the request and its actual state visible, explain the capability gap and offer verified navigation
+   or manual-return guidance. A disabled or absent action is preferable to a control that cannot reach the provider.
+5. **Connection lost:** retain unconfirmed requests and report unknown evidence. Do not convert silence into completion.
+6. **Feature removed:** close its surfaces, cancel owned work and remove its shortcuts. Preserve preferences for reinstall;
+   handle owned hook cleanup and unresolved notices through an explicit removal contract.
+
+### Where this belongs in notch-pet
+
+| Behavior | Existing owner | Status of the reference |
+| --- | --- | --- |
+| Connect, repair and owned hook removal | [Codex setup](../specs/sessions/codex-setup.md) | Accepted setup direction; detailed task/qualification gates remain |
+| Configuration versus delivery evidence | [Integration health](../specs/sessions/integration-health.md) | Retain separate evidence and actionable messages |
+| Cards, turn timers, compact usage | [Session cards](../specs/notch/session-cards.md), [allowance strip](../specs/notch/allowance-strip.md) | Feature PRs contain implementation; reference is not new acceptance |
+| Focus, selection and session visibility | [Session island](../specs/notch/session-island.md) | Existing acceptance remains open |
+| Approve, answer and explicitly send | [Actions](../specs/actions/area.md) | Accepted scope; provider channels and implementations remain planned |
+| Pet detachment and return | [Pets](../specs/pets/area.md) | Accepted interaction; implementation remains planned |
+| Install/uninstall optional features in Settings | [D7](../DECISIONS.md#d7-install-and-uninstall-features-from-settings), [Settings](../specs/settings/area.md) | Newly accepted product behavior; no implementation task approval |
+
+### Source anchors for a later reinspection
+
+These are archive-relative paths and symbols, not dependencies on this Mac's temporary files.
+The version and archive hash above identify the inspected build.
+
+| Archive entry | Inspection-time location | Evidence |
+| --- | --- | --- |
+| `out/main/index.js` | `hookManagers`, line 58935; `CustomAgentRegistry`, line 46942 | Setup registry and dynamic custom identities |
+| `out/main/index.js` | `GenericCustomAdapter`, line 37412; `BridgeServer`, line 39135 | Custom event translation and separate pending permissions/questions |
+| `out/main/index.js` | `getHookStatus`, line 60386; `installHook`, line 60402; `uninstallHook`, line 60425 | Health, setup result and removal entry points |
+| `out/main/index.js` | `approveSession`, line 59935; `answerSession`, line 59971 | Mode-specific response dispatch |
+| `out/main/index.js` | `QuotaService`, line 47476; `loadClaudeQuota`, line 47104 | Quota ownership and provider-specific reads |
+| `out/renderer/assets/IslandPanel-DSRHjja3.js` | `isVisibleInIsland`, line 6; `useActionable`, line 43; `useElapsed`, line 472; `SessionRow`, line 484 | Filtering, selection-related scrolling and row content |
+| Same renderer entry | Approval card around line 940; question card around line 1020; follow-up editor around line 1280 | Capability-specific request and composer interactions |
+
+Future feature descriptions should state the visible hierarchy, trigger, resulting action, failure/unavailable state,
+and the owner in our app. A reference consisting only of “like Flux Island” is insufficient for implementation elsewhere.
 
 ## Observed behavior worth adapting
 

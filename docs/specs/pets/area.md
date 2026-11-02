@@ -17,6 +17,7 @@ Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; the optional
 - [Record layout decision](../../decisions/0011-organize-records-by-feature.md).
 - [Terminal independence](../../decisions/0012-support-terminal-independent-operation.md) is accepted. Pet reactions must not require Otty or terminal navigation.
 - [Standalone pet scope and packaging](../../decisions/0013-separate-standalone-pet-scope.md) is accepted. Use one app with an independent pet module and optional agent services.
+- [D7](../../DECISIONS.md#d7-install-and-uninstall-features-from-settings) extends this to install/uninstall in Settings: Pet requires neither Notch nor Agents. Existing notch-positioned pet implementation does not establish independent desktop placement; plan that gap without rewriting historical built-in-pet acceptance.
 - Set up the pet first. Agent setup is optional and skippable. After approved hook setup, observed sessions trigger agent features automatically.
 - Pet-only startup starts no agent or usage services. The standalone pet no longer depends on notch session presentation.
 - The app owns optional services. The pet module imports no agent session types. An optional adapter translates authoritative snapshots.
@@ -40,6 +41,7 @@ Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; the optional
 ## Decisions
 
 - **Keep pet-first startup with optional agent services; add drag-out and overlap-return presentation.** Accepted on 2026-10-30: dragging the pet out hides the island, and overlapping the detached pet with the island's location returns the pet and restores the island. The user chose Flux's interaction while retaining decision 0013's independent pet module and optional services.
+- **Make overlap-return conditional on installed Notch, 2026-11-02:** D7 permits Pet without Notch. Independent pet placement must remain usable in that combination; returning to a notch surface applies when that feature is installed. Detailed placement and dependency behavior remains to be planned.
 - Detachment and return belong to `detachable-pet` and work without an agent connection. Switching surfaces does not start or stop monitoring, change connection settings, or resolve retained notices. This accepts behavior; the feature's task list and implementation plan still require approval.
 - **Use original white lionhead rabbit artwork for the default pet.** Accepted on 2026-10-30: the user chose newly created original artwork over supplying an existing image, then specified a white lionhead rabbit. At this decision point the standalone-rabbit goal was prepared but not activated; its later approved asset step and implementation are summarized below.
 

@@ -2,19 +2,18 @@
 
 ## Now
 
-PR #13 integrates main `79268d4` into `feat/notch-allowance-strip` to resolve its conflict.
-Session cards C1–C5 and allowance A1–A5 are recorded complete in this branch through `ae7009e`; preserve their existing user-review evidence and limits.
-Main's CI, socket/reader test repairs and Observation practices are integrated. Only STATUS conflicted; the approved tooltip removal and active-provider filter are preserved.
-The merged branch passed all 172 Swift tests on 2026-11-02, with the existing usage-datagram known issue and no unexpected failures. Staged whitespace and unresolved-conflict checks passed. Evidence: `/private/tmp/notch-pet-pr13-swift.log`.
-The user authorized commit/push and conflict resolution. No new app launch, capture or installed configuration change is part of this resolution; older goals remain paused.
+PR #13 is merged into main as `e856686`, including session cards and the allowance strip. Its six PR checks and automatic main run `41380394590` passed. Redundant PR #14 is closed; its card implementation is included in #13. Historical acceptance limits remain below.
+The user approved publishing the portable references and planning modular feature management. D7 accepts one app with Pet, Notch and Agents installed/uninstalled in Settings.
+`settings/feature-management` now has seven proposed tasks, FM1–FM7, with FM1 limited to catalog/preferences. The reference/specification commit and push are authorized; implementation has not begun. The active goal was cleared, and historical paused records are preserved.
+Pre-existing untracked editor and CI planning files remain separate. Reference edits were restored from stash `5b1de05`, which is retained as a backup.
 
 ## Next
 
-1. Review PR #13's hosted checks after publication. Do not merge the PR into main without authorization.
-2. Review the feature difference against PR #14: PR #13 contains the cards plus the allowance strip. Preserve decisions 0014/0015 and the recorded A5/C5 review rather than repeating captures.
-3. Keep broader session-island/VoiceOver and real-session setup acceptance separate. Current hook installation/Connect support remains unimplemented.
-4. Retain main's F10 reduced integration coverage and outstanding F8b hosted drills; handle further automation work on its owning branch.
-5. Do codex-setup R4, then plan R2/R3 and the remaining setup prerequisites with their existing design gates. Older goals stay paused.
+1. Review the proposed `settings/feature-management` task list, beginning with FM1 availability/preferences. Approve implementation tasks before coding.
+2. Confirm the automatic checks after publishing the reference/specification commit; preserve all feature acceptance evidence and gaps.
+3. Use `docs/notes/companion-ui-direction.md` to plan compact card disclosure and truthful connection/freshness states. Keep proposed UI refinements distinct from accepted product scope.
+4. Do codex-setup R4 architecture documentation before R2/R3 and their reviewed splits. Preserve R5/R6 and I3b1 qualification/acceptance prerequisites; Codex 0.164.0 is not qualified by this review.
+5. Preserve F10's reduced integration coverage and historical failures. Review F8b's remaining hosted drills on its owning branch before closing ci-foundation; quality-gates remains separate planning.
 
 ## Blockers
 
@@ -22,7 +21,8 @@ The user authorized commit/push and conflict resolution. No new app launch, capt
 - Real agent session integration remains unverified: the A5/C5 review used fictional observations and a real Codex allowance read, not a real configured session. No direct supported `NotchPetHook` invocation was found during that earlier bounded structural inspection.
 - Provider-logo packaging does not establish the separate pet `Bundle.module` fallback lookup; preserve its existing limitation.
 - Earlier branch full-suite runs intermittently timed out in `IntegrationHealthProbeTests.versionProbeBoundsItsProcessAndOutput`; the final historical rerun passed 171 tests. Main's newer test changes are now integrated; this merged run passed 172 tests. One successful run does not establish that every intermittent failure is eliminated.
-- Historical pre-F10 main failure (F10 is now included through PR #12): `gh run view 41288722994 --log-failed` reports commit `366eee3` and `Expectation failed: (result → .inconclusive) == .closedDespiteInput` at `ContractAndSocketTests.swift:217`. F10 replaces that test. Preserve the failed run and saved reports at `/private/tmp/notch-pet-pr11-main-failure/`. The exact hosted per-attempt reason remains unknown.
+- Historical pre-F10 main failure: `gh run view 41288722994 --log-failed` reports commit `366eee3` and `Expectation failed: (result → .inconclusive) == .closedDespiteInput` at `ContractAndSocketTests.swift:217`. F10 is included through PR #12 and replaces that test. Preserve the failed run and saved reports at `/private/tmp/notch-pet-pr11-main-failure/`. The exact hosted per-attempt reason remains unknown.
+- D7 feature management is not implemented. Current packaging is one app, current settings expose pet controls, and existing pet placement does not establish Pet without the Notch surface. Define availability, service teardown, hook ownership, pending notices and feature dependencies before implementation. Separate binary downloads are not required.
 - F10's reader-only test removes the old server-level deadline-creation check and its slow-sender timeout-path callback/recovery assertions. Other frame/delivery tests remain, but do not replace that specific integration coverage. The decision and both reset-mutation results are recorded in the spec.
 - The user approved F10's internal wait seam, revised test, both reset mutations, EventBridge tests, one full suite run, commit, push, and PR. Additional repairs, unrelated runtime checks, captures, and installed configuration changes remain outside that scope. F8b's deliberate hosted drills still need authorization.
 - The user approved F9's previously proposed script extraction, multi-file exception, and local verification after PR #10 passed on main. Verification used saved CI reports and fictional commands. Further repairs, broader runtime tests, hosted drills, app launches, captures, and installed configuration changes need separate authorization. Account-specific security capabilities and additional runner combinations remain unqualified.

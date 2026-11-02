@@ -6,11 +6,14 @@ Feature-specific behavior stays with Sessions, Notch, Usage, Pets, and Telemetry
 
 ## Specs
 
+- `feature-management`: [Install/uninstall optional Pet, Notch and Agents](feature-management.md), preserve preferences and coordinate service/surface teardown. D7 is accepted; FM1–FM7 implementation tasks remain proposed.
 - `settings-window`: Open a native sidebar settings window from the app menu and show the existing pet controls through a working page.
 - `general-preferences`: Save launch-at-login and language preferences and apply them through supported native behavior. Needs: settings-window.
 
 ## Shared context
 
+- [D7: Install and uninstall features from Settings](../../DECISIONS.md#d7-install-and-uninstall-features-from-settings) is accepted on 2026-11-02. Retain one app; Pet works without Notch or Agents. Keep the feature manager reachable when optional surfaces are uninstalled. Feature availability is separate from runtime enablement and provider connection health.
+- Use the portable [UI direction](../../notes/companion-ui-direction.md) and [Flux behavior reference](../../notes/flux-island-adoption.md#portable-implementation-reference) during planning. Their proposed layouts do not approve implementation tasks.
 - The user approved this area and both roadmap entries on 2026-10-30 after supplying settings reference images.
 - Sessions and real allowance limits remain the first delivery milestone. This area extends that path without making the settings shell a prerequisite for existing session work.
 - Use the supplied reference's sidebar, clear page titles, grouped controls, and explanatory secondary text as the settings direction.
