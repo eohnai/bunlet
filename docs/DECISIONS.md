@@ -168,3 +168,22 @@ provider Connect/setup retains its reviewed contract. Uninstall must stop owned 
 and handle pending notices without inventing completion. Loaded code may remain resident until restart; separate downloadable binaries
 are not required by this decision. Dependency/removal rules, standalone desktop pet placement and bounded implementation tasks need planning.
 This records product behavior, not implementation approval, a new goal, resumed acceptance or a claim that current packaging implements it.
+
+## D8: Exclude VoiceOver testing from feature acceptance
+
+- Status: accepted
+- Date: 2026-11-02
+
+**Context.** The initial modular-feature plan included VoiceOver acceptance, then proposed deferring it.
+The user explicitly instructed: “skip voiceover. remove voiceover for all features. then continue”.
+
+**Options.** Require a screen-reader pass, defer it as mandatory follow-up, or exclude it from feature acceptance.
+
+**Decision.** Exclude VoiceOver/screen-reader testing from every feature's required work and completion gates.
+Retain ordinary native labels, keyboard controls, Reduce Motion and focus behavior. Do not claim excluded checks passed.
+
+**Reasoning.** The user explicitly selected this scope and asked to continue the modular-feature work.
+
+**Consequences.** Update active specifications, goal requirements and blockers. Historical evidence remains historical;
+an old unperformed VoiceOver check is no longer a pending acceptance requirement. This does not remove native controls or their labels,
+authorize captures or global permission changes, or complete unrelated keyboard/focus acceptance.

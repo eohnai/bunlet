@@ -9,6 +9,18 @@ It is not a live visual/accessibility acceptance report or an approved UI implem
 
 ## Accepted product choices
 
+- **Use both references as inspiration for an original, polished Notch Pet interface (2026-11-02).** The user explicitly rejects copying either
+  app's complete UI. Combine useful behavior and organization, then improve hierarchy, spacing, copy, motion and native interaction through
+  Impeccable and Apple guidance. Reference screenshots are evidence of patterns, not visual templates. Preserve the pet's own personality and
+  truthful session/installation states. This direction does not claim that the current UI has passed visual acceptance.
+- **Future brand direction (2026-11-02):** the user wants to rename the project eventually and use the rabbit as the logo. Keep the new name open;
+  plan a recognizable simplified white lionhead rabbit mark and app icon as a separate branding task. Do not treat this direction as a completed
+  logo, chosen name or authorization to rename package/bundle identifiers during feature-management work.
+- **Mascot inspiration clarified (2026-11-02):** REMME Rabbit and the Palm Pals rabbit are visual references, not proposed app names. Explore an
+  original soft, plush-like rabbit with a distinct silhouette and face; derive a simplified logo from that character. No specific reference variant,
+  final mascot drawing or replacement of the existing pet assets has been selected yet.
+  Portable sources: [REMME's Nemu-chan](https://remme.stores.jp/items/64a78e7c3c52b7002cfca524) and
+  [Palm Pals' pet collection](https://palmpals.com/collections/pets). These links identify the references, not a chosen final rabbit variant.
 - [D7](../DECISIONS.md#d7-install-and-uninstall-features-from-settings): one app, with Pet, Notch and Agents installed/uninstalled
   in Settings. Pet requires neither of the other features. Preserve preferences for reinstall.
 - [0013](../decisions/0013-separate-standalone-pet-scope.md): independent pet module and pet-first use with optional agent services.
@@ -108,7 +120,7 @@ including the inherited session-card changes. PR #13 subsequently merged into ma
   should not be spoken as “resets in —.” This requires no new hover tooltip.
 - **P2 — Empty sessions need contextual recovery.** “No sessions observed yet” accurately describes observations. Settings should explain
   whether monitoring is absent, paused, awaiting setup or merely quiet; do not derive “Disconnected” from the empty list.
-- **P2 — Native keyboard and VoiceOver acceptance remains open.** Real buttons and labels are a useful foundation, but the nonactivating
+- **P2 — Native keyboard acceptance remains open.** Real buttons and labels are a useful foundation, but the nonactivating
   panel's complete keyboard route, focus behavior and announcements need approved runtime validation. Source inspection cannot establish them.
 
 Preserve existing strengths: explicit unknown/unconfirmed wording, provider identity, distinct request cards, shared selection rules,

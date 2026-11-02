@@ -6,7 +6,7 @@ Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; the optional
 ## Specs
 
 - `built-in-pet`: [Set up and show a standalone pet](built-in-pet.md) without agent services or configuration.
-- `agent-reactions`: Translate shared session presentation into optional pet reactions and notices. Needs: built-in-pet, notch/session-island.
+- `agent-reactions`: Translate shared session presentation into optional pet reactions and notices. Needs: built-in-pet, sessions/session-state. Requires installed/enabled Agents at runtime; Notch is optional.
 - `detachable-pet`: Drag the pet out, return it, and recover placement across desktop changes. Needs: built-in-pet.
 - `custom-packs`: Validate, import, select, and restore manifest-based pet packs. Needs: built-in-pet.
 - `sprite-sheet-import`: Settle and implement the optional sheet conversion proposal. Needs: custom-packs.
@@ -21,6 +21,7 @@ Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; the optional
 - Set up the pet first. Agent setup is optional and skippable. After approved hook setup, observed sessions trigger agent features automatically.
 - Pet-only startup starts no agent or usage services. The standalone pet no longer depends on notch session presentation.
 - The app owns optional services. The pet module imports no agent session types. An optional adapter translates authoritative snapshots.
+- Reaffirmed on 2026-11-02: standalone Pet keeps ordinary behavior; with enabled Agents, an app-owned adapter maps session evidence into pet-owned moods. Working, answer/approval attention and response-ready cues reuse the shared session authority. Trigger completion once per observed finished response, without claiming task success. This belongs to agent-reactions; modular feature management preserves its integration seam without inventing missing animations or making Notch a dependency.
 - Unknown observations and retained requests must not disappear merely because events stop. Paused monitoring is distinct from a confirmed session end.
 - P0's direction is accepted. Its original unchecked line remains in the source spec pending final planning review.
 - [Source specification](../notch-companion.md): P1–P8 remain open. Shared presentation code exists, but does not establish implemented pet rendering.

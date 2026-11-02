@@ -58,7 +58,7 @@ Checked 2026-11-02 on `feat/notch-allowance-strip`, stacked on C4 `a2a2ede`.
 - The user's screenshots confirmed same-folder short IDs, full identity details, request cards, and idle/unknown/ended labels.
 - The user confirmed `abc002` stayed at three seconds while `abc001` advanced, and terminal focus survived clicking/hovering.
 - The review app quit normally, clearing fictional sessions and its socket. No agent configuration changed or agent-initiated capture ran.
-- VoiceOver and broader session-island acceptance remain unverified. The known version-probe timeout remains recorded.
+- Broader session-island acceptance remains unverified. VoiceOver testing is excluded by D8. The known version-probe timeout remains recorded.
 
 See [allowance-strip Results](allowance-strip.md#results) for final commands, logs, and the subsequent provider-filter test coverage.
 
@@ -305,7 +305,7 @@ The working and waiting sessions show elapsed durations; screenshots alone do no
 
 The user confirmed the timer advanced and keyboard focus remained in the terminal while hovering
 and after clicking the notch. In the final review, they confirmed the stopped timer stayed at three seconds while the other advanced.
-VoiceOver labels remain untested. Inactive observations expire after two minutes.
+Historical check: VoiceOver labels were untested; D8 now excludes screen-reader testing from feature acceptance. Inactive observations expire after two minutes.
 C5 is complete. The paired A5 tooltips were later confirmed by screenshots,
 then explicitly removed at the user's request under [0014](../../decisions/0014-omit-usage-limit-tooltips.md).
 The final app has no hover details. After removal, the full-suite rerun passed 170 tests in 27 suites and the build passed.

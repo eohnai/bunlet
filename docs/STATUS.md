@@ -2,28 +2,26 @@
 
 ## Now
 
-PR #13 is merged into main as `e856686`, including session cards and the allowance strip. Its six PR checks and automatic main run `41380394590` passed. Redundant PR #14 is closed; its card implementation is included in #13. Historical acceptance limits remain below.
-The user approved publishing the portable references and planning modular feature management. D7 accepts one app with Pet, Notch and Agents installed/uninstalled in Settings.
-`settings/feature-management` has seven proposed tasks linked by the prepared `docs/goals/modular-features.md` goal. FM1 now specifies the catalog, versioned record, migration/recovery, API and five focused checks. Implementation has not begun; the umbrella goal is not activated. Historical paused records are preserved.
-The proposed first milestone defers a full VoiceOver pass after the user's question, retaining keyboard access, control labels and focus checks. Broader accessibility acceptance remains open.
-Pre-existing untracked editor and CI planning files remain separate. Reference edits were restored from stash `5b1de05`, which is retained as a backup.
+FM1–FM6 are saved as scoped, dependent commits on `feat/modular-features`: independent feature preferences/lifetimes, shared Settings and safe install/remove/reinstall behavior.
+The goal is paused. The user deferred FM7 and authorized committing FM1–FM6 only; no push or PR was requested.
+FM7's checker and shared-file instrumentation remain uncommitted, alongside unrelated editor/CI drafts. Do not resume app launches or native verification automatically.
+The latest commit-content verification ran without opening the app; evidence and the commit sequence are recorded in settings/feature-management.md.
 
 ## Next
 
-1. Review FM1's detailed plan and the umbrella goal for FM1–FM7. Approve the task list and goal execution before coding; preparing a goal does not activate it.
-2. Check automatic CI after publishing the FM1/goal planning records under the user's earlier publication instruction. Earlier reference commit `0fa8d24` and its automatic main run `41380923905` passed; preserve all feature acceptance evidence and gaps.
-3. Use `docs/notes/companion-ui-direction.md` to plan compact card disclosure and truthful connection/freshness states. Keep proposed UI refinements distinct from accepted product scope.
-4. Do codex-setup R4 architecture documentation before R2/R3 and their reviewed splits. Preserve R5/R6 and I3b1 qualification/acceptance prerequisites; Codex 0.164.0 is not qualified by this review.
-5. Preserve F10's reduced integration coverage and historical failures. Review F8b's remaining hosted drills on its owning branch before closing ci-foundation; quality-gates remains separate planning.
+1. Review the FM1–FM6 commits when requested. Keep FM7's deferred changes and unrelated drafts out of any push/PR unless explicitly included.
+2. Resume FM7 only at the user's request. Start from the recorded native reports and remaining interaction/focus evidence, without repeating earlier automated launch loops.
+3. Keep the original-UI and rabbit-mascot directions in companion-ui-direction.md for later design planning; the new name and final mascot are still open.
+4. Preserve older paused goals and CI/editor drafts. Commit authorization does not authorize a push or PR.
 
 ## Blockers
 
-- A5/C5 user review established cards, fixed/running timers, usage limits and preserved focus. VoiceOver and broader session-island acceptance remain unverified. The final provider filter has unit coverage; no later visual pass is claimed.
+- A5/C5 user review established cards, fixed/running timers, usage limits and preserved focus. Broader session-island acceptance remains unverified; VoiceOver is excluded by D8. The final provider filter has unit coverage; no later visual pass is claimed.
 - Real agent session integration remains unverified: the A5/C5 review used fictional observations and a real Codex allowance read, not a real configured session. No direct supported `NotchPetHook` invocation was found during that earlier bounded structural inspection.
-- Provider-logo packaging does not establish the separate pet `Bundle.module` fallback lookup; preserve its existing limitation.
+- Provider-logo structured-bundle lookup is repaired with a regression test. The last native batch verified packaged resources and all eight startup feature sets; this does not complete FM7's interaction acceptance.
 - Earlier branch full-suite runs intermittently timed out in `IntegrationHealthProbeTests.versionProbeBoundsItsProcessAndOutput`; the final historical rerun passed 171 tests. Main's newer test changes are now integrated; this merged run passed 172 tests. One successful run does not establish that every intermittent failure is eliminated.
 - Historical pre-F10 main failure: `gh run view 41288722994 --log-failed` reports commit `366eee3` and `Expectation failed: (result → .inconclusive) == .closedDespiteInput` at `ContractAndSocketTests.swift:217`. F10 is included through PR #12 and replaces that test. Preserve the failed run and saved reports at `/private/tmp/notch-pet-pr11-main-failure/`. The exact hosted per-attempt reason remains unknown.
-- D7 feature management is not implemented. Current packaging is one app, current settings expose pet controls, and existing pet placement does not establish Pet without the Notch surface. Define availability, service teardown, hook ownership, pending notices and feature dependencies before implementation. Separate binary downloads are not required.
+- FM7 is deferred by the user. The last native command was `python3 scripts/check-feature-management.py --app '/private/tmp/notch-pet-features/notch-pet-dev/Notch Pet.app' --artifacts /private/tmp/np-features-native-final`: all eight startup sets and fresh setup passed; recovery/interaction failed `explicit Settings focus`, and reopen failed `launch choices` after interaction stopped. Its process exited 1 and is stopped. Full pending-removal, keyboard and relaunch acceptance remains unproven. Do not restart it automatically.
 - F10's reader-only test removes the old server-level deadline-creation check and its slow-sender timeout-path callback/recovery assertions. Other frame/delivery tests remain, but do not replace that specific integration coverage. The decision and both reset-mutation results are recorded in the spec.
 - The user approved F10's internal wait seam, revised test, both reset mutations, EventBridge tests, one full suite run, commit, push, and PR. Additional repairs, unrelated runtime checks, captures, and installed configuration changes remain outside that scope. F8b's deliberate hosted drills still need authorization.
 - The user approved F9's previously proposed script extraction, multi-file exception, and local verification after PR #10 passed on main. Verification used saved CI reports and fictional commands. Further repairs, broader runtime tests, hosted drills, app launches, captures, and installed configuration changes need separate authorization. Account-specific security capabilities and additional runner combinations remain unqualified.
