@@ -60,4 +60,19 @@ struct ProviderLogoTests {
             #expect(ProviderLogo.image(for: .codex, appBundle: bundle) == nil)
         }
     }
+
+    @Test func structuredPackagedResourceBundleLoadsItsOwnLogos() throws {
+        try withApp(logos: ["codex.svg", "claude-code.svg"]) { bundle, resources in
+            let nested = resources.appendingPathComponent("Contents/Resources")
+            try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
+            let info = ["CFBundleIdentifier": "test.notch-pet.structured-logos", "CFBundlePackageType": "BNDL"]
+            try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
+                .write(to: resources.appendingPathComponent("Contents/Info.plist"))
+            for name in ["codex.svg", "claude-code.svg"] {
+                try FileManager.default.moveItem(at: resources.appendingPathComponent(name), to: nested.appendingPathComponent(name))
+            }
+            #expect(ProviderLogo.image(for: .codex, appBundle: bundle) != nil)
+            #expect(ProviderLogo.image(for: .claude, appBundle: bundle) != nil)
+        }
+    }
 }
