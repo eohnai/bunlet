@@ -19,7 +19,7 @@ DONE WHEN all are proven with evidence printed in the conversation:
 2. Focused tests cover FM1 defaults/legacy migration, all eight saved sets, invalid/future data preservation, reopen and retained preferences; lifecycle tests prove zero absent-feature factories, idempotent teardown and rejection of late callbacks. No real preferences, sessions, credentials or installed agent configuration are used.
 3. `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/notch-pet-features/build` exits 0 with at least the baseline 172 tests plus the new contract coverage, zero unexpected failures and the pre-existing usage-datagram issue explicitly retained.
 4. `env TMPDIR=/private/tmp/notch-pet-features DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer bash scripts/run.sh --build-only` and `git diff --check` exit 0. The packaged app preserves its existing helper/resource checks.
-5. One bounded noncapture native pass on the actual app proves feature install/remove/reinstall, Pet without Notch/Agents, eight combinations, keyboard/VoiceOver, retained settings, focus and menu recovery. Record missing evidence as incomplete. Existing unrelated deferred acceptance stays open. A unit test or ledger is not visual/accessibility acceptance.
+5. One bounded noncapture native pass on the actual app proves feature install/remove/reinstall, Pet without Notch/Agents, eight combinations, keyboard access, clear control labels, retained settings, focus and menu recovery. Record missing required evidence as incomplete. Full VoiceOver testing is deferred to accessibility follow-up, with no screen-reader acceptance claimed. Existing unrelated deferred acceptance stays open. A unit test or ledger is not native acceptance.
 
 ORDER: FM1 catalog/preferences; FM2 independent service/surface lifetime; FM3 selected startup and minimal desktop pet placement; FM4 shared Settings shell plus Features; FM5 removal/reinstall/recovery; FM6 contract matrix; FM7 native acceptance. Record bounded file/function/test plans before FM2-FM5 edits, including the necessary settings-window slice. Routine choices within the approved spec need no repeated permission; ask before changing scope or unresolved product semantics.
 
@@ -35,7 +35,8 @@ STOP AND REPORT incomplete after 30 work turns, after the same failing criterion
 One goal owns the complete outcome; checkpoints are not separate goals or separate definitions of done.
 FM1 is planned in [the first-slice section](../specs/settings/feature-management.md#first-implementation-slice-for-review).
 FM2/FM3 build on that state model, FM4 integrates the minimal settings-window slice, and FM5 adds removal/reinstallation.
-FM6 verifies their combined contract. FM7 remains required before claiming complete feature delivery.
+FM6 verifies their combined contract. FM7 remains required before claiming this modular-feature milestone complete.
+Full VoiceOver screen-reader testing is a later accessibility pass; keyboard access, labels and focus remain in this milestone.
 
 | Checkpoint | Tasks | Evidence needed before proceeding |
 | --- | --- | --- |
@@ -43,8 +44,9 @@ FM6 verifies their combined contract. FM7 remains required before claiming compl
 | Independent runtime | FM2–FM3 | Deferred factories, zero absent-feature work, safe stop/restart, useful Pet-only placement |
 | User controls | FM4–FM5 | Reachable shared Settings, truthful progress/recovery, no silent dependency installs, preferences retained |
 | Contract verification | FM6 | All eight combinations plus transitions and late callbacks, full suite and packaged build |
-| Native acceptance | FM7 | Actual noncapture control/focus/accessibility evidence; unresolved gaps stay incomplete |
+| Native acceptance | FM7 | Actual noncapture controls/keyboard/labels/focus evidence; required gaps stay incomplete; full VoiceOver pass deferred |
 
 The runtime goal is still unarmed. Goal approval must also settle the spec's proposed combinations and migration behavior.
-Missing VoiceOver/automation access is a reportable acceptance gap, not permission to request Screen Recording or mark FM7 done.
+Missing automation access can leave the required native checks incomplete. VoiceOver deferral alone does not block this milestone,
+and neither case permits requesting Screen Recording or claiming unperformed checks passed.
 No token budget is proposed. The 30-turn stop is a proposed work limit, not a deadline.

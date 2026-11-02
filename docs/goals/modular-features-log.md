@@ -12,6 +12,8 @@
 
 No execution turns have run. The user requested goal preparation; implementation and activation await approval.
 FM1's detailed API/storage/check plan is in the specification. Source inspection and documentation validation do not complete FM1.
+Planning refinement, 2026-11-02: full VoiceOver testing is proposed as deferred accessibility follow-up after the user's question.
+The goal still requires keyboard access, clear labels, focus and actual native control checks. No execution or screen-reader acceptance is claimed.
 
 ## Final result
 

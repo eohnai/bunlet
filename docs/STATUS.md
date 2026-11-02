@@ -5,6 +5,7 @@
 PR #13 is merged into main as `e856686`, including session cards and the allowance strip. Its six PR checks and automatic main run `41380394590` passed. Redundant PR #14 is closed; its card implementation is included in #13. Historical acceptance limits remain below.
 The user approved publishing the portable references and planning modular feature management. D7 accepts one app with Pet, Notch and Agents installed/uninstalled in Settings.
 `settings/feature-management` has seven proposed tasks linked by the prepared `docs/goals/modular-features.md` goal. FM1 now specifies the catalog, versioned record, migration/recovery, API and five focused checks. Implementation has not begun; the umbrella goal is not activated. Historical paused records are preserved.
+The proposed first milestone defers a full VoiceOver pass after the user's question, retaining keyboard access, control labels and focus checks. Broader accessibility acceptance remains open.
 Pre-existing untracked editor and CI planning files remain separate. Reference edits were restored from stash `5b1de05`, which is retained as a backup.
 
 ## Next

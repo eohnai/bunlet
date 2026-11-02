@@ -42,6 +42,8 @@ Existing owners remain:
 
 No second app, downloadable code plugin, installer package split, new collector, agent response channel, new provider or pet artwork is added.
 This plan does not resume a goal, captures, deferred native acceptance or installed-agent configuration changes.
+Full VoiceOver screen-reader acceptance is proposed as follow-up accessibility work, outside this first modular-feature milestone.
+Retain meaningful control labels, keyboard access, Reduce Motion and focus behavior here; a deferred VoiceOver check is not a passed check.
 
 ## Current code and gaps
 
@@ -133,7 +135,7 @@ No task is approved for implementation by approving this planning work. Keep the
 - [ ] FM4: Integrate the native Settings shell and three Features rows with catalog-driven navigation, operation states and Install actions. Review the settings-window task list first; reuse pet controls rather than duplicating the window.
 - [ ] FM5: Implement Uninstall/Reinstall coordination with immediate teardown, retained preferences, pending-notice semantics and explicit provider reconnection/cleanup handling. Review partial failure and owned-hook behavior before coding this slice.
 - [ ] FM6: Verify the eight combinations and transitions using fictional sessions and isolated preferences/factories, including all features absent, repeated operations, relaunch migration and late callbacks. Add only meaningful contract checks, then run the appropriate existing suites/build.
-- [ ] FM7: Perform one approved native acceptance pass covering Features keyboard/VoiceOver, pet-only placement, absent surfaces, saved preferences, focus and recovery. No captures or installed-provider edits unless separately authorized. Preserve unrelated deferred pet/notch acceptance.
+- [ ] FM7: Perform one approved native acceptance pass covering Features keyboard access and clear control labels, pet-only placement, absent surfaces, saved preferences, focus and recovery. Defer a full VoiceOver pass to accessibility follow-up; do not claim screen-reader acceptance. No captures or installed-provider edits unless separately authorized. Preserve unrelated deferred pet/notch acceptance.
 
 ## First implementation slice for review
 
@@ -221,6 +223,8 @@ before edits. Neither kind of approval authorizes captures, installed-provider c
   [terminal independence](../../decisions/0012-support-terminal-independent-operation.md), and [native UI](../../decisions/0001-use-swiftui-and-appkit.md).
 - Proposed: the eight-combination semantics, availability migration, zero-feature recovery, placement default, lifecycle generation boundary
   and partial-removal behavior above. Confirm these with the task list before implementation.
+- Proposed scope refinement, 2026-11-02: after the user questioned whether VoiceOver testing was necessary, defer that full screen-reader pass
+  from the initial goal while retaining keyboard access, labels, focus and existing accessibility requirements. This does not complete deferred accessibility acceptance.
 - Confirm the desktop pet's first position while Notch is absent. A safe visible desktop default is sufficient for FM3; persistent dragging stays with Pets.
 - Confirm whether the proposed calm Notch-without-Agents state is useful enough to ship, or should be labelled as awaiting optional monitoring.
 - Resolve a future owned-hook cleanup failure's displayed state before FM5. Feature removal cannot bypass codex-setup qualification or ownership checks.
