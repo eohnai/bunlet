@@ -12,18 +12,24 @@ struct UsageReceiverTests {
         return directory.appendingPathComponent("usage.sock")
     }
 
-    private func rawSend(_ data: Data, to url: URL) {
+    /// Returns whether the whole datagram reached the receiver's socket.
+    /// A rejected input proves nothing unless it was delivered.
+    private func rawSend(_ data: Data, to url: URL) -> Bool {
         let fd = socket(AF_UNIX, SOCK_DGRAM, 0)
         defer { close(fd) }
+        // The 2,048-byte default send limit must not stand in for the receiver's own limit.
+        var size: Int32 = 16_384
+        guard setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &size, 4) == 0 else { return false }
         var address = sockaddr_un()
         address.sun_family = sa_family_t(AF_UNIX)
         address.sun_len = UInt8(MemoryLayout<sockaddr_un>.size)
         withUnsafeMutableBytes(of: &address.sun_path) { $0.copyBytes(from: Array(url.path.utf8) + [0]) }
-        withUnsafePointer(to: &address) { pointer in
+        let sent = withUnsafePointer(to: &address) { pointer in
             pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { address in
-                data.withUnsafeBytes { _ = sendto(fd, $0.baseAddress, $0.count, 0, address, socklen_t(MemoryLayout<sockaddr_un>.size)) }
+                data.withUnsafeBytes { sendto(fd, $0.baseAddress, $0.count, 0, address, socklen_t(MemoryLayout<sockaddr_un>.size)) }
             }
         }
+        return sent == data.count
     }
 
     @Test func validQuotaIsReceivedWithAppReceiptTime() async throws {
@@ -41,16 +47,26 @@ struct UsageReceiverTests {
     }
 
     @Test func malformedAndInvalidQuotaCannotReachCallback() async throws {
-        let url = try endpoint(), count = OSAllocatedUnfairLock(initialState: 0)
+        let url = try endpoint(), received = OSAllocatedUnfairLock(initialState: [UsageObservation]())
         let receiver = UsageReceiver(endpointURL: url)
         defer { receiver.stop(); try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
-        try receiver.start { _ in count.withLock { $0 += 1 } }
-        for data in [Data("{".utf8), Data("{}".utf8), Data(repeating: 32, count: 8193),
+        try receiver.start { value in received.withLock { $0.append(value) } }
+        for data in [Data("{".utf8), Data("{}".utf8),
                      Data(#"{"provider":"claude","sourceID":"a","receivedAtMs":0,"windows":[{"id":"x","usedPercent":101}]}"#.utf8)] {
-            rawSend(data, to: url)
+            #expect(rawSend(data, to: url))
         }
-        try await Task.sleep(for: .milliseconds(100))
-        #expect(count.withLock { $0 } == 0)
+        // The receiver keeps the 4,096-byte default receive buffer, so the kernel refuses this datagram
+        // before the receiver's 8,192-byte check can run. See the usage datagram limit in docs/STATUS.md.
+        withKnownIssue("the receiver cannot be sent a datagram over its 8,192-byte limit") {
+            #expect(rawSend(Data(repeating: 32, count: 8193), to: url))
+        }
+        // The receiver reads datagrams in order, so this valid one arrives after every rejected one.
+        // Waiting for it replaces a fixed sleep that a slow receiver could pass without checking anything.
+        let final = try ClaudeUsageProvider.parse(Data(#"{"rate_limits":{"five_hour":{"used_percentage":25}}}"#.utf8),
+                                                  sourceID: "final-fixture", receivedAtMs: 0)
+        #expect(UsageDelivery.send(final, endpointURL: url))
+        for _ in 0..<200 where received.withLock({ $0.isEmpty }) { try await Task.sleep(for: .milliseconds(10)) }
+        #expect(received.withLock { $0.map(\.sourceID) } == ["final-fixture"])
     }
 
     @Test func unsafeDirectoryAndExistingFilesArePreserved() throws {

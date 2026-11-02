@@ -55,12 +55,13 @@ These are reproduction commands. This retrospective spec ran documentation check
 - [0004: Receive events through agent hooks](../../decisions/0004-receive-agent-hook-events.md).
 - [0011: Organize records by area and feature](../../decisions/0011-organize-records-by-feature.md).
 - [0012: Support terminal-independent operation](../../decisions/0012-support-terminal-independent-operation.md).
+- **Serialize independent fictional process cases, 2026-10-31.** The user approved suite serialization after the controlled comparison passed. Keep the two-second production timeout and all assertions. This avoids an execution-fixture/API redesign and accepts a longer suite duration; increasing the product timeout would change its intended deadline.
 
 ## My calls
 
 - I2a–I2c move here, as the area file's `integration-health` entry describes. Their wording and unchecked states are unchanged.
 - The older source-spec paragraph that says I2 "has not started" is marked superseded there. The I2 evidence below shows that the code exists.
-- No new tasks are added. I2c already includes the full suite, build, and checkpoint that the code still needs.
+- The retrospective migration added no tasks. I2c already includes the full suite, build, and checkpoint that the code still needs. The later I2d task records the separately approved probe-fixture scheduling repair.
 
 ## Open questions
 
@@ -74,6 +75,7 @@ These are reproduction commands. This retrospective spec ran documentation check
 - [ ] I2a: Define independent integration-health evidence and classification for both providers; verify five model tests. Implementation written; verification deferred at the user's request.
 - [ ] I2b: Add bounded read-only version, hook-configuration and helper checks; verify five isolated probe tests without changing configuration. Implementation written; verification deferred at the user's request.
 - [ ] I2c: Feed actual receiver lifecycle and recorded delivery times into health independently of session state; verify the full suite/build and checkpoint I2 completion. Implementation written; verification deferred at the user's request.
+- [x] I2d: Serialize the independent fictional process cases in IntegrationHealthProbeTests without changing assertions or the production timeout; verify the isolated probe suite and the complete coverage-enabled Swift suite.
 
 ## Historical evidence
 
@@ -139,3 +141,99 @@ overwrite receiver or delivery evidence received while awaiting the probe. Dupli
 entries and the supported agent configuration-directory variables, locates the bundled helper, and delegates I/O to the
 background probe service. No Check UI is introduced before I6, and no refresh was called during this task.
 The ten new tests, app build, receiver wiring and all I2 behavior remain unverified. All I2 checkboxes remain open.
+
+## Probe timeout diagnosis, 2026-10-31
+
+The user authorized a separate diagnosis after the ci-foundation F1 baseline failed.
+No repository source or test code changed during this diagnosis. Production behavior remains unmodified.
+
+### Reproduction and isolation
+
+The original coverage-enabled full suite failed with 132 tests in 24 suites and four issues.
+Both provider cases of `versionProbeBoundsItsProcessAndOutput(agent:)` and
+`diagnosticsDiscardUnrelatedFictionalValues(agent:)` returned `.unavailable(.timedOut)` unexpectedly.
+
+```bash
+env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/notch-pet-dev/build --enable-code-coverage
+env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/notch-pet-dev/build --enable-code-coverage --filter IntegrationHealthProbeTests
+```
+
+The isolated command exited 0: five tests in one suite, 5.055 seconds.
+This does not erase the full-suite failure.
+Git shows no uncommitted changes to the probe, its tests or Package.swift.
+The probe implementation and tests originate in `5b0aa5e`.
+
+### Boundary measurements
+
+A temporary copy of committed source was extracted with `git archive HEAD` under
+`/private/tmp/notch-pet-ci/diagnosis/source`.
+Only its probe was instrumented with elapsed launch, first-read and exit-loop measurements.
+Fictional executable bodies, credentials and real agent data were not logged.
+
+```bash
+env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --package-path /private/tmp/notch-pet-ci/diagnosis/source --scratch-path /private/tmp/notch-pet-ci/diagnosis/full-build --enable-code-coverage
+```
+
+The temporary full suite reproduced four issues in the same two parameterized tests.
+`Process.run()` returned in 0–1 ms.
+Three unexpected timeout traces reached 2000 ms with no output and a running child.
+Another received its first output at 1966 ms, then reached the deadline while observing exit.
+The evidence locates the delay before output or exit, rather than in version parsing.
+It does not identify which macOS subsystem causes the execution delay.
+
+A separate four-case comparison changed only the invocation form for equivalent fictional scripts:
+
+| Invocation | First output | Result |
+|---|---|---|
+| Execute each new shebang script directly | 228–1024 ms | 4/4 reported the expected version |
+| Execute `/bin/sh` with each script path | 5–6 ms | 4/4 reported the expected version |
+
+These diagnostic invocation changes are outside the repository and are not a proposed product change.
+The measurements support concurrent fresh-script execution as the source of deadline pressure.
+Attributing that delay to a particular OS security service remains unproven.
+
+### Proposed repair experiment
+
+The temporary source copy then added only `@Suite(.serialized)` to `IntegrationHealthProbeTests`.
+The diagnostic instrumentation remained identical to the failing comparison.
+All test bodies, assertions and the production two-second timeout remained unchanged.
+The same full-suite command exited 0: 132 tests in 24 suites, 10.694 seconds.
+The failing instrumented run took 8.365 seconds.
+This is one successful controlled comparison, not proof of reliability on every runner.
+
+The user approved this separate repair task and resuming CI after it passes:
+
+1. Add the suite trait and a short reason comment in `Tests/SessionStateTests/IntegrationHealthTests.swift`.
+2. Record the scheduling choice and verification evidence here, in STATUS and in the CI goal log.
+3. Run the isolated probe command above, then the original coverage-enabled full-suite command.
+   Both must exit 0. The full run must report 132 tests and zero issues.
+4. If verified, prepare a separate repair commit and resume ci-foundation F1.
+
+The approved repair adds no API, production timeout change, assertion removal or test exclusion.
+No new test is needed: the existing failing cases exercise the actual process boundary.
+The original failure remains the regression evidence.
+The I2 acceptance checkboxes stay open because this task does not establish app wiring or GUI acceptance.
+
+### Repository repair verification
+
+Applied the suite trait and reason comment to the repository after the user approved the task list.
+No other test or product code changed.
+The isolated probe command exited 0: five tests in one suite, 6.045 seconds.
+The original full coverage-enabled command exited 0: 132 tests in 24 suites, 6.319 seconds, zero issues.
+Logs: `/private/tmp/notch-pet-ci/reports/repair-probe-suite.log` and
+`/private/tmp/notch-pet-ci/reports/repair-full-suite.log`.
+I2d is verified. I2a–I2c remain open for their separate acceptance requirements.
+
+### Evidence paths
+
+All logs and diagnostic code remain outside the repository:
+
+- `/private/tmp/notch-pet-ci/reports/f1-swift-test.log`
+- `/private/tmp/notch-pet-ci/reports/diagnosis-probe-suite.log`
+- `/private/tmp/notch-pet-ci/reports/diagnosis-full-trace.log`
+- `/private/tmp/notch-pet-ci/reports/diagnosis-full-serialized.log`
+- `/private/tmp/notch-pet-ci/reports/diagnosis-invocation-shebang.log`
+- `/private/tmp/notch-pet-ci/reports/diagnosis-invocation-direct-shell.log`
+- `/private/tmp/notch-pet-ci/diagnosis/IntegrationHealthTrace.swift`
+- `/private/tmp/notch-pet-ci/diagnosis/IntegrationHealthInvocationTrace.swift`
+- `/private/tmp/notch-pet-ci/diagnosis/Main.swift`

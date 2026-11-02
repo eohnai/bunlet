@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import os
 import Testing
 @testable import EventBridge
 
@@ -12,6 +13,7 @@ private final class Observations: @unchecked Sendable {
         signal.signal()
     }
     var count: Int { lock.withLock { values.count } }
+    var eventIDs: [String] { lock.withLock { values.map(\.envelope.eventID) } }
 }
 
 struct ContractAndSocketTests {
@@ -107,21 +109,64 @@ struct ContractAndSocketTests {
     }
 
     @Test func fragmentedFrameAndPeerIdentity() throws {
-        let endpoint = endpoint(), observations = Observations()
-        defer { try? FileManager.default.removeItem(atPath: endpoint.directory) }
-        let server = EventBridgeServer(endpoint: endpoint)
-        try server.start { observations.append($0) }
-        defer { server.stop() }
-        let fd = try connect(endpoint)
-        defer { close(fd) }
-        try requireSameUser(fd)
-        #expect(throws: BridgeError.self) { try requireSameUser(fd, expectedUID: getuid() + 1) }
+        // A socket pair reaches the receiver's reader without the server's 100 ms accept deadline.
+        // A slow test thread then delays the result but cannot change it.
+        var pair: [Int32] = [0, 0]
+        #expect(socketpair(AF_UNIX, SOCK_STREAM, 0, &pair) == 0)
+        defer { close(pair[0]); close(pair[1]) }
+        let sender = pair[0], receiver = pair[1]
+        #expect(fcntl(receiver, F_SETFL, O_NONBLOCK) == 0)
+        try requireSameUser(receiver)
+        #expect(throws: BridgeError.self) { try requireSameUser(receiver, expectedUID: getuid() + 1) }
         let frame = try envelope().frame()
-        try writeAll(fd, data: Data(frame.prefix(17)), until: deadline(after: 50))
-        Thread.sleep(forTimeInterval: 0.01)
-        try writeAll(fd, data: Data(frame.dropFirst(17)), until: deadline(after: 50))
-        #expect(observations.signal.wait(timeout: .now() + 2) == .success)
-        #expect(observations.count == 1)
+        try writeAll(sender, data: Data(frame.prefix(17)), until: deadline(after: 2000))
+        let separate = OSAllocatedUnfairLock(initialState: false)
+        let finished = DispatchSemaphore(value: 0)
+        DispatchQueue.global().async {
+            defer { finished.signal() }
+            // Send the rest only after the reader has consumed the prefix, so the frame needs two reads.
+            var queued: Int32 = 1
+            var length = socklen_t(MemoryLayout<Int32>.size)
+            for _ in 0..<5000 {
+                guard getsockopt(receiver, SOL_SOCKET, SO_NREAD, &queued, &length) == 0, queued > 0 else { break }
+                usleep(1000)
+            }
+            let consumed = queued == 0
+            separate.withLock { $0 = consumed }
+            try? writeAll(sender, data: Data(frame.dropFirst(17)), until: deadline(after: 2000))
+        }
+        let read = try readBounded(receiver, limit: HookEnvelopeV1.frameLimit, until: deadline(after: 5000), framed: true)
+        finished.wait()
+        #expect(separate.withLock { $0 }, "the prefix must arrive in its own read")
+        #expect(read == frame)
+    }
+
+    @Test func queuedExtraBytesAreRejected() throws {
+        // The contract rejects extra bytes only when they are already buffered after LF.
+        // Each input is queued in full before the read starts, so the result does not depend on delivery timing.
+        let valid = try envelope().frame()
+        let maximum = Data(valid.dropLast()) + Data(repeating: 32, count: HookEnvelopeV1.frameLimit - valid.count) + Data([10])
+        let cases: [(String, Data, Data?)] = [("maximum frame", maximum, maximum), ("second frame", valid + valid, nil),
+                                              ("extra byte", valid + Data([32]), nil),
+                                              ("maximum frame plus extra byte", maximum + Data([32]), nil)]
+        for (name, input, expected) in cases {
+            var pair: [Int32] = [0, 0]
+            #expect(socketpair(AF_UNIX, SOCK_STREAM, 0, &pair) == 0)
+            defer { close(pair[0]); close(pair[1]) }
+            // The default buffer is smaller than a maximum frame plus one byte.
+            var size: Int32 = 65_536
+            #expect(setsockopt(pair[0], SOL_SOCKET, SO_SNDBUF, &size, 4) == 0)
+            #expect(setsockopt(pair[1], SOL_SOCKET, SO_RCVBUF, &size, 4) == 0)
+            #expect(fcntl(pair[0], F_SETFL, O_NONBLOCK) == 0)
+            #expect(fcntl(pair[1], F_SETFL, O_NONBLOCK) == 0)
+            try writeAll(pair[0], data: input, until: deadline(after: 2000))
+            let read = { try readBounded(pair[1], limit: HookEnvelopeV1.frameLimit, until: deadline(after: 2000), framed: true) }
+            if let expected {
+                #expect(try read() == expected, "\(name)")
+            } else {
+                #expect(throws: BridgeError.invalidMessage, "\(name)") { try read() }
+            }
+        }
     }
 
     @Test func invalidFramesNeverReachCallback() throws {
@@ -132,9 +177,11 @@ struct ContractAndSocketTests {
         defer { server.stop() }
         let message = try envelope(), valid = try message.frame()
         let text = String(decoding: valid, as: UTF8.self)
-        let padded = Data(valid.dropLast()) + Data(repeating: 32, count: 16_384 - valid.count) + Data([10, 32])
-        let frames = [Data("{}\n".utf8), valid + valid, Data(valid.dropLast()),
-                      Data([255, 10]), Data(repeating: 32, count: 16_385), padded,
+        // Every prefix of each fixture is also invalid, so a partial or late delivery cannot produce a callback.
+        // Inputs that are invalid only while their extra bytes are queued are in `queuedExtraBytesAreRejected`.
+        let oversized = Data(valid.dropLast()) + Data(repeating: 32, count: 16_385 - valid.count) + Data([10])
+        let frames = [Data("{}\n".utf8), Data(valid.dropLast()),
+                      Data([255, 10]), Data(repeating: 32, count: 16_385), oversized,
                       Data(text.replacingOccurrences(of: String(message.observedAtMs), with: "0").utf8),
                       Data(text.replacingOccurrences(of: String(message.observedAtMs), with: "9007199254740991").utf8)]
         for frame in frames {
@@ -142,44 +189,49 @@ struct ContractAndSocketTests {
             try? writeAll(fd, data: frame, until: deadline(after: 50))
             close(fd)
         }
-        try EventBridgeClient(endpoint: endpoint).send(envelope())
+        let final = try envelope()
+        try EventBridgeClient(endpoint: endpoint).send(final)
         #expect(observations.signal.wait(timeout: .now() + 2) == .success)
-        #expect(observations.count == 1)
+        // The receiver handles one connection at a time, so every fixture finished before this callback.
+        #expect(observations.eventIDs == [final.eventID])
     }
 
-    @Test func receiverDeadlineDoesNotResetForEachByte() throws {
-        let endpoint = endpoint(), observations = Observations()
-        defer { try? FileManager.default.removeItem(atPath: endpoint.directory) }
-        let server = EventBridgeServer(endpoint: endpoint)
-        try server.start { observations.append($0) }
-        defer { server.stop() }
-        let fd = try connect(endpoint)
-        defer { close(fd) }
-        // Keep sending while observing closure. A write after the correct deadline
-        // can fail; that failure must not prevent checking the receiver's timeout.
-        let end = deadline(after: 250)
-        var closed = false, successfulWrites = 0
-        while monotonicNanoseconds() < end {
-            do {
-                try writeAll(fd, data: Data([32]), until: deadline(after: 50))
-                successfulWrites += 1
-            } catch BridgeError.unavailable {
-                // The receiver may have closed between this loop's checks.
-            }
-            var byte: UInt8 = 0
-            let count = recv(fd, &byte, 1, MSG_DONTWAIT)
-            if count == 0 || (count < 0 && errno == ECONNRESET) {
-                closed = true
-                break
-            }
-            #expect(count < 0 && [EAGAIN, EWOULDBLOCK].contains(errno))
-            Thread.sleep(forTimeInterval: 0.015)
+    @Test func readerKeepsOriginalDeadlineAcrossFragments() throws {
+        var pair: [Int32] = [0, 0]
+        try #require(socketpair(AF_UNIX, SOCK_STREAM, 0, &pair) == 0)
+        defer { close(pair[0]); close(pair[1]) }
+        for fd in pair {
+            try #require(fcntl(fd, F_SETFL, O_NONBLOCK) == 0)
         }
-        #expect(successfulWrites >= 2)
-        #expect(closed, "the deadline must expire despite ongoing fragmented input")
-        #expect(observations.count == 0)
-        try EventBridgeClient(endpoint: endpoint).send(envelope())
-        #expect(observations.signal.wait(timeout: .now() + 2) == .success)
+
+        var byte: UInt8 = 32
+        try #require(write(pair[0], &byte, 1) == 1)
+        let originalDeadline: UInt64 = 100_000_000
+        var virtualNow: UInt64 = 0
+        var observedDeadlines: [UInt64] = []
+        #expect(throws: BridgeError.timeout) {
+            try readBounded(pair[1], limit: HookEnvelopeV1.frameLimit, until: originalDeadline, framed: true) { fd, _, end in
+                observedDeadlines.append(end)
+                // Stop a reset-deadline mutation before it can keep this test waiting indefinitely.
+                try #require(end == originalDeadline)
+                if observedDeadlines.count > 1 {
+                    var queued: Int32 = 0
+                    var length = socklen_t(MemoryLayout<Int32>.size)
+                    try #require(getsockopt(fd, SOL_SOCKET, SO_NREAD, &queued, &length) == 0)
+                    try #require(queued == 0, "the previous fragment must be read before the next arrives")
+                    try #require(write(pair[0], &byte, 1) == 1)
+                }
+                virtualNow += 40_000_000
+                if virtualNow >= end { throw BridgeError.timeout }
+            }
+        }
+        #expect(observedDeadlines == [originalDeadline, originalDeadline, originalDeadline])
+        #expect(virtualNow == 120_000_000)
+        // Two fragments were read. The third was queued before expiry and must remain unread.
+        var queued: Int32 = 0
+        var length = socklen_t(MemoryLayout<Int32>.size)
+        try #require(getsockopt(pair[1], SOL_SOCKET, SO_NREAD, &queued, &length) == 0)
+        #expect(queued == 1)
     }
 
     @Test func refusesUnsafePathsAndKeepsUnrelatedFiles() throws {
@@ -291,14 +343,25 @@ struct ContractAndSocketTests {
         let endpoint = endpoint()
         defer { try? FileManager.default.removeItem(atPath: endpoint.directory) }
         let server = EventBridgeServer(endpoint: endpoint)
-        try server.start { _ in Issue.record("stalled connection produced a message") }
-        let fd = try connect(endpoint)
-        defer { close(fd) }
-        Thread.sleep(forTimeInterval: 0.01)
-        let start = monotonicNanoseconds()
-        server.stop()
-        #expect(monotonicNanoseconds() - start < 250_000_000)
-        #expect(!FileManager.default.fileExists(atPath: endpoint.socketPath))
+        // Stop cannot interrupt an accepted connection's 100 ms read deadline, which starts after connect begins.
+        // A stop that ends sooner means the server never accepted, so the stalled read was not tested.
+        // The client sees end-of-file in both cases, so only this duration shows the difference. Retry only that case.
+        var stalled = false
+        for _ in 0..<5 where !stalled {
+            try server.start { _ in Issue.record("stalled connection produced a message") }
+            let connectStart = monotonicNanoseconds()
+            let fd = try connect(endpoint)
+            Thread.sleep(forTimeInterval: 0.01)
+            let stopStart = monotonicNanoseconds()
+            server.stop()
+            let stopped = monotonicNanoseconds()
+            close(fd)
+            // The bound catches a hang, not a latency target.
+            #expect(stopped - stopStart < 1_000_000_000)
+            #expect(!FileManager.default.fileExists(atPath: endpoint.socketPath))
+            stalled = stopped - connectStart >= 100_000_000
+        }
+        #expect(stalled, "stop must run while the server waits on a silent accepted connection")
         try server.start { _ in }
         server.stop()
     }

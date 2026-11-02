@@ -88,6 +88,9 @@ struct IntegrationHealthModelTests {
     }
 }
 
+// These cases check separate outcomes, not concurrent probe sessions.
+// Keep fresh fictional executable launches from competing for the process deadline.
+@Suite(.serialized)
 struct IntegrationHealthProbeTests {
     @Test(arguments: IntegrationAgent.allCases)
     func versionProbeBoundsItsProcessAndOutput(agent: IntegrationAgent) async throws {

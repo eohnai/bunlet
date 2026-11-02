@@ -1,0 +1,214 @@
+# Job names and CLI bindings are the ci-foundation contract.
+# Remote action pins: checkout v7.0.1, upload v7.0.2, download v8.0.2.
+name: CI
+'on':
+  pull_request:
+    branches:
+    - main
+  push:
+    branches:
+    - main
+  workflow_dispatch: null
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number
+    || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+env:
+  CI_RUNNER_LABEL: ubuntu-24.04
+defaults:
+  run:
+    shell: bash
+jobs:
+  workflow:
+    name: Workflow
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      evidence-ok: ${{ steps.evidence.outputs.complete }}
+    steps:
+    - &checkout_source
+      name: Check out source
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+    - &run_metadata
+      name: Record allowlisted run and tool versions
+      id: metadata
+      run: python3 scripts/ci/metadata.py
+    - name: Install verified actionlint 1.7.12
+      env:
+        ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+      run: |
+        ci_reports="$RUNNER_TEMP/notch-pet-ci/reports"
+        exec > "$ci_reports/validator-setup.log" 2>&1
+        ci_tools="$RUNNER_TEMP/notch-pet-ci/tools"
+        mkdir -p "$ci_tools"
+        curl --fail --silent --show-error --location --max-time 60 \
+          https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+          --output "$ci_tools/actionlint.tar.gz"
+        printf '%s  %s
+        ' "$ACTIONLINT_SHA256" "$ci_tools/actionlint.tar.gz" | sha256sum --check
+        tar -xzf "$ci_tools/actionlint.tar.gz" -C "$ci_tools" actionlint
+        "$ci_tools/actionlint" -version > "$ci_reports/validator-version.txt"
+    - &bounded_check
+      name: Run check with bounded logs
+      id: check
+      run: python3 scripts/ci/run-check.py
+    - &report_inventory
+      name: Inventory expected evidence
+      id: evidence
+      if: ${{ !cancelled() }}
+      run: python3 scripts/ci/reports.py
+    - &publish_reports
+      name: Upload available reports
+      id: reports_upload
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      with:
+        name: reports-${{ github.job }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        path: ${{ runner.temp }}/notch-pet-ci/reports
+        if-no-files-found: error
+        retention-days: 3
+        overwrite: false
+  tests:
+    name: Tests
+    runs-on: macos-26
+    timeout-minutes: 20
+    env: &macos_toolchain
+      DEVELOPER_DIR: /Applications/Xcode_26.5.app/Contents/Developer
+      CI_RUNNER_LABEL: macos-26
+    outputs:
+      evidence-ok: ${{ steps.evidence.outputs.complete }}
+    steps:
+    - *checkout_source
+    - *run_metadata
+    - &verify_macos
+      name: Verify selected macOS toolchain
+      run: |
+        test -d "$DEVELOPER_DIR"
+        test "$(uname -m)" = arm64
+        test "$(xcodebuild -version)" = $'Xcode 26.5
+        Build version 17F42'
+    - *bounded_check
+    - name: Validate native Swift results
+      id: test_results
+      if: ${{ !cancelled() }}
+      run: python3 scripts/ci/test-results.py
+    - name: Export production coverage
+      run: |
+        python3 scripts/ci/coverage.py \
+          --build-root "$RUNNER_TEMP/notch-pet-ci/test-build" \
+          --output "$RUNNER_TEMP/notch-pet-ci/reports"
+    - *report_inventory
+    - *publish_reports
+  build:
+    name: Build
+    runs-on: macos-26
+    timeout-minutes: 15
+    env: *macos_toolchain
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      evidence-ok: ${{ steps.evidence.outputs.complete }}
+    steps:
+    - *checkout_source
+    - *run_metadata
+    - *verify_macos
+    - &artifact_identity
+      name: Prepare independent artifact identity
+      id: identity
+      run: python3 scripts/ci/metadata.py --identity
+    - *bounded_check
+    - name: Archive and verify build
+      run: |
+        ci_root="$RUNNER_TEMP/notch-pet-ci"
+        python3 scripts/ci/bundle.py \
+          --app "$ci_root/package/notch-pet-dev/Notch Pet.app" \
+          --output "$ci_root/bundle" --identity "$ci_root/identity.json" \
+          > "$ci_root/reports/archive.log" 2>&1
+        python3 scripts/ci/bundle.py --verify "$ci_root/bundle" --identity "$ci_root/identity.json" \
+          >> "$ci_root/reports/archive.log" 2>&1
+        cp "$ci_root/bundle/manifest.json" "$ci_root/reports/build-manifest.json"
+    - name: Upload exact build
+      id: upload
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      with:
+        name: notch-pet-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        path: ${{ runner.temp }}/notch-pet-ci/bundle
+        if-no-files-found: error
+        retention-days: 1
+        compression-level: 0
+        overwrite: false
+    - *report_inventory
+    - *publish_reports
+  helper:
+    name: Helper
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 10
+    env: *macos_toolchain
+    outputs:
+      evidence-ok: ${{ steps.evidence.outputs.complete }}
+    steps:
+    - *checkout_source
+    - *run_metadata
+    - *verify_macos
+    - *artifact_identity
+    - name: Require Build artifact ID
+      env:
+        BUILD_ARTIFACT_ID: ${{ needs.build.outputs.artifact-id }}
+      run: |
+        [[ "$BUILD_ARTIFACT_ID" =~ ^[0-9]+$ ]]
+    - name: Download exact build
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      with:
+        artifact-ids: ${{ needs.build.outputs.artifact-id }}
+        path: ${{ runner.temp }}/notch-pet-ci/bundle
+        digest-mismatch: error
+    - name: Verify and extract downloaded build
+      run: |
+        ci_root="$RUNNER_TEMP/notch-pet-ci"
+        python3 scripts/ci/bundle.py --verify "$ci_root/bundle" --identity "$ci_root/identity.json" \
+          --extract-to "$ci_root/extracted" > "$ci_root/reports/verification.log" 2>&1
+    - *bounded_check
+    - *report_inventory
+    - *publish_reports
+  contract:
+    name: Contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      evidence-ok: ${{ steps.evidence.outputs.complete }}
+    steps:
+    - *checkout_source
+    - *run_metadata
+    - *bounded_check
+    - *report_inventory
+    - *publish_reports
+  required:
+    name: Required
+    if: ${{ always() }}
+    needs:
+    - workflow
+    - tests
+    - build
+    - contract
+    - helper
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+    - *checkout_source
+    - *run_metadata
+    - name: Check exact results and evidence
+      id: required_check
+      env:
+        CI_JOB_RESULTS: '{"workflow":${{ toJSON(needs.workflow.result) }},"tests":${{ toJSON(needs.tests.result) }},"build":${{
+          toJSON(needs.build.result) }},"contract":${{ toJSON(needs.contract.result) }},"helper":${{ toJSON(needs.helper.result)
+          }}}'
+        CI_EVIDENCE_RESULTS: '{"workflow":${{ toJSON(needs.workflow.outputs.evidence-ok) }},"tests":${{ toJSON(needs.tests.outputs.evidence-ok)
+          }},"build":${{ toJSON(needs.build.outputs.evidence-ok) }},"contract":${{ toJSON(needs.contract.outputs.evidence-ok)
+          }},"helper":${{ toJSON(needs.helper.outputs.evidence-ok) }}}'
+      run: python3 scripts/ci/required-result.py --reports
+    - *report_inventory
+    - *publish_reports
