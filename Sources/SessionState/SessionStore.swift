@@ -60,6 +60,12 @@ public final class SessionStore {
         publish()
     }
 
+    /// Retain request identities while withdrawing confirmation when monitoring stops.
+    public func suspendMonitoring() {
+        invalidate(reason: .monitoringStopped)
+        publish()
+    }
+
     public var nextExpiryMonotonicNs: UInt64? {
         records.values.compactMap { record in
             !record.terminal && record.status != .unknown ? record.deadlineNs : nil

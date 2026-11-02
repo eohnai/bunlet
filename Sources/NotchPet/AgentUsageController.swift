@@ -6,7 +6,7 @@ import SessionState
 /// Optional app-owned usage I/O; SwiftUI only observes the resulting status/store.
 @MainActor
 @Observable
-final class AgentUsageController {
+final class AgentUsageController: AppFeatureService {
     private(set) var status = "Reading usage limits…"
     private let store: UsageStore
     private let sessions: SessionStore

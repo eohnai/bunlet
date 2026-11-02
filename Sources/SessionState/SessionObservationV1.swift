@@ -93,6 +93,7 @@ public enum SessionUnknownReason: String, Sendable {
     case uncorrelatedResolution = "uncorrelated_resolution"
     case clockOrWake = "clock_or_wake"
     case deliveryOverflow = "delivery_overflow"
+    case monitoringStopped = "monitoring_stopped"
 }
 
 public enum SessionApplyResult: String, Sendable {
