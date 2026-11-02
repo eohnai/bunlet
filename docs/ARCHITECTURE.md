@@ -2,10 +2,18 @@
 
 ## Accepted structure
 
-Use Model-View-ViewModel (MVVM) for presentation, with separate services for integration and storage.
-A view draws the interface. A view model prepares its state and handles user actions.
-Models describe sessions, alerts, usage limits, and pets.
-Services receive events, track state, open terminal panes, and access files.
+Stores own shared state. Read-only SwiftUI views observe those stores and render their snapshots.
+Pure presentation functions derive labels, ordering, selection and geometry without starting services or changing session meaning.
+AppKit controllers own windows. Services own event delivery, provider I/O and their task lifetimes.
+
+[D3](DECISIONS.md#d3-add-view-models-only-where-a-view-owns-state) refines decision 0002: add a view model only for state the store does not own.
+Examples include drafts, validation, pending actions and async results. A view model for every view would add unnecessary forwarding and duplicated state.
+`FeatureSettingsModel` owns feature actions and recovery state. Existing controller names remain where they describe the current owner.
+[D4](DECISIONS.md#d4-target-macos-14-so-stores-and-controllers-can-use-observable) sets macOS 14 and `@Observable` for stores and observable controllers.
+[D5](DECISIONS.md#d5-observe-stores-from-controllers-with-withobservationtracking) uses `ObservationLoop` for controller observation outside SwiftUI.
+The loop re-arms observation on the main actor and suppresses unchanged values. Cancellation prevents queued callbacks from re-arming it.
+
+Models describe sessions, alerts, usage limits and pets. Integration services do not belong to a view's lifetime.
 The planned local-action service also returns explicit user decisions and replies through verified agent-specific channels.
 
 The user accepted decisions 0002–0007 on 2026-10-22 after reviewing the compatibility findings.
@@ -24,35 +32,83 @@ Agent monitoring and pet reactions use agent identity independently of optional 
 | Part | Responsibility | Does not own |
 |---|---|---|
 | SwiftUI views | Notch content, pet, settings, usage display | Hook parsing and account access |
-| View models | Presentation state and user actions | Independent copies of session truth |
-| Session store | Authoritative session state and alert selection | Window placement |
+| Pure presentation functions | Derived ordering, selection, labels, timers and geometry | I/O, service lifetime or session transitions |
+| View models and action controllers | View-owned actions, drafts, validation and recovery state | Independent copies of session truth |
+| Session store | Authoritative session state, freshness and pending requests | Window placement or presentation selection |
+| Usage store | Provider/account observations and freshness | Session lifecycle events |
+| App composition | Shared stores, feature availability and deferred runtime factories | Provider configuration ownership |
 | Agent adapters | Translate Codex and Claude Code events | Terminal navigation |
 | Local-action service and provider adapters | Verified capabilities, explicit user decisions/replies, request targeting, acknowledgements and cancellation | Inferring lifecycle progress or quota refresh |
 | Terminal adapters | Report verified exact-pane, application-only, or unavailable navigation | Agent lifecycle detection and provider action availability |
 | Usage providers | Read supported quota sources and report freshness | Estimating limits from token counts |
-| AppKit controllers | Window placement, focus, screen changes, dragging | Agent business rules |
+| AppKit controllers | Window creation, placement, focus and native window behavior | Agent business rules |
 | Preferences and pet services | Save preferences and validate local assets | Session history queries |
 
-Both the notch and pet observe the same stores.
-Window controllers remain small; view models do not become process managers.
-Start with source folders in one project. Separate packages only when a real boundary needs independent reuse.
+`NotchSessionView` observes `SessionStore` and `UsageStore` directly. Its expansion and selected-session key are local view state.
+`NotchPresentation`, `NotchAllowancePresentation`, `NotchPlacement`, `PetPresentation` and `PetPlaybackPolicy` provide reusable pure rules.
+`PetView` receives pet presentation and playback inputs. It does not observe agent stores.
+An eventual session-to-pet adapter must consume the same authoritative snapshots rather than create another session store.
+
+## Current targets
+
+`Package.swift` defines these production targets. Tests depend on the target whose contract they check.
+
+| Target | Current responsibility | Dependencies |
+|---|---|---|
+| `EventBridge` | Bounded envelopes, agent adapters, Unix-socket client and server | None |
+| `SessionState` | Session store/inbox, usage, integration health and notch presentation rules | `EventBridge` |
+| `Pet` | Artwork, preferences, rendering and playback rules | None |
+| `NotchPet` | App composition, feature management, Settings, windows and optional services | `Pet`, `EventBridge`, `SessionState` |
+| `NotchPetHook` | Silent one-way observation helper | `EventBridge` |
+
+`SessionState` still contains several concerns. [Codex setup R2](specs/sessions/codex-setup.md#tasks) plans separate `Usage` and `Integration` targets.
+Those targets and the shared executable/configuration locator are not implemented. This document does not change package boundaries.
+
+## Feature availability and runtime ownership
+
+[D7](DECISIONS.md#d7-install-and-uninstall-features-from-settings) keeps one app with independently selected Pet, Notch and Agents features.
+`PetAppController` creates the shared session and usage stores, `FeatureSettingsModel`, and deferred factories in `FeatureRuntimeOwner`.
+Listing the catalog does not construct optional controllers. No optional feature needs another optional surface to remain installed.
+
+`FeaturePreferences` reads versioned availability from injected `UserDefaults`. Reads do not write or start services.
+Absent records produce Pet-only defaults, except explicit legacy monitoring opt-in preserves all three features.
+Malformed or unsupported records require recovery and remain untouched. An empty installed set is valid.
+`FeatureSettingsModel.start()` explicitly saves usable defaults or migration before applying runtime choices.
+Feature availability, monitoring consent, provider setup and integration-health evidence remain separate.
+
+`FeatureRuntimeOwner.apply(_:)` starts each active runtime once and stops removed instances in reverse catalog order.
+A failed factory is reported as unavailable. The Agents feature runs only when installed and monitoring is enabled.
+`AgentServices` owns the receiver/inbox, usage controller, expiry timer and lifecycle observers independently of `NotchPanelController`.
+`AgentUsageController` observes active Codex sessions and owns cancellable usage reads. Hiding or removing Notch does not stop monitoring.
+
+Stopping Agents retires its generation before stopping intake, dropping its inbox and cancelling owned work.
+Queued delivery, notification and expiry callbacks check that generation before changing current state.
+`SessionStore.suspendMonitoring()` retains pending requests as unconfirmed. Removal does not report approval or completion.
+Reinstalling Agents preserves preferences but disables monitoring until explicitly enabled. It does not install or remove provider hooks.
+
+Settings and Quit remain reachable with no optional features. Features remains available for installation and recovery.
+`PetSettingsController` hosts the shared `AppSettingsView`; feature pages follow availability while General and Features remain present.
+Pet setup and size controls reuse that window. Opening Settings does not itself start monitoring.
+FM1–FM6 implementation and automated evidence are recorded in [feature management](specs/settings/feature-management.md).
+FM7 remains deferred: native focus, keyboard, removal and relaunch acceptance is incomplete.
 
 ## Data flow
 
 An agent event reaches a small local helper through a configured hook.
 The helper's agent adapter projects allowlisted metadata into the shared wire envelope.
 The helper sends one bounded message to the app through the Unix-domain socket.
-The receiver validates the envelope, and the inbox maps its observation into shared event meaning.
+The receiver validates the envelope. `SessionEventInbox` queues normalized observations for main-actor delivery.
 The session store applies the event once and publishes updated presentation state.
-The notch and pet reflect that state.
-A navigation click uses the terminal adapter's verified capability.
+The notch reflects that state through pure presentation rules. Session-driven pet reactions remain planned.
+Planned navigation clicks must use a terminal adapter's verified capability.
 Missing terminal identity or navigation support does not block event receipt or session presentation.
 
 Usage providers send account snapshots to a separate usage store.
 They do not create agent lifecycle events or start agent turns.
 
-The receiver, adapters, inbox, and session store are implemented. User hook installation and visible session/usage surfaces remain planned.
-An integration-health service will report setup/version support, helper availability, receiver status, and last observed delivery.
+The receiver, adapters, inbox, stores and visible session/allowance surfaces are implemented. App-owned hook installation remains planned.
+The integration-health model, probe and private app controller exist. The Agents page reads snapshots without starting a probe.
+Explicit Check/setup actions and remaining integration-health acceptance are still open in the [Sessions area](specs/sessions/area.md).
 Health observations do not start sessions, grant hook trust, or make a successful socket write proof of receipt.
 
 ## Planned local-action flow
@@ -78,22 +134,24 @@ Only an explicit user Send can submit a follow-up; usage refresh and connection 
 SSH/cloud adapters remain optional future work, with no first-release requirement or promised provider coverage.
 Later plans must define remote identity, connection/authentication ownership, and supported action semantics before adding them.
 
-## Planned setup and presentation
+## Setup and presentation
 
 Adapt Flux's reversible setup and visible session workflow through native services and views.
-Setup owns only this app's entries, records ownership for removal, preserves unrelated settings and user edits,
+Planned setup owns only this app's entries, records ownership for removal, preserves unrelated settings and user edits,
 and reports conflicts instead of overwriting unsupported configuration.
-The temporary menu-bar session interface established partial event-delivery evidence. The user chose the notch as the primary session surface on 2026-10-29; remove the menu session list when that replacement is usable. Keep basic menu-bar controls and a Show Notch recovery action.
+The temporary menu session interface established partial delivery evidence. The current menu contains feature-dependent Show Pet/Show Notch, Settings and Quit.
+Session content is in the notch. Remaining [session-island acceptance](specs/notch/session-island.md) is separate from that source finding.
 
-One shared presentation model derives selection and attention priority from session snapshots.
-The notch and later pet retain the same selected session and expose every concurrent session. The menu bar does not duplicate session content.
+`NotchPresentation` derives default selection and attention priority from session snapshots.
+`NotchSessionView` retains its selected key across updates while that session exists. There is no shared cross-surface selection store yet.
+Later pet reactions must preserve authoritative session meaning. A shared selection adapter remains future work.
 Views do not maintain independent copies of lifecycle truth, and hiding or dismissing a visual notice cannot resolve a pending request.
 Terminal navigation validates live target identity before an exact-pane jump.
 Otty is one optional adapter. Application activation requires an identified application; otherwise explain manual return.
 Do not require Otty's executable or pane metadata for monitoring, pet reactions, or supported allowance reads.
 The version-1 wire contract retains its optional Otty-only navigation object. Additional terminal metadata needs a separate contract review.
 
-AppKit controllers own window geometry, focus, hit testing, dragging, fullscreen/Spaces, and display changes.
+AppKit controllers own window geometry, focus and native behavior. Full dragging and display/Spaces recovery acceptance remains separate work.
 Use supported native APIs to reproduce desired behavior rather than transplanting Electron helpers.
 The planned pet returns through notch overlap or a menu-bar action without losing shared attention state.
 Animation is presentation only: unknown state must not appear as confirmed working or response ready.
@@ -101,12 +159,13 @@ Animation is presentation only: unknown state must not appear as confirmed worki
 ## Standalone pet boundary
 
 [Decision 0013](decisions/0013-separate-standalone-pet-scope.md) accepts one app with an independent pet module and optional agent services.
-The pet module will own animation, assets, interaction, placement, and preferences without importing agent session types.
-The app will own optional service lifecycle. An adapter will translate shared session snapshots into pet presentation.
-Pet-first setup requires no coding agent or hook configuration. Pet-only startup will start no agent or usage services.
-After approved agent setup, received sessions will trigger agent presentation without a manual mode switch for each session.
+The independent `Pet` target owns artwork, rendering, preferences and playback rules without importing agent session types.
+The app's `PetPanelController` owns native placement, currently near the lower-right of the main display's visible frame.
+`PetWindowPlayback` supplies visibility and sleep inputs. `PetView` schedules frames only when its playback policy permits animation.
+The app owns optional service lifecycle. Pet-only startup starts no agent or usage services and needs no hook configuration.
+Session-to-pet reactions, dragging and return-to-notch behavior remain planned. They require an adapter from shared snapshots to pet presentation.
 Missing events will not prove that a session ended. Unknown state and unresolved notices will retain their existing meanings.
-The user approved separate standalone pet and agent-reaction features. Their implementation task lists still need approval.
+The [built-in pet](specs/pets/built-in-pet.md) is implemented in part, with native acceptance still open. Agent reactions remain a separate feature.
 The independent pet remains accepted. [D2](DECISIONS.md#d2-collect-and-inspect-telemetry-locally-with-an-optional-background-process) now adds an optional collector and history; no second app or repository split is planned.
 
 ## Proposed compatible pet input
@@ -137,8 +196,9 @@ Existing app-owned collection remains the implemented foundation until the propo
 | Data | Storage | Reason |
 |---|---|---|
 | Active sessions and alerts | Memory | They describe live processes |
-| Size, selected pet, sounds, placement | `UserDefaults` | Small preference values |
-| Imported pets and manifests | Application Support files | Images already use files |
+| Feature availability, monitoring consent, pet size/setup and selected Settings page | `UserDefaults` | Implemented small preference values with separate meanings |
+| Planned selected pet, sounds and saved placement | `UserDefaults` | Future small preference values |
+| Planned imported pets and manifests | Application Support files | Keep asset data outside the repository |
 | Optional later usage cache | Small JSON file in Application Support | Must retain receipt time, source measurement time if supplied, and a stale label |
 | Credentials | Existing provider-managed authentication | The app does not copy tokens |
 
@@ -151,7 +211,7 @@ Keep runtime files, imported packs, and captured session data outside this repos
 
 | Choice | Accepted approach | Alternative and tradeoff |
 |---|---|---|
-| Presentation structure | MVVM plus services and shared stores | View-owned state is quicker initially, but duplicates session state |
+| Presentation structure | Shared stores, pure presentation and view models only for view-owned state (D3) | A view model for every view adds forwarding and risks duplicated state |
 | Persistence | Memory, preferences, and files | SQLite supports history queries, but adds schemas and migrations |
 | Event source | Official agent hooks | Transcript reading catches other details, but depends on changing formats |
 | Local event delivery | Unix-domain socket and small helper | Localhost HTTP is easier to inspect, but needs port management |
@@ -169,7 +229,8 @@ The [version-1 event contract](contracts/agent-events-v1.md) defines message fie
 ## Local app shell
 
 The first executable is a dependency-free Swift package targeting macOS 14 or later with Swift 6 tools.
-`NotchPetApp` owns the SwiftUI `MenuBarExtra` scene. Its private `CompanionMenu` presents status and Quit.
+`NotchPetApp` owns the SwiftUI `MenuBarExtra` scene and delegates app lifetime to `PetAppController`.
+Its private `CompanionMenu` presents feature recovery, Settings and Quit, without duplicating the session list.
 Quit calls AppKit's application termination action. The bundle's `LSUIElement` flag keeps it out of the Dock.
 `bash scripts/run.sh` builds and launches a development app bundle under the user's temporary directory.
 This keeps build products outside the repository and works with installed Command Line Tools.
@@ -196,7 +257,7 @@ Unknown state retains unresolved requests as unconfirmed notices.
 It does not support working-state recovery after an observed end reuses the same source session ID.
 The bridge is implemented in the shared `EventBridge` Swift target.
 `NotchPetHook` projects raw hook input and makes one bounded delivery attempt.
-`BridgeAppDelegate` starts the receiver and stops it during normal app termination.
+The optional `AgentServices` instance starts and stops the receiver. `PetAppController` stops all feature runtimes during normal app termination.
 The receiver hands validated envelopes and receipt times to a callback on its worker queue.
 The app now owns one observable `SessionStore` in the `SessionState` target.
 `SessionObservationV1.init(received:)` maps the seven accepted hooks into shared event meanings.
@@ -206,8 +267,8 @@ This mapping implements the version-1 contract. It does not verify provider comp
 The wire validator still enforces common field bounds. The store still owns ordering and freshness.
 The adapter uses the investigation's payload shapes without inferring missing identities or reading transcripts.
 Both Codex and Claude adapters are implemented and checked with fictional inputs.
-The Claude task remains unchecked because the helper's maximum-input process verification is blocked.
-Remaining interactive Codex verification remains separate under decision 0009.
+Their fictional-input checks do not establish live provider compatibility or native acceptance.
+Remaining interactive Codex verification stays separate under decision 0009 and the Sessions specifications.
 
 `SessionEventInbox.receive(_:)` enqueues observations without waiting for the main actor.
 The inbox retains at most 128 queued observations and schedules one drain at a time.
@@ -246,7 +307,13 @@ Runtime files remain under `/private/tmp/notch-pet-<uid>/`.
 
 ## Limits display
 
-First support Claude Code and Codex in the notch, alongside session access rather than after the pet. Show only active providers: Codex-only hides Claude, Claude-only hides Codex, and both active shows both. Cached usage alone never makes an inactive provider visible. Display reported 5-hour and weekly windows with used percentages, reset times and freshness. Other agents are deferred. Provider visibility follows observed sessions; account grouping still requires supported identity.
+The notch allowance strip supports Codex and Claude Code presentation for active providers only.
+Codex-only sessions hide Claude, Claude-only sessions hide Codex, and both active providers show both entries.
+Cached usage alone never makes an inactive provider visible. Unknown and ended sessions do not establish provider activity.
+The store retains reported used percentages. Under [D6](DECISIONS.md#d6-show-allowance-as-percent-left-not-percent-used), presentation shows `100 − used`, rounded down.
+The strip selects an unambiguous reported five-hour window, or a weekly fallback, and shows its reset countdown.
+Missing or ambiguous data stays unavailable. Stale values use gray. A reset passing does not establish refreshed usage.
+Other providers are deferred. Account grouping requires supported identity, and live Claude forwarding remains unverified.
 
 - Keep context usage, token usage, subscription allowances, and API rate limits separate.
 - Show only windows returned by the provider. Do not assume Codex always uses five-hour and weekly windows.

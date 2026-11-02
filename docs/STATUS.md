@@ -2,17 +2,18 @@
 
 ## Now
 
-FM1–FM6 are saved as scoped, dependent commits on `feat/modular-features`: independent feature preferences/lifetimes, shared Settings and safe install/remove/reinstall behavior.
-The goal is paused. The user deferred FM7 and authorized committing FM1–FM6 only; no push or PR was requested.
-FM7's checker and shared-file instrumentation remain uncommitted, alongside unrelated editor/CI drafts. Do not resume app launches or native verification automatically.
-The latest commit-content verification ran without opening the app; evidence and the commit sequence are recorded in settings/feature-management.md.
+PR #15 is open for FM1–FM6 on `feat/modular-features` at `c760308`. FM7 and the umbrella goal remain deferred/paused.
+The user approved documentation task R4 on `feat/sessions-codex-setup`, fast-forwarded to that PR baseline.
+R4 aligns the architecture notes with stores, pure presentation, conditional view models and independent feature/service ownership.
+This session changed documentation only. No tests, builds or app launches ran. The earlier FM1–FM6 evidence remains in its specification.
 
 ## Next
 
-1. Review the FM1–FM6 commits when requested. Keep FM7's deferred changes and unrelated drafts out of any push/PR unless explicitly included.
-2. Resume FM7 only at the user's request. Start from the recorded native reports and remaining interaction/focus evidence, without repeating earlier automated launch loops.
-3. Keep the original-UI and rabbit-mascot directions in companion-ui-direction.md for later design planning; the new name and final mascot are still open.
-4. Preserve older paused goals and CI/editor drafts. Commit authorization does not authorize a push or PR.
+1. Review and commit the uncommitted R4 documentation on `feat/sessions-codex-setup`. Keep its stack on PR #15 explicit until that PR merges.
+2. Review a bounded R2 module-split plan before further code changes. Keep integration-health/session-island prerequisite closure separate from refactor planning.
+3. Resume FM7 only at the user's request. Start from the recorded native reports and remaining interaction/focus evidence, without repeating earlier automated launch loops.
+4. Keep the original-UI and rabbit-mascot directions in companion-ui-direction.md for later design planning. The new name and final mascot are still open.
+5. Preserve older paused goals and any external backups of deferred FM7/editor/CI work. Do not restore or publish those files automatically.
 
 ## Blockers
 
@@ -39,7 +40,9 @@ The latest commit-content verification ran without opening the app; evidence and
 - Stale: `docs/specs/usage/codex-allowance.md` leaves U3b2 unchecked despite historical goal-log evidence. Review U3b2, U1 and I2a–I2c evidence before changing those checkboxes.
 - Stale: `scripts/check-event-contract.py` permits a previously conflicting turn ID to restore working state; SessionStore enforces the accepted unseen-turn rule.
 - Usage datagram limit (production bug, not fixed): `UsageDelivery` and `UsageReceiver` keep the default Unix datagram buffers. A probe on this Mac sent nothing over 2,048 bytes (`EMSGSIZE`, `net.local.dgram.maxdgram: 2048`). With a 16 KiB send buffer, nothing over the receiver's 4,096-byte buffer arrived (`ENOBUFS`). The 8,192-byte limit in both types is unreachable, and larger observations are silently dropped. `UsageReceiverTests` records this as a known issue. Choosing the fix needs a decision.
-- Stale: `README.md` still calls implemented session/notch/usage surfaces planned and decision 0013 proposed; `docs/ARCHITECTURE.md` still describes visible session/usage and health services, plus the now-written pet boundary, as planned. It also describes view models for every view; the code has none, and D3 now sets the rule (codex-setup R4). Leave their unrelated edits with their owning work.
+- Stale: `README.md` still calls implemented session/notch/usage surfaces planned and decision 0013 proposed. R4 updated `docs/ARCHITECTURE.md`; README cleanup remains separate.
+- Stale: `docs/SWIFT-PRACTICES.md` still lists queued post-stop inbox delivery as unguarded. FM2 added lifecycle generation checks in `AgentServices`. Reconcile during its owning practices review.
+- Stale: `docs/specs/settings/feature-management.md` and the modular-feature goal/log still describe deferred files as uncommitted local work and say no PR was requested. PR #15 now exists, and the checkout was clean before R4. Preserve their historical execution evidence. Reconcile current-state wording during the next owning checkpoint.
 - Stale: `docs/specs/sessions/integration-health.md` describes health supplied through the menu environment. Current `AgentServices` keeps its health controller private and the menu has no health controls; codex-setup I6a owns exposing those actions.
 - Sprite-sheet input choice P5 remains proposed and blocks source P6. Monitoring pause/disconnect/resume and notice retention need planning in sessions/monitoring-controls. No deadlines or owners are recorded.
 - Activity counting and token-counter sources remain unverified. Define coverage, units, deduplication, and time boundaries before statistics implementation. Hook events do not establish chat-message totals, and tokens do not establish remaining allowance.

@@ -127,7 +127,7 @@ These are future verification requirements. No runtime verification ran while wr
 - [x] R8: Move the five `ObservableObject` classes and their views to `@Observable`; no behavior change, full suite passes.
 - [ ] R2: Split `SessionState` into `SessionState`, `Usage`, and `Integration` targets, and move the executable and configuration-directory locator out of the app target; no behavior change, full suite passes.
 - [ ] R3: Add typed `Agent` and `HookEvent` enums at the bridge boundary; remove the duplicated hook-name sets, the `default: .sessionEnded` branch, and the force unwraps they make unnecessary; wire format unchanged.
-- [ ] R4: Update `ARCHITECTURE.md` to describe stores, pure presentation functions, AppKit controllers, and D3's view-model rule.
+- [x] R4: Update `ARCHITECTURE.md` to describe stores, pure presentation functions, AppKit controllers, and D3's view-model rule.
 - [ ] R5: Collect `ServiceStartLedger`, pet evidence writing, and the preferences-suite override into one verification type with one entry point.
 - [ ] R6: Review the 128-session contract limit and its silent refusal; record a decision before any store or contract change.
 - [ ] I3b2: Add bounded lossless hook-JSON scanning with duplicate-key, malformed-input, numeric-value, and size-limit fixture checks.
@@ -137,6 +137,19 @@ These are future verification requirements. No runtime verification ran while wr
 - [ ] I5a: Add Codex-only targeted removal with exact ownership checks, preserved unrelated edits, and unchanged output on malformed, missing, or conflicting ownership.
 - [ ] I6a: Add menu Connect, Check, and Remove hooks actions with bounded health/recovery messages and explicit optional-service activation; verify action routing without installed configuration changes.
 - [ ] I6b: Freeze the disposable verification recipe and verify real Codex setup, repeat setup, trust review, visible-notch delivery, removal, and conflict cleanup; run the approved suite/build and record evidence.
+
+## R4 documentation verification, 2026-11-02
+
+The user approved the documentation-only plan and stacking this work on PR #15's implementation baseline.
+`feat/sessions-codex-setup` was fast-forwarded to `feat/modular-features` at `c760308`. No merge commit was created.
+The architecture notes now describe shared observable stores, pure presentation rules, native window controllers and D3's conditional view-model rule.
+They also describe the current targets, deferred feature factories, independent monitoring/usage lifetime and retained unconfirmed requests.
+Source comparison used `Package.swift`, app composition/settings/services, session and usage stores, notch presentation and pet playback.
+Existing D3–D7 decisions supply the accepted rules. No new architecture decision, Swift API or runtime behavior was added.
+
+Verification: `git diff --check` exited 0. The progress script resolves both `Needs:` entries and counts R4 as complete.
+Both prerequisite specifications remain unfinished. This documentation task does not close them or approve dependent setup implementation.
+No tests, builds, probes or app launches ran. FM7 remains deferred, including its unresolved focus and interaction evidence.
 
 ## Source task coverage and historical evidence
 
