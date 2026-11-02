@@ -10,10 +10,21 @@ struct NotchPresentationTests {
         #expect(frame == CGRect(x: 611, y: 918, width: 248, height: 38))
     }
 
+    @Test(arguments: [CGFloat(0), CGFloat(38)])
+    func expandedPanelUsesRequestedSize(safeTop: CGFloat) throws {
+        let screen = CGRect(x: 0, y: 0, width: 1470, height: 956)
+        let frame = try #require(NotchPlacement.frame(screen: screen, safeTop: safeTop,
+                                                     notchWidth: safeTop == 0 ? 0 : 200, expanded: true))
+        #expect(frame.width == 620)
+        #expect(frame.height == max(32, safeTop) + 240)
+        #expect(frame.midX == screen.midX)
+        #expect(frame.maxY == screen.maxY)
+    }
+
     @Test func expandedPanelUsesScreenCoordinatesAndClampsWidth() throws {
         let frame = try #require(NotchPlacement.frame(screen: CGRect(x: -320, y: 100, width: 320, height: 600),
                                                      safeTop: 38, notchWidth: 200, expanded: true))
-        #expect(frame == CGRect(x: -308, y: 382, width: 296, height: 318))
+        #expect(frame == CGRect(x: -308, y: 422, width: 296, height: 278))
     }
 
     @Test func displayWithoutCutoutStillHasAnAccessibleHeader() throws {

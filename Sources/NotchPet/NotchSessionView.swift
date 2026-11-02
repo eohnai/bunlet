@@ -13,43 +13,63 @@ struct NotchSessionView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Button {
-                expanded.toggle()
-                onExpand(expanded)
-            } label: {
-                HStack(spacing: 0) {
-                    Image(systemName: "pawprint.fill")
-                        .padding(.leading, 6)
-                        .frame(maxWidth: .infinity)
-                    Color.clear.frame(width: notchWidth)
-                    Text("\(sessionStore.sessions.count)")
-                        .font(.system(.caption, design: .rounded).weight(.semibold))
-                        .monospacedDigit()
-                        .padding(.trailing, 6)
-                        .frame(maxWidth: .infinity)
+            ZStack {
+                Button(action: toggleExpansion) {
+                    Color.clear.contentShape(Rectangle())
                 }
-                .frame(height: headerHeight)
+                .buttonStyle(.plain)
+                .accessibilityLabel(expanded ? "Collapse sessions" : "Expand sessions")
+                .accessibilityValue("\(sessionStore.sessions.count) observed sessions")
+
+                // Keep entries outside the button label so they retain their
+                // individual tooltips and accessibility labels.
+                HStack(spacing: 0) {
+                    Color.clear
+                        .overlay {
+                            if expanded {
+                                NotchAllowanceStrip(
+                                    store: usageStore,
+                                    activeProviders: NotchPresentation.activeProviders(sessionStore.sessions))
+                                    .padding(.horizontal, 6)
+                            } else {
+                                Image(systemName: "pawprint.fill")
+                                    .padding(.leading, 6)
+                            }
+                        }
+                        .clipped()
+                    Color.clear.frame(width: notchWidth)
+                    Color.clear
+                        .overlay {
+                            if !expanded {
+                                Text("\(sessionStore.sessions.count)")
+                                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                                    .monospacedDigit()
+                                    .padding(.trailing, 6)
+                            }
+                        }
+                }
                 .contentShape(Rectangle())
+                .onTapGesture(perform: toggleExpansion)
+                .accessibilityElement(children: .contain)
+                .accessibilityHidden(!expanded)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(expanded ? "Collapse sessions" : "Expand sessions")
-            .accessibilityValue("\(sessionStore.sessions.count) observed sessions")
+            .frame(height: headerHeight)
 
             if expanded {
                 VStack(alignment: .leading, spacing: 12) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
-                            NotchUsageView(store: usageStore,
-                                           activeProviders: NotchPresentation.activeProviders(sessionStore.sessions))
                             Text("Sessions").font(.headline)
                             if sessionStore.sessions.isEmpty {
                                 Text("No sessions observed yet.").foregroundStyle(.secondary)
                             }
-                            LazyVStack(spacing: 0) {
-                                ForEach(NotchPresentation.ordered(sessionStore.sessions)) { snapshot in
-                                    NotchSessionRow(snapshot: snapshot, selection: $selection)
-                                    Divider().overlay(.white.opacity(0.12))
+                            if NotchPresentation.shouldTickPromptTimers(expanded: expanded,
+                                                                      sessions: sessionStore.sessions) {
+                                TimelineView(.periodic(from: .now, by: 1)) { context in
+                                    sessionCards(at: Int64(context.date.timeIntervalSince1970 * 1000))
                                 }
+                            } else {
+                                sessionCards(at: Int64(Date.now.timeIntervalSince1970 * 1000))
                             }
                         }.frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -73,6 +93,26 @@ struct NotchSessionView: View {
         }
         .onChange(of: sessionStore.sessions) { _, sessions in
             selection = NotchPresentation.selection(selection, sessions: sessions)
+        }
+    }
+
+    private func toggleExpansion() {
+        expanded.toggle()
+        onExpand(expanded)
+    }
+
+    private func sessionCards(at nowMs: Int64) -> some View {
+        LazyVStack(spacing: 10) {
+            ForEach(NotchPresentation.ordered(sessionStore.sessions)) { snapshot in
+                VStack(spacing: 6) {
+                    NotchSessionCard(snapshot: snapshot,
+                                     presentation: NotchPresentation.card(for: snapshot, among: sessionStore.sessions),
+                                     nowMs: nowMs, selection: $selection)
+                    ForEach(snapshot.pendingRequests, id: \.eventID) { request in
+                        NotchRequestCard(request: request)
+                    }
+                }
+            }
         }
     }
 }

@@ -2,22 +2,27 @@
 
 ## Now
 
-F9 is committed as `f8f9c69` and merged in PR #11 as `366eee3`. All six PR checks passed.
-F10 replaces the failing retry-based deadline test with virtual waits and records its reduced server-level coverage.
-On `feat/automation-ci-foundation`, recreated from main `366eee3`. The user authorized the repair, commit, push, and PR.
-F8b's hosted drills, the usage datagram issue, and older paused work remain open.
+PR #13 integrates main `79268d4` into `feat/notch-allowance-strip` to resolve its conflict.
+Session cards C1–C5 and allowance A1–A5 are recorded complete in this branch through `ae7009e`; preserve their existing user-review evidence and limits.
+Main's CI, socket/reader test repairs and Observation practices are integrated. Only STATUS conflicted; the approved tooltip removal and active-provider filter are preserved.
+The merged branch passed all 172 Swift tests on 2026-11-02, with the existing usage-datagram known issue and no unexpected failures. Staged whitespace and unresolved-conflict checks passed. Evidence: `/private/tmp/notch-pet-pr13-swift.log`.
+The user authorized commit/push and conflict resolution. No new app launch, capture or installed configuration change is part of this resolution; older goals remain paused.
 
 ## Next
 
-1. Review F10's PR and confirm its six hosted checks. Merge only with authorization, then verify the automatic main run. Preserve the earlier failures. Authorize F8b's remaining hosted drills before closing ci-foundation. Its F10 section records the local evidence and coverage loss.
-2. Complete ci-foundation before session-cards C2. Plan automation/quality-gates next when its baseline exists; the other seven automation entries remain roadmaps.
-3. Resume session-cards on its branch, retaining C1 in `1f30a3c`, then plan C2–C5 and allowance-strip A1–A5 with task-specific test authorization. Preserve the single batched visual review for C5/A5; the user supplies logo files for A3.
-4. Do codex-setup R4 (architecture docs), then plan R2 (target split) and R3 (typed identities) with design review and renewed test authorization. Follow with R5/R6; R6 needs a user decision on the 128-session limit.
-5. Before I3b2, review integration-health evidence and session-island acceptance using I3b1's prerequisite table in `docs/contracts/codex-hook-setup.md`. Codex 0.164.0 still needs isolated qualification.
+1. Review PR #13's hosted checks after publication. Do not merge the PR into main without authorization.
+2. Review the feature difference against PR #14: PR #13 contains the cards plus the allowance strip. Preserve decisions 0014/0015 and the recorded A5/C5 review rather than repeating captures.
+3. Keep broader session-island/VoiceOver and real-session setup acceptance separate. Current hook installation/Connect support remains unimplemented.
+4. Retain main's F10 reduced integration coverage and outstanding F8b hosted drills; handle further automation work on its owning branch.
+5. Do codex-setup R4, then plan R2/R3 and the remaining setup prerequisites with their existing design gates. Older goals stay paused.
 
 ## Blockers
 
-- Main still needs hosted confirmation after F10: `gh run view 41288722994 --log-failed` reports commit `366eee3` and `Expectation failed: (result → .inconclusive) == .closedDespiteInput` at `ContractAndSocketTests.swift:217`. F10 replaces that test. Preserve the failed run and saved reports at `/private/tmp/notch-pet-pr11-main-failure/`. The exact hosted per-attempt reason remains unknown.
+- A5/C5 user review established cards, fixed/running timers, usage limits and preserved focus. VoiceOver and broader session-island acceptance remain unverified. The final provider filter has unit coverage; no later visual pass is claimed.
+- Real agent session integration remains unverified: the A5/C5 review used fictional observations and a real Codex allowance read, not a real configured session. No direct supported `NotchPetHook` invocation was found during that earlier bounded structural inspection.
+- Provider-logo packaging does not establish the separate pet `Bundle.module` fallback lookup; preserve its existing limitation.
+- Earlier branch full-suite runs intermittently timed out in `IntegrationHealthProbeTests.versionProbeBoundsItsProcessAndOutput`; the final historical rerun passed 171 tests. Main's newer test changes are now integrated; this merged run passed 172 tests. One successful run does not establish that every intermittent failure is eliminated.
+- Historical pre-F10 main failure (F10 is now included through PR #12): `gh run view 41288722994 --log-failed` reports commit `366eee3` and `Expectation failed: (result → .inconclusive) == .closedDespiteInput` at `ContractAndSocketTests.swift:217`. F10 replaces that test. Preserve the failed run and saved reports at `/private/tmp/notch-pet-pr11-main-failure/`. The exact hosted per-attempt reason remains unknown.
 - F10's reader-only test removes the old server-level deadline-creation check and its slow-sender timeout-path callback/recovery assertions. Other frame/delivery tests remain, but do not replace that specific integration coverage. The decision and both reset-mutation results are recorded in the spec.
 - The user approved F10's internal wait seam, revised test, both reset mutations, EventBridge tests, one full suite run, commit, push, and PR. Additional repairs, unrelated runtime checks, captures, and installed configuration changes remain outside that scope. F8b's deliberate hosted drills still need authorization.
 - The user approved F9's previously proposed script extraction, multi-file exception, and local verification after PR #10 passed on main. Verification used saved CI reports and fictional commands. Further repairs, broader runtime tests, hosted drills, app launches, captures, and installed configuration changes need separate authorization. Account-specific security capabilities and additional runner combinations remain unqualified.

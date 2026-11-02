@@ -28,8 +28,7 @@ final class NotchPanelController {
         } ?? 0
         panel.contentView = NSHostingView(rootView: NotchSessionView(
             sessionStore: sessionStore, usageStore: usageStore, headerHeight: max(32, top), notchWidth: notch,
-            onExpand: { [weak self] expanded in self?.updatePlacement(expanded: expanded) })
-            .environment(usageController))
+            onExpand: { [weak self] expanded in self?.updatePlacement(expanded: expanded) }))
         updatePlacement(expanded: false)
     }
 

@@ -132,6 +132,10 @@ public struct SessionSnapshot: Equatable, Sendable, Identifiable {
     public let status: SessionStatus
     public let reason: SessionUnknownReason?
     public let currentTurnID: String?
+    /// Capture time of the accepted submit for the current turn, in Unix milliseconds.
+    public let turnStartedAtMs: Int64?
+    /// Capture time of the first matching stop. Unknown status remains authoritative.
+    public let responseReadyAtMs: Int64?
     public let pendingRequests: [SessionRequest]
     public let captureWatermarkMs: Int64?
     public let receiptWallMs: Int64?

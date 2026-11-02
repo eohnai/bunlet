@@ -7,7 +7,7 @@ import SessionState
 @MainActor
 @Observable
 final class AgentUsageController {
-    private(set) var status = "Reading allowance…"
+    private(set) var status = "Reading usage limits…"
     private let store: UsageStore
     private let sessions: SessionStore
     private var observation: ObservationLoop<Bool>?

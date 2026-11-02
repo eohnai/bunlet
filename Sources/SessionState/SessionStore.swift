@@ -84,11 +84,14 @@ public final class SessionStore {
         }
 
         let key = SessionKey(agent: event.agent, sessionID: event.sessionID)
-        if records[key] == nil {
+        let record: Record
+        if let existing = records[key] {
+            record = existing
+        } else {
             guard records.count < Self.sessionLimit else { return .sessionCapacity }
-            records[key] = Record()
+            record = Record()
+            records[key] = record
         }
-        let record = records[key]!
         let digest = Data(SHA256.hash(data: canonical))
         if let previous = record.seen[event.eventID] {
             guard previous == digest else {
@@ -100,7 +103,7 @@ public final class SessionStore {
         let turn = event.turnID.map { SourceIdentity(value: $0) }
         let knownTurn = turn.map { record.turns.contains($0) } ?? false
         guard !record.saturated, record.seen.count < Self.eventIDLimit,
-              turn == nil || record.turns.contains(turn!) || record.turns.count < Self.turnIDLimit else {
+              turn == nil || knownTurn || record.turns.count < Self.turnIDLimit else {
             record.saturated = true
             record.unknown(.identityCapacity)
             return .identityCapacity
@@ -151,6 +154,8 @@ public final class SessionStore {
             }
             if let previous = record.turn { record.retired.insert(previous) }
             record.turn = turn
+            record.turnStartedAtMs = event.observedAtMs
+            record.responseReadyAtMs = nil
             record.baseline = true
             record.stopped = false
             record.status = .working
@@ -164,6 +169,7 @@ public final class SessionStore {
                 return .conflict
             }
             record.pending = record.pending.filter { $0.value.turn != turn }
+            if record.responseReadyAtMs == nil { record.responseReadyAtMs = event.observedAtMs }
             record.stopped = true
             if record.status == .unknown { return .resolvedButUnknown }
             if record.status == .responseReady { return .repeatedStop }
@@ -189,7 +195,8 @@ public final class SessionStore {
         let event = observation.envelope
         let correlated = record.baseline && turn != nil && turn == record.turn
         let toolID = event.toolUseID.map { SourceIdentity(value: $0) }
-        let name = SourceIdentity(value: event.toolName!) // Required for all tool hooks.
+        guard let toolName = event.toolName else { return .invalidObservation }
+        let name = SourceIdentity(value: toolName)
         let requestKey: RequestKey
         if let turn, let toolID { requestKey = .correlated(turn, toolID) }
         else { requestKey = .uncorrelated(event.eventID) }
@@ -299,6 +306,8 @@ private final class Record {
     var status: SessionStatus = .unknown
     var reason: SessionUnknownReason? = .noBaseline
     var turn: SourceIdentity?
+    var turnStartedAtMs: Int64?
+    var responseReadyAtMs: Int64?
     var baseline = false
     var stopped = false
     var terminal = false
@@ -345,6 +354,7 @@ private final class Record {
             return $0.eventID < $1.eventID
         }
         return SessionSnapshot(key: key, status: status, reason: reason, currentTurnID: turn?.value,
+                               turnStartedAtMs: turnStartedAtMs, responseReadyAtMs: responseReadyAtMs,
                                pendingRequests: requests, captureWatermarkMs: watermarkMs,
                                receiptWallMs: receiptWallMs, receiptMonotonicNs: receiptMonotonicNs,
                                expiryMonotonicNs: deadlineNs, projectPath: projectPath,

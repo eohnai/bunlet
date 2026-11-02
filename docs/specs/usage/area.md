@@ -14,8 +14,9 @@ Code: usage services in `Sources/SessionState/`, `Sources/NotchPet/AgentUsageCon
 - Sessions, Notch, and Usage are the immediate priority, approved on 2026-10-30. First deliver optional Codex setup, a visible real session, and real Codex limits.
 - Codex leads because its read-only quota path already exists. Claude follows with its separate status-line forwarding requirements.
 - Preserve provider-specific values and active-session filtering. Session count must not multiply an account's allowance.
+- [0015](../../decisions/0015-show-limits-only-for-active-providers.md) requires each provider to have its own observed active session. Unknown and Ended sessions do not keep usage limits visible or Codex reads running; their cards remain independent.
 - Coordinate explicit monitoring pause/resume/disconnect with sessions/monitoring-controls. This roadmap does not settle their detailed semantics.
-- The approved session-panel reference places compact provider allowance values above request details. Retain actual window durations, reset times, freshness, and account confidence. The notch shows percent left, under [D6](../../DECISIONS.md#d6-show-allowance-as-percent-left-not-percent-used); the [allowance strip](../notch/allowance-strip.md) owns that display.
+- The approved session-panel reference places compact provider usage limits above request details. Keep window durations, reset times, freshness, and account confidence in the store. The notch shows percent left under [D6](../../DECISIONS.md#d6-show-allowance-as-percent-left-not-percent-used); the [allowance strip](../notch/allowance-strip.md) owns that display. [0014](../../decisions/0014-omit-usage-limit-tooltips.md) removes hover details from the notch.
 - Historical activity and token charts belong to telemetry/activity-statistics and telemetry/token-statistics. Keep their totals separate from subscription allowance.
 - [Record layout decision](../../decisions/0011-organize-records-by-feature.md).
 - [Source specification](../notch-companion.md): preserve the completed usage-source investigation and U1–U6 tasks and evidence.

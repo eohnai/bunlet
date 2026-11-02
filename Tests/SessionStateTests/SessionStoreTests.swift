@@ -47,6 +47,92 @@ struct SessionStoreTests {
                                     receiptMonotonicNs: monotonicNs ?? UInt64(observed) * 1_000_000)
     }
 
+    @Test(arguments: ["codex", "claude"])
+    func turnTimesUseCaptureTimesAndSurviveSameTurnActivity(agent: String) throws {
+        let store = SessionStore()
+        #expect(store.apply(try observation(1, hook: "SessionStart", agent: agent,
+                                           turnID: nil, wallMs: 1_001_001)) == .applied)
+        let idle = try #require(store.sessions.first)
+        #expect(idle.turnStartedAtMs == nil)
+        #expect(idle.responseReadyAtMs == nil)
+
+        #expect(store.apply(try observation(2, agent: agent, wallMs: 1_001_002)) == .applied)
+        let started = try #require(store.sessions.first)
+        #expect(started.turnStartedAtMs == 1_000_002)
+        #expect(started.responseReadyAtMs == nil)
+        #expect(store.apply(try observation(3, agent: agent, wallMs: 1_001_003)) == .repeatedSubmit)
+        #expect(store.sessions.first?.turnStartedAtMs == started.turnStartedAtMs)
+        #expect(store.sessions.first?.expiryMonotonicNs == started.expiryMonotonicNs)
+
+        #expect(store.apply(try observation(4, hook: "PermissionRequest", agent: agent,
+                                           toolUseID: "tool", toolName: "Write",
+                                           wallMs: 1_001_004)) == .applied)
+        let waiting = try #require(store.sessions.first)
+        #expect(waiting.status == .approvalNeeded)
+        #expect(waiting.turnStartedAtMs == started.turnStartedAtMs)
+        #expect(waiting.responseReadyAtMs == nil)
+
+        #expect(store.apply(try observation(5, hook: "Stop", agent: agent,
+                                           wallMs: 1_001_005)) == .applied)
+        let stopped = try #require(store.sessions.first)
+        #expect(stopped.status == .responseReady)
+        #expect(stopped.pendingRequests.isEmpty)
+        #expect(stopped.turnStartedAtMs == 1_000_002)
+        #expect(stopped.responseReadyAtMs == 1_000_005)
+    }
+
+    @Test(arguments: ["codex", "claude"])
+    func repeatedStopPreservesFirstResponseTimeAndDeadline(agent: String) throws {
+        let store = SessionStore()
+        #expect(store.apply(try observation(1, agent: agent)) == .applied)
+        let stop = try observation(2, hook: "Stop", agent: agent)
+        #expect(store.apply(stop) == .applied)
+        let stopped = try #require(store.sessions.first)
+        #expect(stopped.responseReadyAtMs == 1_000_002)
+        #expect(store.apply(stop) == .duplicate)
+        #expect(store.apply(try observation(3, hook: "Stop", agent: agent)) == .repeatedStop)
+        #expect(store.sessions.first == stopped)
+    }
+
+    @Test(arguments: ["codex", "claude"])
+    func newTurnResetsTimesAndRetiredStopCannotChangeThem(agent: String) throws {
+        let store = SessionStore()
+        #expect(store.apply(try observation(1, agent: agent)) == .applied)
+        #expect(store.apply(try observation(2, hook: "Stop", agent: agent)) == .applied)
+        #expect(store.apply(try observation(3, agent: agent, turnID: "b")) == .applied)
+        let next = try #require(store.sessions.first)
+        #expect(next.currentTurnID == "b")
+        #expect(next.turnStartedAtMs == 1_000_003)
+        #expect(next.responseReadyAtMs == nil)
+        #expect(store.apply(try observation(4, hook: "Stop", agent: agent)) == .retiredTurn)
+        #expect(store.sessions.first == next)
+        #expect(store.apply(try observation(5, hook: "Stop", agent: agent, turnID: "b")) == .applied)
+        #expect(store.sessions.first?.turnStartedAtMs == next.turnStartedAtMs)
+        #expect(store.sessions.first?.responseReadyAtMs == 1_000_005)
+    }
+
+    @Test(arguments: ["codex", "claude"])
+    func matchingStopsKeepFirstTimeWithoutRevivingUnknownTurn(agent: String) throws {
+        let store = SessionStore()
+        #expect(store.apply(try observation(1, agent: agent)) == .applied)
+        store.advance(monotonicNs: 1_120_001_000_000)
+        #expect(store.sessions.first?.status == .unknown)
+        #expect(store.sessions.first?.turnStartedAtMs == 1_000_001)
+        #expect(store.apply(try observation(2, hook: "Stop", agent: agent,
+                                           observedAtMs: 1_120_002)) == .resolvedButUnknown)
+        let stopped = try #require(store.sessions.first)
+        #expect(stopped.status == .unknown)
+        #expect(stopped.reason == .expired)
+        #expect(stopped.responseReadyAtMs == 1_120_002)
+        #expect(store.apply(try observation(3, hook: "Stop", agent: agent,
+                                           observedAtMs: 1_120_003)) == .resolvedButUnknown)
+        #expect(store.sessions.first == stopped)
+        #expect(store.apply(try observation(4, agent: agent, turnID: "b",
+                                           observedAtMs: 1_120_004)) == .applied)
+        #expect(store.sessions.first?.turnStartedAtMs == 1_120_004)
+        #expect(store.sessions.first?.responseReadyAtMs == nil)
+    }
+
     @Test func allContractStateSequences() throws {
         let fixture = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .deletingLastPathComponent().appendingPathComponent("docs/contracts/agent-events-v1-cases.json")

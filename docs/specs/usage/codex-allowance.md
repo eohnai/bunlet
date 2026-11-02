@@ -13,9 +13,14 @@ Some of this code has live evidence, but actual-app acceptance is incomplete.
 
 ## Done when
 
+Display scope update, 2026-11-02: [0014](../../decisions/0014-omit-usage-limit-tooltips.md) removes hover details
+from the [compact notch strip](../notch/allowance-strip.md). It shows one selected window and a reset countdown.
+Both windows together, exact reset timestamps, and detailed source messages are omitted from that surface.
+The original task wording and evidence below remain for data/integration coverage; those obligations are unchanged.
+
 These checks come from "Feature 2: see the limits of agents in use" in the source spec, approved on 2026-10-29.
 
-- Only providers with a non-ended observed session appear. Codex-only hides Claude, both active shows both, and no sessions shows an empty state.
+- Only providers with an observed active session appear under [0015](../../decisions/0015-show-limits-only-for-active-providers.md). Unknown and Ended sessions do not count. Codex-only hides Claude, both active shows both, and no active sessions shows an empty state.
   Cached allowance alone never makes an inactive provider appear.
 - Real Codex allowance reaches the actual notch through the read-only App Server.
 - Percentages are labelled used. Each window shows its reset time when supplied, plus freshness and source/account confidence. (replaced 2026-10-31: the notch shows percent left under D6; reset time, freshness, and confidence move to the [allowance strip](../notch/allowance-strip.md) and its tooltip)
@@ -59,6 +64,8 @@ These are reproduction commands. This retrospective spec ran documentation check
 - [0011: Organize records by area and feature](../../decisions/0011-organize-records-by-feature.md).
 - [0012: Support terminal-independent operation](../../decisions/0012-support-terminal-independent-operation.md).
 - [D6: Show allowance as percent left, not percent used](../../DECISIONS.md#d6-show-allowance-as-percent-left-not-percent-used), 2026-10-31. The notch's allowance display moves to [notch/allowance-strip](../notch/allowance-strip.md). U5 keeps its provider filtering, duration, missing-window, and live-data checks.
+- [0014: Omit usage-limit tooltips](../../decisions/0014-omit-usage-limit-tooltips.md), accepted 2026-11-02. This supersedes the detailed hover display portion of U5, preserving its data and integration obligations.
+- [0015: Show usage limits only for active providers](../../decisions/0015-show-limits-only-for-active-providers.md), accepted 2026-11-02. This replaces the earlier non-ended-session visibility rule.
 
 ## Code that differs from a decision
 
