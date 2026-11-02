@@ -6,6 +6,7 @@ Quit Notch Pet first. Never removes an existing socket, settings, or captured da
 
 from __future__ import annotations
 
+import argparse
 import fcntl
 import json
 import os
@@ -13,6 +14,7 @@ from pathlib import Path
 import socket
 import stat
 import subprocess
+import tempfile
 import threading
 import time
 
@@ -25,7 +27,7 @@ TIMINGS: list[float] = []
 
 def invoke(helper: Path, raw: bytes, agent: str = "codex", *, pane: str | None = None) -> None:
     environment = {key: value for key, value in os.environ.items()
-                   if key in {"PATH", "TMPDIR", "DEVELOPER_DIR"}}
+                   if key in {"PATH", "TMPDIR", "DEVELOPER_DIR", "LLVM_PROFILE_FILE"}}
     if pane is not None:
         environment["OTTY_PANE_ID"] = pane
     started = time.monotonic()
@@ -80,10 +82,22 @@ def receive_one(helper: Path, raw: bytes, agent: str, pane: str | None = None) -
 
 
 def main() -> None:
-    # Build location matches run.sh. Building is a separate, explicit verification step.
-    candidates = list(BUILD.glob("*/debug/NotchPetHook"))
-    assert len(candidates) == 1, "build the helper with bash scripts/run.sh --build-only first"
-    helper = candidates[0]
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--helper", type=Path, help="check this packaged helper instead of the local build")
+    arguments = parser.parse_args()
+    if arguments.helper is None:
+        # Build location matches run.sh. Building is a separate, explicit verification step.
+        candidates = list(BUILD.glob("*/debug/NotchPetHook"))
+        assert len(candidates) == 1, "build the helper with bash scripts/run.sh --build-only first"
+        helper = candidates[0]
+    else:
+        helper = arguments.helper.expanduser().absolute()
+        try:
+            is_regular = stat.S_ISREG(helper.lstat().st_mode)
+        except OSError:
+            is_regular = False
+        if not is_regular or not os.access(helper, os.X_OK):
+            parser.error("helper must be an existing executable regular file")
     try:
         DIRECTORY.mkdir(mode=0o700)
     except FileExistsError:
@@ -153,7 +167,8 @@ def main() -> None:
                 ENDPOINT.unlink()
         print("PASS malformed, oversized, unsupported, and invalid-pane input dropped before connection")
 
-        environment = {"PATH": os.environ.get("PATH", "/usr/bin:/bin")}
+        environment = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"),
+                       "LLVM_PROFILE_FILE": os.environ["LLVM_PROFILE_FILE"]}
         for agent in ("codex", "claude"):
             process = subprocess.Popen([str(helper), "--agent", agent], stdin=subprocess.PIPE,
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment)
@@ -199,4 +214,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # A local helper may come from a coverage build. Never emit its profile into the checkout.
+    with tempfile.TemporaryDirectory(prefix="notch-pet-bridge-check-") as profile_directory:
+        os.environ["LLVM_PROFILE_FILE"] = str(Path(profile_directory) / "helper-%p.profraw")
+        main()

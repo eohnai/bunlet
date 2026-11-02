@@ -125,11 +125,12 @@ func removeOwnedSocket(_ directory: Int32, identity: stat) {
     }
 }
 
-func readBounded(_ fd: Int32, limit: Int, until end: UInt64, framed: Bool) throws -> Data {
+func readBounded(_ fd: Int32, limit: Int, until end: UInt64, framed: Bool,
+                 wait: (Int32, Int16, UInt64) throws -> Void = waitFor) throws -> Data {
     var result = Data()
     var buffer = [UInt8](repeating: 0, count: 4096)
     while true {
-        try waitFor(fd, Int16(POLLIN), until: end)
+        try wait(fd, Int16(POLLIN), end)
         let count = read(fd, &buffer, min(buffer.count, limit + 1 - result.count))
         if count < 0 && [EINTR, EAGAIN, EWOULDBLOCK].contains(errno) { continue }
         guard count >= 0 else { throw BridgeError.unavailable }

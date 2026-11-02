@@ -64,6 +64,9 @@ Those skills assume iOS 17, MVVM, and XCTest. This project uses none of those, s
 - Write one statement per line.
   **Not yet:** see review L5 for the known exceptions.
 - Comment the reason for a rule, not what the code does.
+- Use toolchain swift-format and selected SwiftLint rules under [0015](decisions/0015-adopt-swift-format-and-selected-swiftlint-rules.md).
+  **Not yet:** neither tool is configured. automation/quality-gates owns rule review and a separate formatting migration.
+  Keep existing code style until that task is approved. CI checks must not change source files.
 
 ## Tests
 
@@ -74,5 +77,4 @@ Those skills assume iOS 17, MVVM, and XCTest. This project uses none of those, s
 
 ## Not used now
 
-- No linter (SwiftLint or swift-format). It adds tooling for a small codebase. Revisit if contributors increase.
 - No architecture framework such as TCA. It would add the package's first dependency for little gain at this size.
