@@ -4,15 +4,14 @@ import SessionState
 import SwiftUI
 
 @MainActor
-final class NotchPanelController {
+final class NotchPanelController: AppFeatureService {
     private let panel: NSPanel
-    private let usageStore = UsageStore()
-    private let usageController: AgentUsageController
 
-    init(sessionStore: SessionStore) {
+    init(sessionStore: SessionStore, usageStore: UsageStore,
+         features: FeatureSettingsModel, onOpenFeatures: @escaping () -> Void) {
         panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                         backing: .buffered, defer: false)
-        usageController = AgentUsageController(store: usageStore, sessions: sessionStore)
+        panel.title = "Notch Pet Sessions"
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false
@@ -27,18 +26,19 @@ final class NotchPanelController {
             return max(0, right.minX - left.maxX)
         } ?? 0
         panel.contentView = NSHostingView(rootView: NotchSessionView(
-            sessionStore: sessionStore, usageStore: usageStore, headerHeight: max(32, top), notchWidth: notch,
+            sessionStore: sessionStore, usageStore: usageStore, features: features, onOpenFeatures: onOpenFeatures,
+            headerHeight: max(32, top), notchWidth: notch,
             onExpand: { [weak self] expanded in self?.updatePlacement(expanded: expanded) }))
         updatePlacement(expanded: false)
     }
 
     func show() {
         panel.orderFrontRegardless()
-        usageController.start()
     }
 
+    func start() { show() }
+
     func stop() {
-        usageController.stop()
         panel.orderOut(nil)
     }
 

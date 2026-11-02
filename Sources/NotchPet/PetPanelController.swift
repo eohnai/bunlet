@@ -3,7 +3,7 @@ import Pet
 import SwiftUI
 
 @MainActor
-final class PetPanelController {
+final class PetPanelController: AppFeatureService {
     private let panel: NSPanel
 
     init?(size: Double) {
@@ -23,9 +23,8 @@ final class PetPanelController {
         panel.contentView = NSHostingView(rootView: PetWindowPlayback(window: panel) { visible, sleeping in
             PetView(presentation: presentation, isVisible: visible, isSleeping: sleeping)
         })
-        if let screen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.main {
-            panel.setFrameOrigin(NSPoint(x: screen.frame.midX - size / 2,
-                                         y: screen.frame.maxY - screen.safeAreaInsets.top - size))
+        if let screen = NSScreen.main {
+            panel.setFrame(Self.desktopFrame(screen: screen.visibleFrame, size: size), display: false)
         }
     }
 
@@ -33,11 +32,19 @@ final class PetPanelController {
         panel.orderFrontRegardless()
     }
 
-    func setSize(_ size: Double) {
+    func start() { show() }
+
+    func stop() { panel.close() }
+
+    static func desktopFrame(screen: CGRect, size: Double) -> CGRect {
         let safe = size.isFinite && PetPreferences.sizeRange.contains(size) ? size : PetPreferences.defaultSize
-        let current = panel.frame
-        panel.setFrame(NSRect(x: current.midX - safe / 2, y: current.maxY - safe,
-                              width: safe, height: safe), display: true)
+        return CGRect(x: max(screen.minX, screen.maxX - safe - 16),
+                      y: min(screen.minY + 16, max(screen.minY, screen.maxY - safe)), width: safe, height: safe)
+    }
+
+    func setSize(_ size: Double) {
+        guard let screen = panel.screen ?? NSScreen.main else { return }
+        panel.setFrame(Self.desktopFrame(screen: screen.visibleFrame, size: size), display: true)
     }
 
     /// Opt-in verification observes this same production panel, never a demo view.

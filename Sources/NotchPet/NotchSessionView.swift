@@ -4,6 +4,8 @@ import SwiftUI
 struct NotchSessionView: View {
     let sessionStore: SessionStore
     let usageStore: UsageStore
+    let features: FeatureSettingsModel
+    let onOpenFeatures: () -> Void
     let headerHeight: CGFloat
     let notchWidth: CGFloat
     let onExpand: (Bool) -> Void
@@ -60,7 +62,13 @@ struct NotchSessionView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Sessions").font(.headline)
-                            if sessionStore.sessions.isEmpty {
+                            if !features.installed.contains(.agents) {
+                                Text("Agents is not installed.").foregroundStyle(.secondary)
+                                Button("Open Features", action: onOpenFeatures)
+                            } else if !features.monitoringEnabled {
+                                Text("Monitoring is off.").foregroundStyle(.secondary)
+                                Button("Open Features", action: onOpenFeatures)
+                            } else if sessionStore.sessions.isEmpty {
                                 Text("No sessions observed yet.").foregroundStyle(.secondary)
                             }
                             if NotchPresentation.shouldTickPromptTimers(expanded: expanded,

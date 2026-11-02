@@ -11,9 +11,14 @@ struct NotchPetApp: App {
 
     var body: some Scene {
         MenuBarExtra("Notch Pet", systemImage: "pawprint.fill") {
-            CompanionMenu(onShowPet: { delegate.showPet() }, onOpenSettings: { delegate.showSettings() })
+            CompanionMenu(controller: delegate)
         }
         .menuBarExtraStyle(.menu)
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…", action: delegate.showSettings).keyboardShortcut(",")
+            }
+        }
     }
 }
 
@@ -96,20 +101,48 @@ private final class IntegrationHealthController {
 
 @MainActor
 final class AgentServices: NSObject, AppAgentService {
-    let sessionStore = SessionStore()
+    typealias BatchHandler = @MainActor @Sendable ([SessionObservationV1], Bool) -> Void
+    typealias ReceiverStart = (@escaping BatchHandler) throws -> (() -> Void)
+
+    let sessionStore: SessionStore
+    let usageStore: UsageStore
     private let integrationHealth = IntegrationHealthController()
-    private let bridge = EventBridgeServer()
+    private let bridge: EventBridgeServer
+    private let usage: any AppFeatureService
+    private let startObserving: ReceiverStart?
+    private let readWall: () -> Int64
+    private let readMonotonic: () -> UInt64
+    private var stopReceiver: (() -> Void)?
+    private var generation: UUID?
+    private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var inbox: SessionEventInbox?
     private var expiryTimer: DispatchSourceTimer?
     private var receiptCutoffNs: UInt64 = 0
-    private var notchPanel: NotchPanelController?
+
+    init(sessionStore: SessionStore? = nil, usageStore: UsageStore? = nil, endpoint: BridgeEndpoint = .standard,
+         usage: (any AppFeatureService)? = nil, startObserving: ReceiverStart? = nil,
+         wall: @escaping () -> Int64 = { Int64(Date().timeIntervalSince1970 * 1000) },
+         monotonic: @escaping () -> UInt64 = { DispatchTime.now().uptimeNanoseconds }) {
+        let sessions = sessionStore ?? SessionStore()
+        let limits = usageStore ?? UsageStore()
+        self.sessionStore = sessions
+        bridge = EventBridgeServer(endpoint: endpoint)
+        self.usageStore = limits
+        self.usage = usage ?? AgentUsageController(store: limits, sessions: sessions)
+        self.startObserving = startObserving
+        readWall = wall
+        readMonotonic = monotonic
+        super.init()
+    }
+
+    var healthSnapshots: [IntegrationHealthSnapshot] { integrationHealth.snapshots }
 
     func start() {
-        let notchPanel = NotchPanelController(sessionStore: sessionStore)
-        self.notchPanel = notchPanel
-        notchPanel.show()
-        let inbox = SessionEventInbox { [weak self] batch, lost in
-            guard let self else { return }
+        guard generation == nil else { return }
+        let current = UUID()
+        generation = current
+        let deliver: BatchHandler = { [weak self] batch, lost in
+            guard let self, self.generation == current else { return }
             // Delivery happened even when a clock cutoff prevents it from restoring session freshness.
             self.integrationHealth.recordDeliveries(batch)
             // Evidence queued before sleep or a clock change cannot establish a fresh baseline.
@@ -118,37 +151,53 @@ final class AgentServices: NSObject, AppAgentService {
                                          wallMs: self.wallMs(), monotonicNs: self.monotonicNs())
             self.scheduleExpiry()
         }
-        self.inbox = inbox
         do {
             ServiceStartLedger.record(.eventReceiver)
-            try bridge.start { inbox.receive($0) }
+            if let startObserving {
+                stopReceiver = try startObserving(deliver)
+            } else {
+                let inbox = SessionEventInbox(onBatch: deliver)
+                self.inbox = inbox
+                try bridge.start { inbox.receive($0) }
+                stopReceiver = { [weak self] in self?.bridge.stop() }
+            }
             integrationHealth.setReceiver(.listening)
+            usage.start()
         } catch BridgeError.unsafeEndpoint {
             integrationHealth.setReceiver(.failed(.unsafeEndpoint))
         } catch {
             integrationHealth.setReceiver(.failed(.receiverUnavailable))
         }
         let workspace = NSWorkspace.shared.notificationCenter
-        workspace.addObserver(self, selector: #selector(invalidateObservations),
-                              name: NSWorkspace.willSleepNotification, object: nil)
-        workspace.addObserver(self, selector: #selector(invalidateObservations),
-                              name: NSWorkspace.didWakeNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(invalidateObservations),
-                                               name: .NSSystemClockDidChange, object: nil)
+        for (center, name) in [(workspace, NSWorkspace.willSleepNotification),
+                               (workspace, NSWorkspace.didWakeNotification),
+                               (NotificationCenter.default, .NSSystemClockDidChange)] {
+            let observer = center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self, self.generation == current else { return }
+                    self.invalidateObservations()
+                }
+            }
+            observers.append((center, observer))
+        }
     }
-
-    func showNotch() { notchPanel?.show() }
 
     func stop() {
-        notchPanel?.stop()
-        bridge.stop()
+        guard generation != nil else { return }
+        generation = nil
+        stopReceiver?()
+        stopReceiver = nil
+        inbox = nil
+        usage.stop()
+        sessionStore.suspendMonitoring()
         integrationHealth.setReceiver(.stopped)
         expiryTimer?.cancel()
-        NSWorkspace.shared.notificationCenter.removeObserver(self)
-        NotificationCenter.default.removeObserver(self)
+        expiryTimer = nil
+        for (center, observer) in observers { center.removeObserver(observer) }
+        observers.removeAll()
     }
 
-    @objc private func invalidateObservations(_ notification: Notification) {
+    private func invalidateObservations() {
         receiptCutoffNs = monotonicNs()
         sessionStore.invalidateClocks()
         expiryTimer?.cancel()
@@ -158,7 +207,7 @@ final class AgentServices: NSObject, AppAgentService {
     private func scheduleExpiry() {
         expiryTimer?.cancel()
         expiryTimer = nil
-        guard let next = sessionStore.nextExpiryMonotonicNs else { return }
+        guard let current = generation, let next = sessionStore.nextExpiryMonotonicNs else { return }
         let now = monotonicNs()
         // Check clock continuity once per second while fresh observations exist.
         // An empty or entirely unknown store has no timer.
@@ -167,7 +216,7 @@ final class AgentServices: NSObject, AppAgentService {
         timer.schedule(deadline: .now() + .nanoseconds(Int(delay)), leeway: .milliseconds(5))
         timer.setEventHandler { [weak self] in
             Task { @MainActor in
-                guard let self else { return }
+                guard let self, self.generation == current else { return }
                 self.sessionStore.checkClocks(wallMs: self.wallMs(), monotonicNs: self.monotonicNs())
                 self.scheduleExpiry()
             }
@@ -176,17 +225,17 @@ final class AgentServices: NSObject, AppAgentService {
         timer.resume()
     }
 
-    private func wallMs() -> Int64 { Int64(Date().timeIntervalSince1970 * 1000) }
-    private func monotonicNs() -> UInt64 { DispatchTime.now().uptimeNanoseconds }
+    private func wallMs() -> Int64 { readWall() }
+    private func monotonicNs() -> UInt64 { readMonotonic() }
 }
 
 private struct CompanionMenu: View {
-    let onShowPet: () -> Void
-    let onOpenSettings: () -> Void
+    let controller: PetAppController
 
     var body: some View {
-        Button("Show Pet", action: onShowPet)
-        Button("Pet Settings…", action: onOpenSettings)
+        if controller.installed.contains(.pet) { Button("Show Pet", action: controller.showPet) }
+        if controller.installed.contains(.notch) { Button("Show Notch", action: controller.showNotch) }
+        Button("Settings…", action: controller.showSettings)
             .keyboardShortcut(",")
         Divider()
         Button("Quit Notch Pet") {
