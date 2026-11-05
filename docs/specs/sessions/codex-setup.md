@@ -102,6 +102,7 @@ These are future verification requirements. No runtime verification ran while wr
   Marker-only identity was rejected because copying and deleting the original defeats it too. See the [review and alternatives](../../contracts/codex-hook-setup.md#i3b1-review-2026-10-30).
 - [D4: Target macOS 14 so stores and controllers can use `@Observable`](../../DECISIONS.md#d4-target-macos-14-so-stores-and-controllers-can-use-observable), accepted 2026-10-31 for R7 and R8.
 - [D5: Observe stores from controllers with `withObservationTracking`](../../DECISIONS.md#d5-observe-stores-from-controllers-with-withobservationtracking), accepted 2026-10-31 for R8.
+- **Preserve separate executable-search policies, accepted 2026-11-03.** R2b shares the locator implementation while retaining health/usage defaults, bounds and fallback order. Unifying their search behavior was deferred because R2 requires no behavior change. The user approved this choice by activating the [R2 goal](../../goals/session-module-split.md).
 
 ## My calls
 
@@ -125,7 +126,8 @@ These are future verification requirements. No runtime verification ran while wr
 - [x] R1: Write `docs/SWIFT-PRACTICES.md` from the conventions and accepted findings in the 2026-10-30 review, and link it from `AGENTS.md`.
 - [x] R7: Raise the deployment target to macOS 14 in `Package.swift`, `Info.plist`, `README.md`, and `ARCHITECTURE.md`; replace the two deprecated `onChange(of:perform:)` calls; record the decision; build passes with no new warnings.
 - [x] R8: Move the five `ObservableObject` classes and their views to `@Observable`; no behavior change, full suite passes.
-- [ ] R2: Split `SessionState` into `SessionState`, `Usage`, and `Integration` targets, and move the executable and configuration-directory locator out of the app target; no behavior change, full suite passes.
+- [x] R2a: Split SessionState into SessionState, Usage and Integration targets; move existing source/tests and update imports, dependencies and ownership notes; preserve behavior and pass the full suite.
+- [x] R2b: Extract executable and configuration-directory lookup into Integration with explicit health/usage policies; preserve existing behavior, pass eight new locator checks and the full suite.
 - [ ] R3: Add typed `Agent` and `HookEvent` enums at the bridge boundary; remove the duplicated hook-name sets, the `default: .sessionEnded` branch, and the force unwraps they make unnecessary; wire format unchanged.
 - [x] R4: Update `ARCHITECTURE.md` to describe stores, pure presentation functions, AppKit controllers, and D3's view-model rule.
 - [ ] R5: Collect `ServiceStartLedger`, pet evidence writing, and the preferences-suite override into one verification type with one entry point.
@@ -137,6 +139,63 @@ These are future verification requirements. No runtime verification ran while wr
 - [ ] I5a: Add Codex-only targeted removal with exact ownership checks, preserved unrelated edits, and unchanged output on malformed, missing, or conflicting ownership.
 - [ ] I6a: Add menu Connect, Check, and Remove hooks actions with bounded health/recovery messages and explicit optional-service activation; verify action routing without installed configuration changes.
 - [ ] I6b: Freeze the disposable verification recipe and verify real Codex setup, repeat setup, trust review, visible-notch delivery, removal, and conflict cleanup; run the approved suite/build and record evidence.
+
+R2a and R2b refine the original R2, approved by goal activation on 2026-11-03. Both must pass to complete R2.
+Original wording: "R2: Split `SessionState` into `SessionState`, `Usage`, and `Integration` targets, and move the executable and configuration-directory locator out of the app target; no behavior change, full suite passes."
+
+## R2 baseline stop, 2026-11-03
+
+The user activated the R2a/R2b goal and approved its task split, locator interface, retained stack and checks.
+The baseline command `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/notch-pet-dev/build` exited 1 before test execution.
+After compiler-cache access was approved, Swift 6.3.2 crashed with signal 6 while generating IR for `AppSettingsView.swift`.
+The compiler reported `SmallVector unable to grow. Requested capacity (4294967297) is larger than maximum value for size type (4294967295)`.
+The cause is not established. The trace is at `/private/tmp/notch-pet-r2-baseline.log`.
+The goal stopped under its baseline-failure rule. No source, test or package file changed, and no baseline test count exists.
+R2a/R2b remain open. A separately approved investigation or revised plan is needed before resuming.
+
+## R2 completion and compiler repair, 2026-11-04
+
+The user approved investigating the baseline compiler crash and then resuming R2a/R2b.
+That approval supersedes the original stop-at-baseline rule for this compiler failure only.
+A temporary 12-line SwiftUI reproduction crashes Swift 6.3.2 when a main-actor Boolean setter is passed directly to `Binding`.
+The otherwise identical explicit-closure variant compiles. AppSettingsView now uses that closure and keeps the same setter call.
+No runtime-only unit test was added for a compiler failure. The reduced compiler reproduction is the direct check.
+
+R2a moves eight usage source/test pairs into Usage and the health source/test pair into Integration.
+SessionState keeps the store, inbox, observation mapping and session presentation. IntegrationAgent remains in Integration until R3.
+App and test targets declare their direct dependencies. No compatibility re-export or external dependency was added.
+R2b adds AgentPathLocator with explicit health/usage search policies, bounded explicit inputs and an injectable executable predicate.
+App callers retain environment reads, configuration filenames, helper discovery, status messages and service lifecycle.
+
+The eight locator tests were frozen before implementation. They cover both agents, the old caller differences, ordering,
+empty components, count/UTF-8 byte limits, fallback directories and configuration overrides.
+All 30 original test files retain their exact bodies after imports are removed. All nine moved source files retain their bodies too.
+The locator tests retain their original frozen SHA-256: `961ae8e35023e9a993f01105bd2c082a2eb16cb9d79ba1ff5cbccfc2e2505dbc`.
+
+| Check | Result | Evidence outside the repository |
+|---|---|---|
+| Unchanged baseline reproduction | Exit 1; same compiler crash | `/private/tmp/notch-pet-r2-reproduce.log` |
+| Reduced direct method reference / closure compiler checks | Exit 134 / exit 0 | `/private/tmp/notch-pet-r2-binding-repro.log`, `/private/tmp/notch-pet-r2-binding-closure.log` |
+| Repaired baseline full suite | Exit 0; 194 tests, 31 suites, one existing known issue | `/private/tmp/notch-pet-r2-baseline-fixed.log` |
+| R2a moved tests before production targets | Exit 1; no such module Usage | `/private/tmp/notch-pet-r2a-tests-first.log` |
+| R2a full suite | Exit 0; 194 tests, 31 suites, same known issue | `/private/tmp/notch-pet-r2a.log` |
+| Frozen locator tests before implementation | Exit 1; AgentPathLocator not found | `/private/tmp/notch-pet-r2b-tests-first.log` |
+| Locator suite | Exit 0; eight tests, one suite | `/private/tmp/notch-pet-r2b-locator.log` |
+| First final full suite | Exit 1; unchanged socket test threw unsafeEndpoint | `/private/tmp/notch-pet-r2-final.log` |
+| Unchanged socket test in isolation | Exit 0; one test | `/private/tmp/notch-pet-r2-socket-recheck.log` |
+| Unchanged final full-suite rerun | Exit 0; 202 tests, 32 suites, same existing known issue | `/private/tmp/notch-pet-r2-final-rerun.log` |
+| Package graph | Exit 0; required targets and dependencies present | `/private/tmp/notch-pet-r2-package-final.json` |
+
+The suite command is `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/notch-pet-dev/build`.
+The locator run adds `--filter AgentPathLocatorTests`; the socket rerun adds `--filter stopClosesStalledConnectionAndReleasesOwnership`.
+The reduced compiler checks use `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -swift-version 6 -g -Onone -c` with temporary source/object paths.
+The known issue remains the documented usage-datagram limit. It was not repaired.
+The one-off socket failure's cause remains unknown. The isolated/full reruns passed without code or assertion changes.
+
+Diff review confirms both app callers have no executable-search loops. Only the new locator contains search rules.
+`git diff --check` and the progress script exit 0. R2a/R2b are complete; other checkbox states are unchanged.
+No app launch, capture, installed-provider probe, configuration edit, R3/R5 work or broader acceptance ran.
+Both prerequisite specifications remain unfinished. This refactor does not close them or qualify a Codex installer.
 
 ## R4 documentation verification, 2026-11-02
 

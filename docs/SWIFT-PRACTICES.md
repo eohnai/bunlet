@@ -18,9 +18,10 @@ Those skills assume iOS 17, MVVM, and XCTest. This project uses none of those, s
   Example: `NotchPanelController`, `PetSettingsController`.
 - Add a view model only where a view owns state ([D3](DECISIONS.md#d3-add-view-models-only-where-a-view-owns-state)). Read-only views observe stores directly.
 - Give each module one concern.
-  **Not yet:** `SessionState` holds sessions, usage, and integration health. R2 splits it.
+  Example: `SessionState` owns sessions, `Usage` owns allowance data, and `Integration` owns health evidence and probes.
 - Write each rule once.
-  **Not yet:** the executable search exists twice with different fallbacks (review M2, fixed by R2). Other copies are listed in review L1.
+  Example: `AgentPathLocator` implements executable search once, with explicit health/usage policies preserving the existing caller rules.
+  Other copies are listed in review L1.
 - Keep verification instrumentation in one type with one entry point.
   **Not yet:** it is spread over `ServiceStartLedger`, `PetPanelController`, and `PetAppController`. R5 collects it.
 - Add no package dependency without a recorded decision. The package has none.

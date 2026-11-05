@@ -1,4 +1,5 @@
 import Foundation
+import Integration
 
 private extension UsageWindow {
     var allowancePercentLeft: Int {

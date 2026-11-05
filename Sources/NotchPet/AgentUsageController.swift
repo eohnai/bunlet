@@ -1,7 +1,9 @@
 import Darwin
 import Foundation
+import Integration
 import Observation
 import SessionState
+import Usage
 
 /// Optional app-owned usage I/O; SwiftUI only observes the resulting status/store.
 @MainActor
@@ -42,18 +44,16 @@ final class AgentUsageController: AppFeatureService {
         task = Task { @MainActor [weak self] in
             guard let self else { return }
             let path = getenv("PATH").map { String(cString: $0) }
-                ?? "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
-            guard path.utf8.count <= 16_384 else {
-                self.status = "Executable search path unavailable."
-                return
-            }
-            let candidates = path.split(separator: ":").prefix(64).map(String.init) +
-                [FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".local/bin").path,
-                 "/opt/homebrew/bin", "/usr/local/bin"]
-            guard let executable = candidates.filter({ $0.hasPrefix("/") })
-                .map({ URL(fileURLWithPath: $0).appendingPathComponent("codex") })
-                .first(where: { FileManager.default.isExecutableFile(atPath: $0.path) }) else {
+            let executable: URL
+            switch AgentPathLocator.executable(agent: .codex, policy: .usage, searchPath: path,
+                                              homeDirectory: FileManager.default.homeDirectoryForCurrentUser) {
+            case .found(let url):
+                executable = url
+            case .notFound:
                 self.status = "Codex executable unavailable."
+                return
+            case .invalidSearchPath:
+                self.status = "Executable search path unavailable."
                 return
             }
             while !Task.isCancelled {

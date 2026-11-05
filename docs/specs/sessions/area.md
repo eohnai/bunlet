@@ -1,7 +1,7 @@
 # Sessions
 
 Owns terminal-independent agent observation, session state, integration setup and health, monitoring controls, and optional terminal navigation.
-Code: `Sources/EventBridge/`, session and integration-health services in `Sources/SessionState/`, and app integration controls.
+Code: `Sources/EventBridge/`, session services in `Sources/SessionState/`, health services and path lookup in `Sources/Integration/`, and app integration controls.
 
 ## Specs
 

@@ -1,3 +1,4 @@
+import Integration
 import Testing
 @testable import SessionState
 

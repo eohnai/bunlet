@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import Integration
 
 public enum PromptTimer: Equatable, Sendable {
     case running(startedAtMs: Int64)

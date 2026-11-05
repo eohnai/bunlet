@@ -1,7 +1,7 @@
 import Darwin
 import Foundation
 import Testing
-@testable import SessionState
+@testable import Usage
 
 struct UsageDeliveryTests {
     private func fixture() throws -> (URL, Int32) {

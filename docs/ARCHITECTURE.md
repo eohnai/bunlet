@@ -56,13 +56,16 @@ An eventual session-to-pet adapter must consume the same authoritative snapshots
 | Target | Current responsibility | Dependencies |
 |---|---|---|
 | `EventBridge` | Bounded envelopes, agent adapters, Unix-socket client and server | None |
-| `SessionState` | Session store/inbox, usage, integration health and notch presentation rules | `EventBridge` |
+| `Integration` | Integration-health evidence/probes and shared executable/configuration-directory lookup | None |
+| `Usage` | Usage store, providers, connection, sender/receiver and allowance presentation | `Integration` |
+| `SessionState` | Session store/inbox, observation mapping and session presentation rules | `EventBridge`, `Integration` |
 | `Pet` | Artwork, preferences, rendering and playback rules | None |
-| `NotchPet` | App composition, feature management, Settings, windows and optional services | `Pet`, `EventBridge`, `SessionState` |
+| `NotchPet` | App composition, feature management, Settings, windows and optional services | `Pet`, `EventBridge`, `SessionState`, `Usage`, `Integration` |
 | `NotchPetHook` | Silent one-way observation helper | `EventBridge` |
 
-`SessionState` still contains several concerns. [Codex setup R2](specs/sessions/codex-setup.md#tasks) plans separate `Usage` and `Integration` targets.
-Those targets and the shared executable/configuration locator are not implemented. This document does not change package boundaries.
+[Codex setup R2a](specs/sessions/codex-setup.md#tasks) separates `Usage` and `Integration` from `SessionState`.
+`IntegrationAgent` remains in `Integration` until R3 adds bridge-level typed identity.
+R2b adds `AgentPathLocator` with explicit health/usage policies. It preserves their existing path rules and keeps environment reads in app callers.
 
 ## Feature availability and runtime ownership
 

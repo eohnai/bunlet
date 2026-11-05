@@ -1,5 +1,5 @@
+import Integration
 import Pet
-import SessionState
 import SwiftUI
 
 enum AppSettingsPage: String, Hashable {
@@ -186,7 +186,8 @@ struct AppSettingsView: View {
     private var agentControls: some View {
         VStack(alignment: .leading, spacing: 16) {
             LabeledContent("Monitoring") {
-                Toggle("Monitoring", isOn: Binding(get: { features.monitoringEnabled }, set: features.setMonitoring))
+                // Swift 6.3.2 crashes when Binding receives the main-actor method reference directly.
+                Toggle("Monitoring", isOn: Binding(get: { features.monitoringEnabled }, set: { features.setMonitoring($0) }))
                     .toggleStyle(.switch).labelsHidden()
                     .disabled(features.preferenceIssue != nil || features.operationIssue != nil)
 

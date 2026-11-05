@@ -1,5 +1,6 @@
-import SessionState
+import Integration
 import SwiftUI
+import Usage
 
 struct NotchAllowanceStrip: View {
     let store: UsageStore

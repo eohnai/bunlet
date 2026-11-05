@@ -1,7 +1,7 @@
 # Usage
 
 Owns supported provider allowance reads, forwarding, freshness, account boundaries, and usage presentation in the notch.
-Code: usage services in `Sources/SessionState/`, `Sources/NotchPet/AgentUsageController.swift`, usage views, and future forwarding helper code.
+Code: usage services and allowance presentation in `Sources/Usage/`, `Sources/NotchPet/AgentUsageController.swift`, usage views, and future forwarding helper code.
 
 ## Specs
 

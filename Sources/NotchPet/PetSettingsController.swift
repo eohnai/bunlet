@@ -1,6 +1,6 @@
 import AppKit
+import Integration
 import Pet
-import SessionState
 import SwiftUI
 
 @MainActor

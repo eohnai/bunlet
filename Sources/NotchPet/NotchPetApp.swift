@@ -1,9 +1,11 @@
 import AppKit
 import Darwin
 import EventBridge
+import Integration
 import Observation
 import SessionState
 import SwiftUI
+import Usage
 
 @main
 struct NotchPetApp: App {
@@ -44,26 +46,19 @@ private final class IntegrationHealthController {
         defer { refreshing.remove(agent) }
         let manager = FileManager.default
         // Access only these path settings; do not inventory the environment or read auth files.
-        let searchPath = getenv("PATH").map { String(cString: $0) } ?? "/usr/bin:/bin:/usr/sbin:/sbin"
+        let searchPath = getenv("PATH").map { String(cString: $0) }
         let executable: URL?
-        if searchPath.utf8.count <= 16_384 {
-            executable = searchPath.split(separator: ":", omittingEmptySubsequences: false).prefix(64)
-                .filter { $0.hasPrefix("/") }
-                .map { URL(fileURLWithPath: String($0)).appendingPathComponent(agent.rawValue) }
-                .first { manager.isExecutableFile(atPath: $0.path) }
-        } else {
+        switch AgentPathLocator.executable(agent: agent, policy: .health, searchPath: searchPath,
+                                          homeDirectory: manager.homeDirectoryForCurrentUser) {
+        case .found(let url):
+            executable = url
+        case .notFound, .invalidSearchPath:
             executable = nil
         }
         let directoryOverride = getenv(agent == .codex ? "CODEX_HOME" : "CLAUDE_CONFIG_DIR")
             .map { String(cString: $0) }
-        let configurationDirectory: URL?
-        if let directoryOverride, !directoryOverride.isEmpty {
-            configurationDirectory = directoryOverride.hasPrefix("/") && directoryOverride.utf8.count <= 4096
-                ? URL(fileURLWithPath: directoryOverride) : nil
-        } else {
-            configurationDirectory = manager.homeDirectoryForCurrentUser
-                .appendingPathComponent(agent == .codex ? ".codex" : ".claude")
-        }
+        let configurationDirectory = AgentPathLocator.configurationDirectory(
+            agent: agent, override: directoryOverride, homeDirectory: manager.homeDirectoryForCurrentUser)
         let configuration = configurationDirectory?
             .appendingPathComponent(agent == .codex ? "hooks.json" : "settings.json")
         let helper = Bundle.main.executableURL?.deletingLastPathComponent()

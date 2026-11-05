@@ -1,5 +1,5 @@
 import AppKit
-import SessionState
+import Integration
 import Testing
 @testable import NotchPet
 

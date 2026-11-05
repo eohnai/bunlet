@@ -2,21 +2,22 @@
 
 ## Now
 
-PR #15 is open for FM1–FM6 on `feat/modular-features` at `c760308`. FM7 and the umbrella goal remain deferred/paused.
-The user approved documentation task R4 on `feat/sessions-codex-setup`, fast-forwarded to that PR baseline.
-R4 aligns the architecture notes with stores, pure presentation, conditional view models and independent feature/service ownership.
-This session changed documentation only. No tests, builds or app launches ran. The earlier FM1–FM6 evidence remains in its specification.
+R2a/R2b are complete and uncommitted on `feat/sessions-codex-setup`, retaining the PR #15 baseline at `c760308`.
+Usage and Integration now have separate targets. AgentPathLocator preserves both existing caller policies.
+The user authorized the compiler investigation; an explicit Binding setter closure avoids the reproduced Swift 6.3.2 crash.
+Verification and the one-off socket failure are recorded in codex-setup and the completed goal log. FM7 and older goals remain deferred/paused.
 
 ## Next
 
-1. Review and commit the uncommitted R4 documentation on `feat/sessions-codex-setup`. Keep its stack on PR #15 explicit until that PR merges.
-2. Review a bounded R2 module-split plan before further code changes. Keep integration-health/session-island prerequisite closure separate from refactor planning.
+1. Review and commit the R2a/R2b changes on `feat/sessions-codex-setup`. Keep the existing stack on PR #15 explicit.
+2. Review a bounded R3 typed-identity plan before changing more code. Keep integration-health/session-island prerequisite closure separate from refactoring.
 3. Resume FM7 only at the user's request. Start from the recorded native reports and remaining interaction/focus evidence, without repeating earlier automated launch loops.
 4. Keep the original-UI and rabbit-mascot directions in companion-ui-direction.md for later design planning. The new name and final mascot are still open.
 5. Preserve older paused goals and any external backups of deferred FM7/editor/CI work. Do not restore or publish those files automatically.
 
 ## Blockers
 
+- R2 final verification: one 202-test run failed when unchanged `ContractAndSocketTests.stopClosesStalledConnectionAndReleasesOwnership` threw `.unsafeEndpoint`. Its unchanged isolated rerun and the next full 202-test run passed. The cause remains unknown; no socket code or test assertion changed. Evidence is in `docs/specs/sessions/codex-setup.md` and `/private/tmp/notch-pet-r2-final.log`.
 - A5/C5 user review established cards, fixed/running timers, usage limits and preserved focus. Broader session-island acceptance remains unverified; VoiceOver is excluded by D8. The final provider filter has unit coverage; no later visual pass is claimed.
 - Real agent session integration remains unverified: the A5/C5 review used fictional observations and a real Codex allowance read, not a real configured session. No direct supported `NotchPetHook` invocation was found during that earlier bounded structural inspection.
 - Provider-logo structured-bundle lookup is repaired with a regression test. The last native batch verified packaged resources and all eight startup feature sets; this does not complete FM7's interaction acceptance.

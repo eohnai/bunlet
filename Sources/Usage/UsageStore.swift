@@ -1,4 +1,5 @@
 import Foundation
+import Integration
 import Observation
 
 public enum UsageFailure: String, Codable, Sendable {

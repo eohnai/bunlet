@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import Integration
 import os
 
 /// Call stop during app shutdown. Existing endpoints are never adopted or removed on start.

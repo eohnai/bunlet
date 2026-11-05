@@ -1,5 +1,5 @@
 import AppKit
-import SessionState
+import Integration
 
 @MainActor
 enum ProviderLogo {

@@ -1,6 +1,7 @@
+import Integration
 import Foundation
 import Testing
-@testable import SessionState
+@testable import Usage
 
 struct NotchAllowancePresentationTests {
     private func window(_ id: String = "five_hour", used: Double = 25,

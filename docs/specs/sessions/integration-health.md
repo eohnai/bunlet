@@ -41,10 +41,10 @@ The I2 code exists, but its verification is incomplete. All three tasks stay unc
 ## Verify
 
 - Seam: `IntegrationHealthController` in `Sources/NotchPet/NotchPetApp.swift`, fed by the bridge lifecycle and the inbox.
-  The model and probe are in `Sources/SessionState/IntegrationHealth.swift`.
+  The model and probe are in `Sources/Integration/IntegrationHealth.swift`.
 - Build: `bash scripts/run.sh --build-only`.
 - Swift checks: `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/notch-pet-dev/build`.
-  The ten I2 tests are in `Tests/SessionStateTests/IntegrationHealthTests.swift`.
+  The ten I2 tests are in `Tests/IntegrationTests/IntegrationHealthTests.swift`.
 - Real app: `bash scripts/run.sh`, then check receiver and delivery evidence with fictional helper events.
 
 These are reproduction commands. This retrospective spec ran documentation checks only.

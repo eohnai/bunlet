@@ -12,13 +12,17 @@ let package = Package(
     targets: [
         .target(name: "Pet", resources: [.process("Resources")]),
         .target(name: "EventBridge"),
-        .target(name: "SessionState", dependencies: ["EventBridge"]),
-        .executableTarget(name: "NotchPet", dependencies: ["Pet", "EventBridge", "SessionState"],
+        .target(name: "Integration"),
+        .target(name: "Usage", dependencies: ["Integration"]),
+        .target(name: "SessionState", dependencies: ["EventBridge", "Integration"]),
+        .executableTarget(name: "NotchPet", dependencies: ["Pet", "EventBridge", "SessionState", "Usage", "Integration"],
                           resources: [.process("Resources")]),
         .executableTarget(name: "NotchPetHook", dependencies: ["EventBridge"]),
         .testTarget(name: "EventBridgeTests", dependencies: ["EventBridge"]),
         .testTarget(name: "PetTests", dependencies: ["Pet"]),
-        .testTarget(name: "NotchPetTests", dependencies: ["NotchPet"]),
-        .testTarget(name: "SessionStateTests", dependencies: ["SessionState", "EventBridge"])
+        .testTarget(name: "NotchPetTests", dependencies: ["NotchPet", "EventBridge", "SessionState", "Integration"]),
+        .testTarget(name: "UsageTests", dependencies: ["Usage", "Integration"]),
+        .testTarget(name: "IntegrationTests", dependencies: ["Integration", "SessionState", "EventBridge"]),
+        .testTarget(name: "SessionStateTests", dependencies: ["SessionState", "EventBridge", "Integration"])
     ]
 )

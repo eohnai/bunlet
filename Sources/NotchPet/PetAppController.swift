@@ -1,9 +1,11 @@
 import AppKit
 import Darwin
 import EventBridge
+import Integration
 import Observation
 import Pet
 import SessionState
+import Usage
 
 /// Presentation and optional service lifetime belong to the app, not its views.
 @MainActor
