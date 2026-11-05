@@ -2,18 +2,18 @@
 
 ## Now
 
-R2a/R2b are complete and uncommitted on `feat/sessions-codex-setup`, retaining the PR #15 baseline at `c760308`.
-Usage and Integration now have separate targets. AgentPathLocator preserves both existing caller policies.
-The user authorized the compiler investigation; an explicit Binding setter closure avoids the reproduced Swift 6.3.2 crash.
-Verification and the one-off socket failure are recorded in codex-setup and the completed goal log. FM7 and older goals remain deferred/paused.
+R2a/R2b and R3 are complete on `feat/sessions-codex-setup`, retaining the PR #15 baseline at `c760308`.
+Agent and HookEvent now type bridge/session identities. Usage transport and the wire format retain their existing behavior.
+The approved full suite command and its 205-test result are recorded in codex-setup's R3 evidence.
+FM7 and older goals remain deferred/paused.
+The user prioritizes a working Codex MVP before further refactoring: optional setup, a real session in the notch, and real limits.
 
 ## Next
 
-1. Review and commit the R2a/R2b changes on `feat/sessions-codex-setup`. Keep the existing stack on PR #15 explicit.
-2. Review a bounded R3 typed-identity plan before changing more code. Keep integration-health/session-island prerequisite closure separate from refactoring.
-3. Resume FM7 only at the user's request. Start from the recorded native reports and remaining interaction/focus evidence, without repeating earlier automated launch loops.
-4. Keep the original-UI and rabbit-mascot directions in companion-ui-direction.md for later design planning. The new name and final mascot are still open.
-5. Preserve older paused goals and any external backups of deferred FM7/editor/CI work. Do not restore or publish those files automatically.
+1. Prioritize the Codex MVP implementation path. Review integration-health/session-island prerequisite evidence, then plan the next setup implementation task. Defer R5 refactoring.
+2. Resume FM7 only at the user's request. Start from the recorded native reports and remaining interaction/focus evidence, without repeating earlier automated launch loops.
+3. Keep the original-UI and rabbit-mascot directions in companion-ui-direction.md for later design planning. The new name and final mascot are still open.
+4. Preserve older paused goals and any external backups of deferred FM7/editor/CI work. Do not restore or publish those files automatically.
 
 ## Blockers
 

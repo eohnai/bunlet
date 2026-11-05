@@ -21,7 +21,7 @@ struct ContractAndSocketTests {
         BridgeEndpoint(directory: "/private/tmp/notch-pet-test-\(UUID().uuidString)")
     }
     private func envelope() throws -> HookEnvelopeV1 {
-        try HookEnvelopeV1.project(rawHook: Data("{\"session_id\":\"fictional\",\"hook_event_name\":\"SessionStart\"}".utf8), agent: "codex")
+        try HookEnvelopeV1.project(rawHook: Data("{\"session_id\":\"fictional\",\"hook_event_name\":\"SessionStart\"}".utf8), agent: .codex)
     }
     private func connect(_ endpoint: BridgeEndpoint) throws -> Int32 {
         let fd = try makeSocket()
@@ -71,7 +71,7 @@ struct ContractAndSocketTests {
          "turn_id":"wrong-provider-turn","tool_name":"Write","tool_use_id":"tool-a","cwd":"/example",
          "prompt":"private prompt","transcript_path":"/must/not/open","tool_input":{"command":"private command"}}
         """.utf8)
-        let envelope = try HookEnvelopeV1.project(rawHook: raw, agent: "claude", paneSelector: "unverified")
+        let envelope = try HookEnvelopeV1.project(rawHook: raw, agent: .claude, paneSelector: "unverified")
         #expect(envelope.turnID == "turn-a")
         #expect(envelope.terminal?.paneSelector == "unverified")
         let wire = String(decoding: try envelope.frame(), as: UTF8.self)
@@ -79,13 +79,13 @@ struct ContractAndSocketTests {
             #expect(!wire.contains(forbidden))
         }
         #expect(throws: (any Error).self) {
-            try HookEnvelopeV1.project(rawHook: Data(repeating: 32, count: 262_145), agent: "claude")
+            try HookEnvelopeV1.project(rawHook: Data(repeating: 32, count: 262_145), agent: .claude)
         }
     }
 
     @Test func rawHookBoundaryPreservesJSONWhitespaceRules() throws {
         let minimal = Data("{\"session_id\":\"fictional\",\"hook_event_name\":\"SessionStart\"}".utf8)
-        for agent in ["codex", "claude"] {
+        for agent in Agent.allCases {
             for byte in [UInt8(9), 10, 13, 32] {
                 let padding = Data(repeating: byte, count: HookEnvelopeV1.rawHookLimit - minimal.count)
                 for raw in [minimal + padding, padding + minimal] {

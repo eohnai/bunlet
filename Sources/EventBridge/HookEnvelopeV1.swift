@@ -8,9 +8,9 @@ public enum BridgeError: Error {
 public struct HookEnvelopeV1: Encodable, Sendable {
     public let version: Int
     public let eventID: String
-    public let agent: String
+    public let agent: Agent
     public let sessionID: String
-    public let hookEventName: String
+    public let hookEventName: HookEvent
     public let observedAtMs: Int64
     public let turnID: String?
     public let toolUseID: String?
@@ -36,11 +36,6 @@ public struct HookEnvelopeV1: Encodable, Sendable {
 
     public static let frameLimit = 16_384
     public static let rawHookLimit = 262_144
-    static let hooks: Set<String> = [
-        "SessionStart", "UserPromptSubmit", "PreToolUse", "PermissionRequest",
-        "PostToolUse", "Stop", "SessionEnd"
-    ]
-    static let toolHooks: Set<String> = ["PreToolUse", "PermissionRequest", "PostToolUse"]
 
     public static func decode(frame: Data) throws -> Self {
         guard frame.count <= frameLimit, frame.last == 10,
@@ -59,8 +54,8 @@ public struct HookEnvelopeV1: Encodable, Sendable {
               let eventID = fields["event_id"]?.string,
               UUID(uuidString: eventID)?.uuidString.lowercased() == eventID,
               eventID.utf8.count == 36,
-              let agent = fields["agent"]?.string, ["codex", "claude"].contains(agent),
-              let hook = fields["hook_event_name"]?.string, hooks.contains(hook),
+              let agentName = fields["agent"]?.string, let agent = Agent(rawValue: agentName),
+              let hookName = fields["hook_event_name"]?.string, let hook = HookEvent(rawValue: hookName),
               let timestamp = fields["observed_at_ms"]?.integer,
               (0...9_007_199_254_740_991).contains(timestamp)
         else { throw BridgeError.invalidMessage }
@@ -75,15 +70,17 @@ public struct HookEnvelopeV1: Encodable, Sendable {
             }
             return text
         }
-        let session = try string("session_id", 256, required: true)!
+        guard let session = try string("session_id", 256, required: true) else {
+            throw BridgeError.invalidMessage
+        }
         let turn = try string("turn_id", 256)
         let toolID = try string("tool_use_id", 256)
-        let tool = try string("tool_name", 128, required: toolHooks.contains(hook))
-        guard toolHooks.contains(hook) || (toolID == nil && tool == nil) else {
+        let tool = try string("tool_name", 128, required: hook.requiresToolName)
+        guard hook.requiresToolName || (toolID == nil && tool == nil) else {
             throw BridgeError.invalidMessage
         }
         let cwd = try string("cwd", 4096)
-        guard cwd == nil || cwd!.hasPrefix("/") else { throw BridgeError.invalidMessage }
+        if let cwd, !cwd.hasPrefix("/") { throw BridgeError.invalidMessage }
         var terminal: Terminal?
         if let value = fields["terminal"] {
             guard case .object(let fields) = value,
@@ -108,18 +105,17 @@ public struct HookEnvelopeV1: Encodable, Sendable {
     }
 
     /// Only projects allowlisted fields. Never reads transcripts or invokes an agent.
-    public static func project(rawHook: Data, agent: String, paneSelector: String? = nil) throws -> Self {
+    public static func project(rawHook: Data, agent: Agent, paneSelector: String? = nil) throws -> Self {
         try project(rawHook: rawHook, agent: agent, paneSelector: paneSelector, deadline: nil)
     }
 
-    static func project(rawHook: Data, agent: String, paneSelector: String?, deadline: UInt64?) throws -> Self {
-        if agent == "codex" {
+    static func project(rawHook: Data, agent: Agent, paneSelector: String?, deadline: UInt64?) throws -> Self {
+        switch agent {
+        case .codex:
             return try CodexEventAdapter.project(rawHook: rawHook, paneSelector: paneSelector, deadline: deadline)
-        }
-        if agent == "claude" {
+        case .claude:
             return try ClaudeEventAdapter.project(rawHook: rawHook, paneSelector: paneSelector, deadline: deadline)
         }
-        throw BridgeError.invalidMessage
     }
 
     static func rawFields(_ rawHook: Data, deadline: UInt64?) throws -> [String: JSONValue] {
@@ -129,12 +125,12 @@ public struct HookEnvelopeV1: Encodable, Sendable {
         return source
     }
 
-    static func projected(_ sourceFields: [String: JSONValue], agent: String, observedAtMs: Int64,
+    static func projected(_ sourceFields: [String: JSONValue], agent: Agent, observedAtMs: Int64,
                           paneSelector: String?) throws -> Self {
         var fields = sourceFields
         fields["version"] = .number("1")
         fields["event_id"] = .string(UUID().uuidString.lowercased())
-        fields["agent"] = .string(agent)
+        fields["agent"] = .string(agent.rawValue)
         fields["observed_at_ms"] = .number(String(observedAtMs))
         if let paneSelector {
             fields["terminal"] = .object(["kind": .string("otty"), "pane_selector": .string(paneSelector)])

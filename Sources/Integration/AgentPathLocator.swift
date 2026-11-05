@@ -1,3 +1,4 @@
+import EventBridge
 import Foundation
 
 public enum AgentPathLocator {
@@ -18,7 +19,7 @@ public enum AgentPathLocator {
     }
 
     public static func executable(
-        agent: IntegrationAgent,
+        agent: Agent,
         policy: ExecutablePolicy,
         searchPath: String?,
         homeDirectory: URL,
@@ -50,7 +51,7 @@ public enum AgentPathLocator {
     }
 
     public static func configurationDirectory(
-        agent: IntegrationAgent,
+        agent: Agent,
         override: String?,
         homeDirectory: URL
     ) -> URL? {

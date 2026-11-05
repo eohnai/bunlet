@@ -6,8 +6,8 @@ import SessionState
 import Testing
 
 struct IntegrationHealthModelTests {
-    @Test(arguments: IntegrationAgent.allCases)
-    func versionAndConfigurationRemainIndependent(agent: IntegrationAgent) {
+    @Test(arguments: Agent.allCases)
+    func versionAndConfigurationRemainIndependent(agent: Agent) {
         let recorded = agent == .codex ? "0.164.0" : "2.1.306"
         var evidence = IntegrationHealthEvidence(agent: agent, version: .reported(recorded))
         evidence.configuration = .missing
@@ -22,8 +22,8 @@ struct IntegrationHealthModelTests {
         #expect(unfamiliar.configuration == .recognizedShape(eventCount: 1, commandCount: 2))
     }
 
-    @Test(arguments: IntegrationAgent.allCases)
-    func helperAndReceiverRemainIndependent(agent: IntegrationAgent) {
+    @Test(arguments: Agent.allCases)
+    func helperAndReceiverRemainIndependent(agent: Agent) {
         var evidence = IntegrationHealthEvidence(agent: agent, helper: .available,
                                                  receiver: .failed(.receiverUnavailable))
         let failed = IntegrationHealth.evaluate(evidence)
@@ -38,8 +38,8 @@ struct IntegrationHealthModelTests {
         #expect(listening.receiver == .listening)
     }
 
-    @Test(arguments: IntegrationAgent.allCases)
-    func missingDeliveryDoesNotMeanDisconnected(agent: IntegrationAgent) {
+    @Test(arguments: Agent.allCases)
+    func missingDeliveryDoesNotMeanDisconnected(agent: Agent) {
         let receivers: [IntegrationReceiverState] = [.notStarted, .listening, .stopped]
         for receiver in receivers {
             let snapshot = IntegrationHealth.evaluate(IntegrationHealthEvidence(
@@ -71,8 +71,8 @@ struct IntegrationHealthModelTests {
         #expect(IntegrationHealth.evaluate(evidence).lastDelivery == receipt)
     }
 
-    @Test(arguments: IntegrationAgent.allCases)
-    func configurationAndReceiptNeverPromoteSupport(agent: IntegrationAgent) {
+    @Test(arguments: Agent.allCases)
+    func configurationAndReceiptNeverPromoteSupport(agent: Agent) {
         let receipt = IntegrationDeliveryReceipt(wallMs: 1_000, monotonicNs: 2_000)
         let evidence = IntegrationHealthEvidence(
             agent: agent, version: .reported("99.0.0"),
@@ -93,8 +93,8 @@ struct IntegrationHealthModelTests {
 // Keep fresh fictional executable launches from competing for the process deadline.
 @Suite(.serialized)
 struct IntegrationHealthProbeTests {
-    @Test(arguments: IntegrationAgent.allCases)
-    func versionProbeBoundsItsProcessAndOutput(agent: IntegrationAgent) async throws {
+    @Test(arguments: Agent.allCases)
+    func versionProbeBoundsItsProcessAndOutput(agent: Agent) async throws {
         let fixture = try IntegrationHealthFixture()
         let version = agent == .codex ? "codex-cli 0.164.0" : "2.1.306 (Claude Code)"
         let success = try fixture.executable("printf '%s\\n' '\(version)'")
@@ -161,8 +161,8 @@ struct IntegrationHealthProbeTests {
         #expect(linked.configuration == .unavailable(.unsupportedShape))
     }
 
-    @Test(arguments: IntegrationAgent.allCases)
-    func helperAvailabilityDoesNotInvokeTheHelper(agent: IntegrationAgent) async throws {
+    @Test(arguments: Agent.allCases)
+    func helperAvailabilityDoesNotInvokeTheHelper(agent: Agent) async throws {
         let fixture = try IntegrationHealthFixture()
         let marker = fixture.directory.appendingPathComponent("must-not-exist")
         let helper = try fixture.executable("touch '\(marker.path)'")
@@ -183,8 +183,8 @@ struct IntegrationHealthProbeTests {
         #expect(!FileManager.default.fileExists(atPath: marker.path))
     }
 
-    @Test(arguments: IntegrationAgent.allCases)
-    func hookShapeInspectionPreservesEveryConfigurationByte(agent: IntegrationAgent) async throws {
+    @Test(arguments: Agent.allCases)
+    func hookShapeInspectionPreservesEveryConfigurationByte(agent: Agent) async throws {
         let fixture = try IntegrationHealthFixture()
         let marker = fixture.directory.appendingPathComponent("hook-must-not-run")
         let body = #"{"env":{"FICTIONAL_TOKEN":"fictional-private-value"},"hooks":{"Stop":[{"matcher":"*","hooks":[{"type":"command","command":"touch '__MARKER__'"}]}]}}"#
@@ -199,8 +199,8 @@ struct IntegrationHealthProbeTests {
         #expect(evidence.lastDelivery == nil)
     }
 
-    @Test(arguments: IntegrationAgent.allCases)
-    func diagnosticsDiscardUnrelatedFictionalValues(agent: IntegrationAgent) async throws {
+    @Test(arguments: Agent.allCases)
+    func diagnosticsDiscardUnrelatedFictionalValues(agent: Agent) async throws {
         let fixture = try IntegrationHealthFixture()
         let sentinel = "FICTIONAL_PRIVATE_SENTINEL"
         let config = try fixture.configuration(#"{"env":{"TOKEN":"FICTIONAL_PRIVATE_SENTINEL"},"hooks":{"Stop":[{"hooks":[{"type":"command","command":"FICTIONAL_PRIVATE_SENTINEL"}]}]}}"#)

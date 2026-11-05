@@ -287,7 +287,7 @@ public final class SessionStore {
 
     private func publish() {
         let updated = records.map { key, record in record.snapshot(key: key) }.sorted {
-            if $0.key.agent != $1.key.agent { return $0.key.agent < $1.key.agent }
+            if $0.key.agent != $1.key.agent { return $0.key.agent.rawValue < $1.key.agent.rawValue }
             return $0.key.sessionID.utf8.lexicographicallyPrecedes($1.key.sessionID.utf8)
         }
         if sessions != updated { sessions = updated }

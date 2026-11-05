@@ -1,5 +1,5 @@
+import EventBridge
 import AppKit
-import Integration
 import Testing
 @testable import NotchPet
 
@@ -27,8 +27,8 @@ struct ProviderLogoTests {
         try check(bundle, resources)
     }
 
-    @Test(arguments: [IntegrationAgent.codex, .claude])
-    func packagedLogosDecodeWithoutAnAppRootResourceBundle(provider: IntegrationAgent) throws {
+    @Test(arguments: [Agent.codex, .claude])
+    func packagedLogosDecodeWithoutAnAppRootResourceBundle(provider: Agent) throws {
         try withApp(logos: ["codex.svg", "claude-code.svg"]) { bundle, _ in
             #expect(!FileManager.default.fileExists(
                 atPath: bundle.bundleURL.appendingPathComponent("NotchPet_NotchPet.bundle").path))

@@ -81,6 +81,9 @@ These are future verification requirements. No runtime verification ran while wr
 
 ## Decisions
 
+- **Replace IntegrationAgent directly with EventBridge.Agent, accepted 2026-11-05.** The user approved R3's plan and shared agent/hook types.
+  A temporary alias was rejected because it leaves two names for one identity. Direct replacement touches more callers.
+  Usage transport strings retain their existing validation boundary and rejection behavior.
 - **Use menu controls first.** The user accepted this on 2026-10-30 to avoid waiting for the planned Settings window.
   Waiting for Settings was considered and deferred. The later Settings feature can reuse these actions.
 - **Use a separate ownership file.** Accepted on 2026-10-28. Entry markers alone were rejected because they lack verified compatibility and edit detection.
@@ -106,6 +109,8 @@ These are future verification requirements. No runtime verification ran while wr
 
 ## My calls
 
+- On 2026-11-05, the user prioritized a working MVP before further refactoring. Defer R5 and follow the approved Codex setup, visible-session and limits path.
+  Prerequisite acceptance and task-level implementation approval still apply. R5 remains open.
 - Use `feat/sessions-codex-setup` for eventual implementation. This planning session creates no branch.
 - Reuse `IntegrationHealthController`, `AgentServiceOwner`, and `AgentServices`; concrete interfaces receive task-level review.
   The current menu exposes Show Pet, Pet Settings, and Quit. The health controller is private and has no menu action.
@@ -128,7 +133,7 @@ These are future verification requirements. No runtime verification ran while wr
 - [x] R8: Move the five `ObservableObject` classes and their views to `@Observable`; no behavior change, full suite passes.
 - [x] R2a: Split SessionState into SessionState, Usage and Integration targets; move existing source/tests and update imports, dependencies and ownership notes; preserve behavior and pass the full suite.
 - [x] R2b: Extract executable and configuration-directory lookup into Integration with explicit health/usage policies; preserve existing behavior, pass eight new locator checks and the full suite.
-- [ ] R3: Add typed `Agent` and `HookEvent` enums at the bridge boundary; remove the duplicated hook-name sets, the `default: .sessionEnded` branch, and the force unwraps they make unnecessary; wire format unchanged.
+- [x] R3: Add typed `Agent` and `HookEvent` enums at the bridge boundary; remove the duplicated hook-name sets, the `default: .sessionEnded` branch, and the force unwraps they make unnecessary; wire format unchanged.
 - [x] R4: Update `ARCHITECTURE.md` to describe stores, pure presentation functions, AppKit controllers, and D3's view-model rule.
 - [ ] R5: Collect `ServiceStartLedger`, pet evidence writing, and the preferences-suite override into one verification type with one entry point.
 - [ ] R6: Review the 128-session contract limit and its silent refusal; record a decision before any store or contract change.
@@ -196,6 +201,42 @@ Diff review confirms both app callers have no executable-search loops. Only the 
 `git diff --check` and the progress script exit 0. R2a/R2b are complete; other checkbox states are unchanged.
 No app launch, capture, installed-provider probe, configuration edit, R3/R5 work or broader acceptance ran.
 Both prerequisite specifications remain unfinished. This refactor does not close them or qualify a Codex installer.
+
+## R3 typed identity verification, 2026-11-05
+
+The user approved the bounded R3 plan, direct replacement of IntegrationAgent, and the listed verification commands.
+Work remains on `feat/sessions-codex-setup`, retaining the PR #15 baseline and all uncommitted R2 changes.
+The pre-R3 files are preserved at `/private/tmp/notch-pet-r3-before` so overlapping files can be committed separately.
+
+`EventBridge.Agent` replaces IntegrationAgent directly, with no alias. `HookEvent` owns the seven version-1 hook names.
+Validated envelopes and SessionKey retain typed identities. The helper parses its agent argument through Agent.
+Both adapters share envelope validation instead of separate hook-name sets. SessionObservationV1 handles all seven hooks explicitly.
+Hook-specific tool requirements remain exhaustive. Both envelope force unwraps now use checked optional access.
+SessionStore already guarded its tool name before R3; no store transition rule changed.
+Agent sorting retains raw-string order, and source session IDs retain their UTF-8 equality/hash rules.
+
+Integration, Usage and SessionState declare direct EventBridge dependencies. Usage transport keeps its provider string
+and existing validation/rejection behavior. App, presentation, locator and health callers use the shared enum.
+The old unsupported-agent snapshot fixture is no longer constructible. Unknown wire identities are tested at the bridge boundary.
+Existing adapter/shared-state checks still cover all seven hooks, both question tools, and the contract's state sequences.
+
+| Check | Result | Evidence outside the repository |
+|---|---|---|
+| Initial sandboxed baseline | Exit 1 before tests; compiler-cache write denied | Superseded by the authorized baseline rerun below |
+| Unchanged baseline with cache access | Exit 0; 202 tests in 32 suites, one existing known issue | `/private/tmp/notch-pet-r3-baseline.log` |
+| New identity tests before implementation | Exit 1; Agent and HookEvent are missing | `/private/tmp/notch-pet-r3-tests-first.log` |
+| Identity tests after implementation | Exit 0; three tests, including 14 exact wire-byte cases | `/private/tmp/notch-pet-r3-identity.log` |
+| Full suite | Exit 0; 205 tests in 33 suites, same existing known issue | `/private/tmp/notch-pet-r3-full.log` |
+
+The suite command is `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/notch-pet-dev/build`.
+The tests-first and identity commands add `--filter EventIdentityTests`.
+The three new test bodies retain their tests-first SHA-256: `693f8f4cf904ba767958d74115ff210ab01dc7e550f43ebbd85e3259e1e8a9d1`.
+They freeze both agent names and seven hook names, reject unknown names, and compare complete encoded frames byte for byte.
+The full run retains the existing known usage-datagram issue. The existing weak-variable warning also remains.
+
+`git diff --check` and the progress script exit 0. R3 is complete; other task states are unchanged.
+No app launch, capture, installed-provider probe, configuration edit, R5 work or broader acceptance ran.
+Both setup prerequisites remain unfinished. R3 does not qualify a Codex installer or close their acceptance.
 
 ## R4 documentation verification, 2026-11-02
 

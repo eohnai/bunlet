@@ -28,19 +28,19 @@ struct NotchPetApp: App {
 @MainActor
 @Observable
 private final class IntegrationHealthController {
-    private(set) var evidence: [IntegrationAgent: IntegrationHealthEvidence] =
-        Dictionary(uniqueKeysWithValues: IntegrationAgent.allCases.map {
+    private(set) var evidence: [Agent: IntegrationHealthEvidence] =
+        Dictionary(uniqueKeysWithValues: Agent.allCases.map {
             ($0, IntegrationHealthEvidence(agent: $0))
         })
-    private var refreshing: Set<IntegrationAgent> = []
+    private var refreshing: Set<Agent> = []
 
     var snapshots: [IntegrationHealthSnapshot] {
-        IntegrationAgent.allCases.compactMap { agent in
+        Agent.allCases.compactMap { agent in
             evidence[agent].map { IntegrationHealth.evaluate($0) }
         }
     }
 
-    func refresh(agent: IntegrationAgent) async {
+    func refresh(agent: Agent) async {
         guard !Task.isCancelled, refreshing.insert(agent).inserted else { return }
         ServiceStartLedger.record(.configurationProbe)
         defer { refreshing.remove(agent) }
@@ -75,7 +75,7 @@ private final class IntegrationHealthController {
 
     func setReceiver(_ state: IntegrationReceiverState) {
         var updated = evidence
-        for agent in IntegrationAgent.allCases {
+        for agent in Agent.allCases {
             updated[agent]?.receiver = state
         }
         evidence = updated
@@ -85,7 +85,7 @@ private final class IntegrationHealthController {
         guard !observations.isEmpty else { return }
         var updated = evidence
         for observation in observations {
-            guard let agent = IntegrationAgent(rawValue: observation.envelope.agent) else { continue }
+            let agent = observation.envelope.agent
             updated[agent]?.lastDelivery = IntegrationDeliveryReceipt(
                 wallMs: observation.receiptWallMs, monotonicNs: observation.receiptMonotonicNs)
         }

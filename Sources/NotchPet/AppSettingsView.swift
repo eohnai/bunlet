@@ -1,3 +1,4 @@
+import EventBridge
 import Integration
 import Pet
 import SwiftUI
@@ -194,7 +195,7 @@ struct AppSettingsView: View {
             }
             Text("Monitoring uses agent connections you have already configured. Automatic agent setup is not available yet.")
                 .font(.callout).foregroundStyle(.secondary)
-            ForEach(IntegrationAgent.allCases, id: \.self) { provider in
+            ForEach(Agent.allCases, id: \.self) { provider in
                 let evidence = actions.health().first { $0.agent == provider }
                 VStack(alignment: .leading, spacing: 5) {
                     Text(provider == .codex ? "Codex" : "Claude Code").fontWeight(.medium)

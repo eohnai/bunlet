@@ -55,13 +55,14 @@ Those skills assume iOS 17, MVVM, and XCTest. This project uses none of those, s
 - Bound every external input with a named constant.
 - Report failures as small enums. Never include raw content, such as configuration, commands, or event text, in messages, logs, or diagnostics.
 - Keep agent and hook identity typed. Decode wire strings once, at the boundary.
-  **Not yet:** agent and hook names are plain strings in several modules. R3 adds `Agent` and `HookEvent`.
+  Example: `EventBridge.Agent` and `HookEvent` type validated envelopes; `SessionKey` retains the agent enum.
+  Usage transport keeps its provider string and validates it through `Agent` without changing rejection behavior.
 
 ## Code style
 
 - Use no force unwraps outside tests. Use `guard let` and return a bounded result instead.
-  **Not yet:** eight remain, in `SessionStore`, `EventBridgeServer`, `HookEnvelopeV1`, `SocketSupport`, and `CodexUsageConnection`.
-  R3 removes the ones that typed hook events make unnecessary (review M7). Remove the others when you next change their code.
+  **Not yet:** three remain, in `EventBridgeServer`, `SocketSupport`, and `CodexUsageConnection`.
+  R3 removes both envelope unwraps. `SessionStore` already guards its tool name. Remove others when you next change their code.
 - Write one statement per line.
   **Not yet:** see review L5 for the known exceptions.
 - Comment the reason for a rule, not what the code does.

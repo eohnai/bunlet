@@ -1,6 +1,6 @@
+import EventBridge
 import CoreGraphics
 import Foundation
-import Integration
 
 public enum PromptTimer: Equatable, Sendable {
     case running(startedAtMs: Int64)
@@ -67,9 +67,9 @@ public enum NotchPresentation {
         }
     }
 
-    public static func activeProviders(_ sessions: [SessionSnapshot]) -> Set<IntegrationAgent> {
+    public static func activeProviders(_ sessions: [SessionSnapshot]) -> Set<Agent> {
         Set(sessions.filter { $0.status != .ended && $0.status != .unknown }
-            .compactMap { IntegrationAgent(rawValue: $0.key.agent) })
+            .map { $0.key.agent })
     }
 
     public static func ordered(_ sessions: [SessionSnapshot]) -> [SessionSnapshot] {
@@ -86,7 +86,7 @@ public enum NotchPresentation {
         return sessions.sorted { left, right in
             let a = rank(left), b = rank(right)
             if a != b { return a < b }
-            if left.key.agent != right.key.agent { return left.key.agent < right.key.agent }
+            if left.key.agent != right.key.agent { return left.key.agent.rawValue < right.key.agent.rawValue }
             return left.key.sessionID.utf8.lexicographicallyPrecedes(right.key.sessionID.utf8)
         }
     }

@@ -1,3 +1,4 @@
+import EventBridge
 import Foundation
 import Integration
 import Testing
@@ -6,12 +7,12 @@ struct AgentPathLocatorTests {
     private let home = URL(fileURLWithPath: "/fictional/home")
     private let policies: [AgentPathLocator.ExecutablePolicy] = [.health, .usage]
 
-    private func extras(_ agent: IntegrationAgent) -> [String] {
+    private func extras(_ agent: Agent) -> [String] {
         ["/fictional/home/.local/bin", "/opt/homebrew/bin", "/usr/local/bin"]
             .map { $0 + "/" + agent.rawValue }
     }
 
-    private func candidates(_ agent: IntegrationAgent, policy: AgentPathLocator.ExecutablePolicy,
+    private func candidates(_ agent: Agent, policy: AgentPathLocator.ExecutablePolicy,
                             path: String?) -> [String] {
         var visited: [String] = []
         let result = AgentPathLocator.executable(
@@ -22,7 +23,7 @@ struct AgentPathLocatorTests {
     }
 
     @Test func missingPathUsesPolicyFallbacks() {
-        for agent in IntegrationAgent.allCases {
+        for agent in Agent.allCases {
             #expect(candidates(agent, policy: .health, path: nil) ==
                 ["/usr/bin", "/bin", "/usr/sbin", "/sbin"].map { $0 + "/" + agent.rawValue })
             #expect(candidates(agent, policy: .usage, path: nil) ==
@@ -32,14 +33,14 @@ struct AgentPathLocatorTests {
     }
 
     @Test func emptyPathPreservesPolicyBehavior() {
-        for agent in IntegrationAgent.allCases {
+        for agent in Agent.allCases {
             #expect(candidates(agent, policy: .health, path: "").isEmpty)
             #expect(candidates(agent, policy: .usage, path: "") == extras(agent))
         }
     }
 
     @Test func absoluteCandidatesKeepOrder() {
-        for agent in IntegrationAgent.allCases {
+        for agent in Agent.allCases {
             for policy in policies {
                 let first = "/fictional/first/" + agent.rawValue
                 let second = "/fictional/second/" + agent.rawValue
@@ -56,7 +57,7 @@ struct AgentPathLocatorTests {
     }
 
     @Test func componentLimitPreservesEmptyHandling() {
-        for agent in IntegrationAgent.allCases {
+        for agent in Agent.allCases {
             let emptyPrefix = String(repeating: ":", count: 63) + "/fictional/accepted:/fictional/ignored"
             #expect(candidates(agent, policy: .health, path: emptyPrefix) ==
                 ["/fictional/accepted/" + agent.rawValue])
@@ -77,7 +78,7 @@ struct AgentPathLocatorTests {
     @Test func searchPathUsesUTF8ByteBound() {
         let acceptedPaths = ["/" + String(repeating: "x", count: 16_383),
                              "/" + String(repeating: "é", count: 8_191) + "x"]
-        for agent in IntegrationAgent.allCases {
+        for agent in Agent.allCases {
             for policy in policies {
                 for path in acceptedPaths {
                     #expect(path.utf8.count == 16_384)
@@ -101,7 +102,7 @@ struct AgentPathLocatorTests {
     }
 
     @Test func usageAppendsFallbackDirectories() {
-        for agent in IntegrationAgent.allCases {
+        for agent in Agent.allCases {
             let pathCandidate = "/fictional/path/" + agent.rawValue
             let fallback = "/usr/local/bin/" + agent.rawValue
             var visited: [String] = []
@@ -115,7 +116,7 @@ struct AgentPathLocatorTests {
     }
 
     @Test func missingOrEmptyOverrideUsesAgentDefault() {
-        for agent in IntegrationAgent.allCases {
+        for agent in Agent.allCases {
             let expected = home.appendingPathComponent(agent == .codex ? ".codex" : ".claude")
             for override: String? in [nil, ""] {
                 #expect(AgentPathLocator.configurationDirectory(
@@ -128,7 +129,7 @@ struct AgentPathLocatorTests {
         let acceptedPaths = ["/fictional/config", "/",
                              "/" + String(repeating: "x", count: 4_095),
                              "/" + String(repeating: "é", count: 2_047) + "x"]
-        for agent in IntegrationAgent.allCases {
+        for agent in Agent.allCases {
             for path in acceptedPaths {
                 #expect(AgentPathLocator.configurationDirectory(
                     agent: agent, override: path, homeDirectory: home) == URL(fileURLWithPath: path))

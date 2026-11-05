@@ -55,16 +55,19 @@ An eventual session-to-pet adapter must consume the same authoritative snapshots
 
 | Target | Current responsibility | Dependencies |
 |---|---|---|
-| `EventBridge` | Bounded envelopes, agent adapters, Unix-socket client and server | None |
-| `Integration` | Integration-health evidence/probes and shared executable/configuration-directory lookup | None |
-| `Usage` | Usage store, providers, connection, sender/receiver and allowance presentation | `Integration` |
-| `SessionState` | Session store/inbox, observation mapping and session presentation rules | `EventBridge`, `Integration` |
+| `EventBridge` | Shared agent/hook identities, bounded envelopes, agent adapters, Unix-socket client and server | None |
+| `Integration` | Integration-health evidence/probes and shared executable/configuration-directory lookup | `EventBridge` |
+| `Usage` | Usage store, providers, connection, sender/receiver and allowance presentation | `EventBridge` |
+| `SessionState` | Session store/inbox, observation mapping and session presentation rules | `EventBridge` |
 | `Pet` | Artwork, preferences, rendering and playback rules | None |
 | `NotchPet` | App composition, feature management, Settings, windows and optional services | `Pet`, `EventBridge`, `SessionState`, `Usage`, `Integration` |
 | `NotchPetHook` | Silent one-way observation helper | `EventBridge` |
 
 [Codex setup R2a](specs/sessions/codex-setup.md#tasks) separates `Usage` and `Integration` from `SessionState`.
-`IntegrationAgent` remains in `Integration` until R3 adds bridge-level typed identity.
+R3 replaces `IntegrationAgent` directly with `EventBridge.Agent`; no compatibility alias remains.
+`HookEvent` defines the seven version-1 hook names. Envelope validation converts wire strings into these enums.
+Session keys retain typed agent identity, and observation mapping handles every hook explicitly.
+Usage transport retains its provider string and existing validation behavior through `Agent`.
 R2b adds `AgentPathLocator` with explicit health/usage policies. It preserves their existing path rules and keeps environment reads in app callers.
 
 ## Feature availability and runtime ownership
@@ -265,7 +268,8 @@ The receiver hands validated envelopes and receipt times to a callback on its wo
 The app now owns one observable `SessionStore` in the `SessionState` target.
 `SessionObservationV1.init(received:)` maps the seven accepted hooks into shared event meanings.
 This mapping implements the version-1 contract. It does not verify provider compatibility or install agent hooks.
-`CodexEventAdapter` owns Codex raw field selection and its explicit seven-hook coverage boundary.
+`CodexEventAdapter` owns Codex raw field selection. Both adapters use the shared seven-hook allowlist in `HookEvent`.
+Adding a hook requires reviewing the wire contract and both providers' coverage. The enum alone does not qualify provider support.
 `HookEnvelopeV1.project` routes Codex payloads through that adapter and preserves the helper's parser deadline.
 The wire validator still enforces common field bounds. The store still owns ordering and freshness.
 The adapter uses the investigation's payload shapes without inferring missing identities or reading transcripts.
