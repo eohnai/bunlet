@@ -2,13 +2,13 @@
 
 ## Now
 
-The full nine-area MVP goal remains active on `feat/codex-mvp`. Sources 1–3 are saved as `299d021`/`32f7b0f`; `6554af7` adds Claude action adapters. Turn 4 action setup/consent is saved as `521440b`. Turn 5 adds optional pet reactions, native drag/hide/overlap return, menu recovery and saved sound/display-relative placement in source.
+The full nine-area MVP goal remains active on `feat/codex-mvp`. Sources 1–3 are saved as `299d021`/`32f7b0f`; `6554af7` adds Claude action adapters. Turn 4 action setup/consent is saved as `521440b`. Turn 5 pet reactions/movement is saved as `474188a`. Turn 6 adds bounded manifest/PNG import, private staged persistence, artwork selection, rollback and built-in recovery in source.
 Tests/builds/runtime/qualification remain NOT RUN. Helper output receipt is not provider acceptance. Follow-ups use a waiting Claude Stop hook for at most 60 seconds; Codex actions remain unsupported.
-Local milestone commits are authorized. Preserve FM7/editor/CI drafts; no pushes, PRs, extra branches or worktrees. Custom pet packs and desktop/navigation remain unfinished. Company code, internal libraries and proprietary snippets are excluded.
+Local milestone commits are authorized. Preserve FM7/editor/CI drafts; no pushes, PRs, extra branches or worktrees. Desktop/navigation and the final source audit remain unfinished. Company code, internal libraries and proprietary snippets are excluded.
 
 ## Next
 
-1. Implement bounded asset-only pack import/selection/rollback and saved artwork preferences from the new pet workflow contract.
+1. Complete validated terminal/application/manual navigation and native Notch display/Space/sleep/focus recovery.
 2. Complete navigation/desktop recovery and the full nine-area source handoff. All nine criteria remain the finish line.
 3. Keep tests/builds/probes/launches/captures, installed configuration access and runtime qualification deferred; preserve unrun acceptance checkboxes.
 4. Commit coherent source milestones on this branch and record hashes, excluding unrelated drafts.
@@ -16,7 +16,7 @@ Local milestone commits are authorized. Preserve FM7/editor/CI drafts; no pushes
 
 ## Blockers
 
-- Full MVP implementation is incomplete: custom pet imports and desktop/navigation remain. Pet reactions and movement now have source paths; native behavior remains unverified. Claude actions now have concrete adapter, transport, controls and guarded installation source paths; no installed/end-to-end integration was exercised. Documented support is unverified; no compiler/live/native acceptance or runtime qualification is established.
+- Full MVP implementation is incomplete: desktop/navigation and final handoff remain. Pet reactions, movement, imports and preference recovery now have source paths; native behavior remains unverified. Claude actions now have concrete adapter, transport, controls and guarded installation source paths; no installed/end-to-end integration was exercised. Documented support is unverified; no compiler/live/native acceptance or runtime qualification is established.
 - Reused `633b4d0` refactor and adapted `2925880` planner source around existing drafts. Original spec checkboxes remain open where their checks were not run against this changed checkout. Do not count upstream historical verification as fresh local evidence.
 - Telemetry planning conflict: `origin/docs/local-telemetry` records a history-first decision superseding collector-first D2, but this checkout retains the old order. Its D3 identifier collides with this branch's view-model D3. Reconcile decisions and links without dropping later statistics scope or marking withdrawn tasks complete.
 - A5/C5 user review established cards, fixed/running timers, usage limits and preserved focus. Broader session-island acceptance remains unverified; VoiceOver is excluded by D8. The final provider filter has unit coverage; no later visual pass is claimed.

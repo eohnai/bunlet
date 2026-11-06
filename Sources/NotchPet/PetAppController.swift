@@ -28,6 +28,9 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         self.agents?.setEnabledProviders(enabled)
         self.localActions.setConsent(self.providerMonitoring.actionsEnabled)
     }
+    @ObservationIgnored private lazy var petLibrary = PetLibraryModel(defaults: defaults) { [weak self] presentation in
+        self?.pet?.setArtwork(presentation)
+    }
     @ObservationIgnored private var islandHiddenForPet = false
     @ObservationIgnored private lazy var petReactions = PetSessionAdapter(sessions: sessions) { [weak self] mood, cue in
         self?.pet?.setReaction(mood, cue: cue)
@@ -44,7 +47,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     @ObservationIgnored private lazy var runtimes = FeatureRuntimeOwner(factories: [
         .pet: { [weak self] in
             guard let self else { return nil }
-            let panel = PetPanelController(size: PetPreferences(defaults: self.defaults).size, defaults: self.defaults,
+            let panel = PetPanelController(size: PetPreferences(defaults: self.defaults).size, defaults: self.defaults, presentation: self.petLibrary.presentation,
                 onDragBegan: { [weak self] in
                     self?.islandHiddenForPet = true
                     self?.notch?.setHiddenForPet(true)
@@ -76,6 +79,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         focusBefore = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? -1
+        petLibrary.start()
         petReactions.start()
         features.start()
         settings = PetSettingsController(defaults: defaults, features: features, onSizeChange: { [weak self] size in
@@ -87,7 +91,8 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             readMonitoring: { [weak self] in self?.providerMonitoring },
             readQuota: { [weak self] in self?.usage },
             readLocalActions: { [weak self] in self?.localActions },
-            onReturnPet: { [weak self] in self?.returnPet() })
+            onReturnPet: { [weak self] in self?.returnPet() },
+            readPetLibrary: { [weak self] in self?.petLibrary })
         if installed.contains(.pet) && !defaults.bool(forKey: "pet.setupComplete") {
             settings?.show(page: .pet, activate: false)
         }
@@ -176,6 +181,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         codexSetup?.cancel()
         claudeSetup?.cancel()
         let pet = self.pet
+        petLibrary.cancel()
         petReactions.stop()
         runtimes.apply([])
         pet?.writeEvidence(phase: "terminated", agentsEnabled: false, focusBefore: focusBefore)

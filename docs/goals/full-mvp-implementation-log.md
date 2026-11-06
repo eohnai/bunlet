@@ -3,7 +3,7 @@
 - Goal file: goals/full-mvp-implementation.md
 - Created: 2026-11-06 11:47 +08
 - Turn limit: 60
-- Status: active since 2026-11-06; execution turn 5
+- Status: active since 2026-11-06; execution turn 6
 - Scope: all nine source criteria; four milestones are not separate completion goals
 - Verification: tests, builds, runtime checks and provider qualification NOT RUN by user instruction
 - Branch/base: feat/codex-mvp / 8707bdf; current checkout only
@@ -18,6 +18,7 @@
 | 3 | 2026-11-06 14:43 +08 | Sources 1–3 implemented; 4 partial; 5–9 incomplete. Acceptance unverified. | Previous turn was progress (`32f7b0f`). Added separate Claude permission/question/Stop-feedback adapters, bounded private interactive IPC/helper and inbox, transient action/draft/receipt state, app-owned lifecycle/validation and native composers. Guarded interactive-hook setup/removal is still missing; criterion 4 remains incomplete. All tests/builds/runtime/qualification NOT RUN. |
 | 4 | 2026-11-06 14:58 +08 | Sources 1–4 implemented; 5–7 incomplete; 8 partial; 9 incomplete. All acceptance unverified. | Finished separate guarded Claude action scope, shared recovery/lock, explicit response consent, Settings composers, disconnect partial-removal reporting and bounded transient-history cleanup. Removed ambiguous shared composer shortcut. Preserved unrelated drafts. Tests/builds/runtime/qualification NOT RUN. |
 | 5 | 2026-11-06 15:07 +08 | Sources 1–6 implemented; 7 partial; 8 partial; 9 incomplete. Acceptance unverified. | Saved action milestone `521440b`. Added pet-owned moods, app-owned snapshot adapter, bounded deduplicated response cues, native alpha drag/pass-through, island hide/overlap/menu return and saved screen-relative placement/sound. Recorded missing Pets feature contracts before implementation. User excludes company code; original/repository code and public documentation only. Tests/builds/runtime/qualification NOT RUN. |
+| 6 | 2026-11-06 15:16 +08 | Sources 1–7 implemented; 8 partial; 9 incomplete. Acceptance unverified. | Saved pet reactions/movement as `474188a`. Added bounded manifest/PNG loader, descriptor-relative asset reads, private staged persistence, revalidation/exclusive rename, immutable playback data/cache, import/selection UI and cancellation/rollback/built-in recovery. Company code excluded. Tests/builds/runtime/qualification NOT RUN. |
 
 Preparation is not an execution turn. Continue numbering from the latest execution row after activation.
 Each row must account for all nine criteria and separate missing source implementation from unverified behavior.
@@ -233,6 +234,23 @@ Source inspection only: git status/diff and diff whitespace check, targeted rg/n
 Saved action commit: `521440b` — `feat: finish guarded Claude action setup and consent`.
 No tests, builds, probes, launches, captures, installed configuration or credentials were accessed.
 No company source, internal library or proprietary snippet was imported.
+
+## Turn 6 source audit
+
+1. **Implemented in source, unverified — setup.** Prior provider/controller/transaction paths remain; asset import neither reads nor edits provider configuration.
+2. **Implemented in source, unverified — sessions.** Shared snapshots/cards/selection/timers and bounded event reduction remain. Changing artwork does not touch SessionStore or pending notices.
+3. **Implemented in source, unverified — quotas.** Prior Codex read-only and Claude status-line intake paths remain. Pet has no usage dependency.
+4. **Implemented in source, unverified — actions.** Prior guarded Claude channels, request validation/composers/receipt/uncertain state remain; selecting an asset cannot dispatch an action.
+5. **Implemented in source, unverified — reactions.** PetSessionAdapter remains app-owned; a new artwork changes PetPresentation without changing mood/notices. Missing complete/attention art uses idle while text remains distinct. Response cues are bounded/deduplicated and never establish task success.
+6. **Implemented in source, unverified — movement.** Native drag/pass-through/overlap return, retained Notch view and menu/Settings return remain; changing artwork refreshes the hit image and leaves normalized placement intact. Sleep cancels cue/playback.
+7. **Implemented in source, unverified — custom pets/preferences.** `PetLibraryView` invokes the serialized app-owned model. A detached `PetPackLibrary` worker validates 64 KiB manifest, seven known poses, 64 frames/pose and 128 unique PNG bounds; 2 MiB/frame, 16 MiB encoded, 32 MiB decoded, matching 1–1024px dimensions, single-image PNG and alpha. `PetPackDirectory` walks no-follow descriptors, bounds reads and checks regular files/private ownership/ACLs. Import writes private staged assets, revalidates exact content, then uses exclusive rename; selection saves only after success and guarded readback. Invalid/cancelled input retains current presentation/selection. Saved generated IDs reload with full validation; missing assets retain saved ID and temporarily use bundled art. Built-in recovery works without pack storage. Playback uses immutable bytes and a bounded image cache. Selection, size, sound and normalized display placement live outside Git. Public SDK headers establish renameatx_np signature/RENAME_EXCL; no API or app was executed.
+8. **Partial — navigation/desktop.** Pet recovery exists; exact-pane/application/manual navigation and full Notch recovery remain the next source unit.
+9. **Incomplete — full handoff.** Current Pet contracts/specs/README/architecture/STATUS now map all pet paths. Original acceptance remains unrun/unticked; final 9/9 audit awaits criterion 8.
+
+Saved pet reactions/movement commit: `474188a` — `feat: add pet reactions and desktop drag return`.
+No tests, builds, probes, launches, captures, installed configuration or credentials were accessed.
+No company code/internal library/proprietary snippet was imported. Primary interface reading was limited
+to repository source/records and public macOS SDK declarations.
 
 ## Final result
 

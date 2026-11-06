@@ -34,17 +34,21 @@ invalid data falls back to lower right. Clamp size/origin after resize/display/w
 Use supported canJoinAllSpaces/fullScreenAuxiliary behavior. Sleep/hidden state cancels animation and
 suppresses sounds; waking restores state without replaying cues. Screen-reader tests remain excluded.
 
-## Asset packs (next source unit)
+## Asset packs
 
 Version 1 JSON manifest uses name (1–80 UTF-8 bytes) and animations keyed by the seven PetPose names.
 Each animation has frames (simple ASCII basename without extension, PNG files in the same directory)
 and frameDurationMs (40–10000). Idle is required; optional missing poses fall back to idle.
-No scripts, links, nested paths, atlases, archives or executable plugins. The optional sheet importer
+Imported output contains no scripts, links, nested paths, atlases, archives or executable plugins.
+Only manifest-referenced PNGs are read/copied; other source-folder files are ignored. The optional sheet importer
 remains blocked on P5, outside this MVP. Bounds: manifest 64 KiB; 64 frames/pose, 128 unique PNGs;
 each PNG 2 MiB, 16 MiB total encoded; dimensions 1–1024 per axis, equal across all frames;
 32 MiB total decoded RGBA. Require single-image PNG with alpha and successful bounded decode.
 Import copies only validated bytes into a private staged Application Support directory, revalidates,
-then atomically renames to an app-generated UUID directory. Selection changes only after successful
+then atomically renames with exclusive-destination semantics to an app-generated UUID directory.
+Listing scans at most 256 entries and offers at most 32 valid pack records. Temporary/unrecognized
+entries are never selected. Cancellation or a save failure after rename may leave a valid unselected
+copy; the active selection and prior assets remain unchanged. No automatic pack deletion occurs. Selection changes only after successful
 import and preference save. Invalid/cancelled import leaves current selection and assets intact.
 Saved selection stores only generated UUID, never a source path; missing/invalid assets show built-in
 fallback while preserving the saved preference and offering explicit recovery. Small selection, size,
@@ -55,3 +59,17 @@ sound and screen-relative placement preferences use UserDefaults. No pack or ses
 Use original implementation, existing repository code and public documentation only. Do not import
 company source, internal libraries, proprietary snippets or company-only dependencies (user instruction,
 2026-11-06). This applies to the full MVP, including provider and terminal adapters.
+
+
+Example custom pack (`manifest.json`, plus `idle-1.png` in the same folder):
+
+```json
+{"version":1,"name":"My pet","animations":{"idle":{"frames":["idle-1"],"frameDurationMs":150}}}
+```
+
+The loader rejects unsupported manifest keys/poses, non-ASCII frame basenames and mismatched frame
+sizes. It validates PNG type, count, alpha and dimensions before bounded decoding; all frames in a
+pack share dimensions. Imported frames are immutable in-memory bytes during playback, with a bounded
+32 MiB/128-entry decoded image cache. Selecting a saved pack revalidates its assets. Failed selection
+retains the active pet. A missing/invalid startup selection temporarily falls back to bundled artwork
+and keeps its saved ID; explicit Use Built-in Pet resets it even if pack storage is unavailable.

@@ -11,7 +11,7 @@ private final class PetSurfaceState {
     var cue = false
     var dragging = false
     var size: Double
-    let presentation: PetPresentation
+    var presentation: PetPresentation
 
     init(size: Double, presentation: PetPresentation) {
         self.size = size
@@ -130,9 +130,10 @@ final class PetPanelController: AppFeatureService {
     private var localMouseMonitor: Any?
     var isDetached: Bool { detached }
 
-    init?(size: Double, defaults: UserDefaults = .standard, onDragBegan: @escaping () -> Void = {},
+    init?(size: Double, defaults: UserDefaults = .standard, presentation selected: PetPresentation? = nil,
+          onDragBegan: @escaping () -> Void = {},
           returnTarget: @escaping () -> CGRect? = { nil }, onReturn: @escaping () -> Void = {}) {
-        guard let presentation = PetArtwork.presentation() else { return nil }
+        guard let presentation = selected ?? PetArtwork.presentation() else { return nil }
         preferences = PetPreferences(defaults: defaults)
         detached = preferences.placement?.detached ?? false
         self.onDragBegan = onDragBegan
@@ -141,7 +142,7 @@ final class PetPanelController: AppFeatureService {
         state = PetSurfaceState(size: size, presentation: presentation)
         panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: size, height: size + 30),
                         styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        panel.title = "White lionhead rabbit"
+        panel.title = presentation.name
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false
@@ -231,6 +232,12 @@ final class PetPanelController: AppFeatureService {
         localMouseMonitor = nil
         cancelCue()
         panel.orderOut(nil)
+    }
+
+    func setArtwork(_ presentation: PetPresentation) {
+        cancelCue()
+        state.presentation = presentation
+        panel.title = presentation.name
     }
 
     func setReaction(_ mood: PetMood, cue: Bool) {

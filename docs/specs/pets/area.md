@@ -53,7 +53,7 @@ Built-in-pet implementation includes pet-first startup, optional agent services,
 playback policy, and BP6b2 visibility/sleep wiring for the panel and preview. It merged into main in 1c5d9cf.
 The implementation-only goal is closed. Full acceptance remains deferred by the user.
 See the [current handoff](built-in-pet.md#implementation-handoff-after-testing-deferral-2026-10-30)
-and [completion log](../../goals/complete-built-in-pet-log.md). Detachment and agent reactions now have source implementation under the full MVP goal; their acceptance remains unverified. Custom pack import is the next source unit.
+and [completion log](../../goals/complete-built-in-pet-log.md). Detachment and agent reactions now have source implementation under the full MVP goal; their acceptance remains unverified. Custom manifest/PNG import, selection and rollback also have source paths; all new behavior remains unverified.
 
 ## Open questions
 

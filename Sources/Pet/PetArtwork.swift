@@ -10,7 +10,11 @@ public enum PetArtwork {
         let animations: [String: Animation]
     }
 
-    public static func presentation() -> PetPresentation? {
+    private static let bundled = load()
+
+    public static func presentation() -> PetPresentation? { bundled }
+
+    private static func load() -> PetPresentation? {
         guard let manifestURL = Bundle.module.url(forResource: "manifest", withExtension: "json"),
               let data = try? Data(contentsOf: manifestURL),
               let manifest = try? JSONDecoder().decode(Manifest.self, from: data), manifest.version == 1,

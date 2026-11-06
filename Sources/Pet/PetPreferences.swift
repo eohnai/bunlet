@@ -1,3 +1,4 @@
+import CoreFoundation
 import Foundation
 
 public struct PetPreferences {
@@ -22,7 +23,11 @@ public struct PetPreferences {
     }
 
     public var soundEnabled: Bool {
-        get { defaults.object(forKey: "pet.soundEnabled") as? Bool ?? false }
+        get {
+            guard let value = defaults.object(forKey: "pet.soundEnabled") as? NSNumber,
+                  CFGetTypeID(value) == CFBooleanGetTypeID() else { return false }
+            return value.boolValue
+        }
         set { defaults.set(newValue, forKey: "pet.soundEnabled") }
     }
 

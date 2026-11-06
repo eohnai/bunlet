@@ -273,8 +273,8 @@ Existing app-owned collection remains the implemented foundation until the propo
 |---|---|---|
 | Active sessions and alerts | Memory | They describe live processes |
 | Feature availability, master/per-provider monitoring consent, pet size/setup and selected Settings page | `UserDefaults` | Implemented small preference values with separate meanings |
-| Pet sound and screen-relative placement; selected pack pending | `UserDefaults` | Sound defaults off; invalid/missing displays use clamped fallback |
-| Planned imported pets and manifests | Application Support files | Keep asset data outside the repository |
+| Selected pet UUID, sound and screen-relative placement | `UserDefaults` | Sound defaults off; missing assets/displays use explicit/clamped fallback |
+| Imported pets and manifests | Private Application Support files | Validated asset-only bytes; staged exclusive rename; immutable playback data |
 | Optional later usage cache | Small JSON file in Application Support | Must retain receipt time, source measurement time if supplied, and a stale label |
 | Credentials | Existing provider-managed authentication | The app does not copy tokens |
 
@@ -444,3 +444,14 @@ Later adapter tasks must check interactive behavior, abrupt process loss, and ho
 Later usage tasks must check long-running coexistence, account changes, and Claude forwarding behavior.
 Unsupported account modes remain explicit limitations. Do not introduce private endpoint fallbacks.
 
+
+
+## Custom pack flow
+
+App-owned PetLibraryModel owns chooser/worker/cancellation and current selected presentation. PetPackLibrary
+in the independent Pet module validates the manifest and every PNG, copies only bounded asset bytes into
+private staging, revalidates content and commits with exclusive rename. The app saves selection only after
+success; invalid import/cancellation preserves the active pet. Missing/invalid saved packs fall back to
+built-in art without silently resetting preference. Explicit built-in recovery works with unavailable
+pack storage. PetView plays immutable encoded bytes through a bounded decoded-image cache; no manifest
+path is resolved during playback. See [pet workflows](contracts/pet-workflows.md) for exact bounds.

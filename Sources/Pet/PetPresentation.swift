@@ -1,3 +1,5 @@
+import Foundation
+
 public enum PetPose: String, CaseIterable, Sendable {
     case idle, play, sleep, running, attention, complete, drag
 }
@@ -14,13 +16,21 @@ public struct PetAnimation: Equatable, Sendable {
 }
 
 public struct PetPresentation: Sendable {
+    public let id = UUID()
+    public let name: String
+    private let frameData: [String: Data]
     private let idle: PetAnimation
     private let animations: [PetPose: PetAnimation]
 
-    public init(idle: PetAnimation, animations: [PetPose: PetAnimation] = [:]) {
+    public init(idle: PetAnimation, animations: [PetPose: PetAnimation] = [:],
+                frameData: [String: Data] = [:], name: String = "White lionhead rabbit") {
+        self.name = name
+        self.frameData = frameData
         self.idle = idle
         self.animations = animations
     }
+
+    public func data(for frame: String) -> Data? { frameData[frame] }
 
     public func animation(for pose: PetPose) -> PetAnimation {
         pose == .idle ? idle : animations[pose] ?? idle

@@ -4,7 +4,7 @@ A macOS companion for Codex CLI and Claude Code, under development, with termina
 The source implements independently selectable Pet, Notch and Agents features, shared native Settings,
 session cards, provider limits and a silent observation helper. Agents owns optional receiver and quota work.
 Both providers have setup/check/repair/removal controls, independent monitoring and owned transactions. Claude quota forwarding has separate reversible setup. Runtime qualification remains unverified.
-Pet reactions, desktop dragging, island overlap/menu return and saved placement/sound are implemented in source. Custom pack import remains unfinished.
+Pet reactions, desktop dragging, island overlap/menu return and saved placement/sound are implemented in source. Custom manifest/PNG pack import, selection and rollback are also implemented in source; native behavior remains unverified.
 Local action adapters, a separate helper, native composers and guarded opt-in setup/removal are implemented in source. Runtime support is unverified.
 SSH and cloud-agent integrations are optional future work.
 
@@ -123,7 +123,7 @@ shared stores; it owns no provider I/O. Pet-only use starts no provider services
 
 **Tests, builds, app/helper launches, probes, captures, installed configuration access and runtime
 qualification were NOT RUN for this implementation.** Source coverage for setup/sessions/quota is
-present, together with Claude local actions; custom pet imports and desktop/navigation remain unfinished in the
+present, together with Claude local actions; desktop/navigation and the final source handoff remain unfinished in the
 [full MVP goal](docs/goals/full-mvp-implementation.md). See its [log](docs/goals/full-mvp-implementation-log.md),
 [provider setup contract](docs/contracts/provider-setup.md) and [quota contract](docs/contracts/usage-intake.md).
 
@@ -131,6 +131,11 @@ Local actions have concrete documented Claude bindings, native composers in Notc
 separate guarded setup/check/removal with explicit response consent. The follow-up binding continues a waiting Stop callback as
 feedback in the same prompt, with a 60-second window; it does not provide arbitrary-time replies or
 Codex actions. See the [action contract](docs/contracts/local-actions-v1.md). No runtime support is claimed.
+
+Pet Settings offers Import Pet Pack, saved artwork selection and Use Built-in Pet recovery. Choose a
+folder with a version-1 `manifest.json` and matching alpha PNG frames. The [pet workflow contract](docs/contracts/pet-workflows.md)
+contains the format, limits, placement/reaction behavior and failure rules. Imported packs stay in
+Application Support. Seven-row sprite sheets remain outside this MVP.
 
 ## Verify the bridge
 

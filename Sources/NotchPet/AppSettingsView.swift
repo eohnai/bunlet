@@ -22,6 +22,7 @@ struct AppSettingsActions {
     var quota: () -> UsageStore? = { nil }
     var localActions: () -> LocalActionController? = { nil }
     var returnPet: () -> Void = {}
+    var petLibrary: () -> PetLibraryModel? = { nil }
 }
 
 struct AppSettingsView: View {
@@ -130,7 +131,7 @@ struct AppSettingsView: View {
                 .foregroundStyle(.secondary)
             featureRows
         case .pet:
-            if features.installed.contains(.pet), let presentation = PetArtwork.presentation() {
+            if features.installed.contains(.pet), let presentation = actions.petLibrary()?.presentation ?? PetArtwork.presentation() {
                 PetSettingsView(presentation: presentation, size: petSize, firstUse: firstUse,
                     isVisible: isVisible, isSleeping: isSleeping,
                     onSizeChange: {
@@ -142,6 +143,7 @@ struct AppSettingsView: View {
                         actions.finishPetSetup()
                     }, onClose: actions.close)
                     .frame(maxWidth: .infinity)
+                if let library = actions.petLibrary() { PetLibraryView(library: library) }
                 Toggle("Sound for a newly observed response", isOn: $soundEnabled)
                     .onChange(of: soundEnabled) { _, value in
                         var preferences = PetPreferences(defaults: defaults)
