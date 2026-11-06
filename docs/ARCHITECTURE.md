@@ -247,7 +247,7 @@ The independent pet remains accepted. [D2](DECISIONS.md#d2-collect-and-inspect-t
 ## Proposed compatible pet input
 
 Decision 0006's versioned manifest and PNG frame sequences remain the runtime representation.
-An optional importer for user-supplied seven-row sprite sheets is proposed in the spec, tasks P5–P6.
+The user’s later local-only request selects import-time normalization of seven-row sprite sheets into this format; P5/P6 acceptance remains unrun.
 The structural alternatives are normalization into that representation at import, or a second runtime loader.
 Normalization is recommended but remains open; it would leave the renderer with one format and concentrate validation in the import service.
 No runtime format changes, detector rules, or Flux artwork are accepted by this proposal.
@@ -455,3 +455,11 @@ success; invalid import/cancellation preserves the active pet. Missing/invalid s
 built-in art without silently resetting preference. Explicit built-in recovery works with unavailable
 pack storage. PetView plays immutable encoded bytes through a bounded decoded-image cache; no manifest
 path is resolved during playback. See [pet workflows](contracts/pet-workflows.md) for exact bounds.
+
+
+Local-only customization adds two inputs to the same app-owned serialized import worker. Animate PNG
+uses PetLocalAnimation for bounded affine transforms of the supplied pixels; Import Sprite Sheet uses
+PetSpriteSheet for seven-row slicing with exhaustive alpha detection and trailing padding rules.
+PetPNGRaster centralizes header, source bit-depth, decode, canonical RGBA and output PNG bounds.
+Neither path adds provider/model calls, prompts, authentication, imported executable code or a second
+playback representation. Both use PetPackLibrary’s existing private transaction and selection rollback.

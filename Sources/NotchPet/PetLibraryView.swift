@@ -12,6 +12,12 @@ struct PetLibraryView: View {
             }
             .disabled(library.busy)
             HStack {
+                Button("Animate PNG…", action: library.choosePNG).disabled(library.busy)
+                Button("Import Sprite Sheet…", action: library.chooseSpriteSheet).disabled(library.busy)
+            }
+            Text("Animate PNG adds breathing, bobbing and tilt to your existing image. A sprite sheet supplies its own poses. Everything runs locally.")
+                .font(.caption).foregroundStyle(.secondary)
+            HStack {
                 Button("Import Pet Pack…", action: library.chooseImport).disabled(library.busy)
                 Button("Use Built-in Pet") { library.select("builtin") }.disabled(library.busy)
                 if library.busy {

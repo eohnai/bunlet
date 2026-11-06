@@ -9,7 +9,8 @@ Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; an app-owned
 - `agent-reactions`: Translate shared session presentation into optional pet reactions and notices. Needs: built-in-pet, sessions/session-state. Requires installed/enabled Agents at runtime; Notch is optional.
 - `detachable-pet`: Drag the pet out, return it, and recover placement across desktop changes. Needs: built-in-pet.
 - `custom-packs`: Validate, import, select, and restore manifest-based pet packs. Needs: built-in-pet.
-- `sprite-sheet-import`: Settle and implement the optional sheet conversion proposal. Needs: custom-packs.
+- `sprite-sheet-import`: [Import seven-row PNG sheets](sprite-sheet-import.md) into the existing pack format. Needs: custom-packs.
+- `local-png-animation`: [Animate an ordinary transparent PNG locally](local-png-animation.md) using transforms. Needs: custom-packs.
 
 ## Shared context
 
@@ -46,6 +47,8 @@ Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; an app-owned
 - Detachment and return belong to `detachable-pet` and work without an agent connection. Switching surfaces does not start or stop monitoring, change connection settings, or resolve retained notices. This accepts behavior; the feature's task list and implementation plan still require approval.
 - **Use original white lionhead rabbit artwork for the default pet.** Accepted on 2026-10-30: the user chose newly created original artwork over supplying an existing image, then specified a white lionhead rabbit. At this decision point the standalone-rabbit goal was prepared but not activated; its later approved asset step and implementation are summarized below.
 
+- **Local-only custom pets, accepted 2026-11-06:** support ordinary PNG transform animation and ready-made sprite-sheet import. The user explicitly excludes AI generation/workflow, prompts and subscription linking. Normalize both into the existing manifest/frame runtime. Original Swift/CoreGraphics implementation and user-supplied artwork only; no company source/scripts/assets.
+
 ## Implementation status
 
 The original white lionhead idle PNG and manifest are bundled through the independent Pet target.
@@ -60,4 +63,4 @@ and [completion log](../../goals/complete-built-in-pet-log.md). Detachment and a
 - Setup/slider/menu interactions, actual multi-frame scheduling, Reduce Motion changes, and visual/fallback appearance remain unverified.
 - Later nonvisual harness evidence is recorded in built-in-pet. Do not retry captures or resume tests without a user request.
 - Detailed pause, disconnect, resume, and notice-retention behavior needs planning in sessions/monitoring-controls and agent-reactions.
-- Sprite-sheet conversion versus a second runtime loader remains proposed. The optional importer is not a first-release dependency.
+- Sprite-sheet import-time conversion is selected by the later local-only customization request and implemented in source. P5/P6 native/visual acceptance remains unrun.

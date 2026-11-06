@@ -135,7 +135,11 @@ Codex actions. See the [action contract](docs/contracts/local-actions-v1.md). No
 Pet Settings offers Import Pet Pack, saved artwork selection and Use Built-in Pet recovery. Choose a
 folder with a version-1 `manifest.json` and matching alpha PNG frames. The [pet workflow contract](docs/contracts/pet-workflows.md)
 contains the format, limits, placement/reaction behavior and failure rules. Imported packs stay in
-Application Support. Seven-row sprite sheets remain outside this MVP.
+Application Support. Pet Settings also offers **Animate PNG** (offline breathing, bobbing and tilt of
+your existing transparent image) and **Import Sprite Sheet** (seven equal rows of pre-drawn animation
+frames). Both produce ordinary asset packs; no AI generation, prompts, subscription linking or hosted
+service is included. See the [PNG](docs/specs/pets/local-png-animation.md) and
+[sheet](docs/specs/pets/sprite-sheet-import.md) specifications for limits and unrun acceptance.
 
 ## Verify the bridge
 

@@ -1,5 +1,10 @@
 import Foundation
 
+struct PetPackAssets {
+    let manifest: PetPackManifest
+    let frames: [String: Data]
+}
+
 /// Asset-only persistence. Call off the main actor; returned frames are immutable bounded bytes.
 public enum PetPackLibrary {
     public static func choices(at root: URL) throws -> [PetPackChoice] {
@@ -31,7 +36,22 @@ public enum PetPackLibrary {
     }
 
     public static func importPack(from source: URL, to root: URL) throws -> PetPack {
-        let validated = try validate(PetPackDirectory(url: source))
+        try install(validate(PetPackDirectory(url: source)), at: root)
+    }
+
+    public static func importPNG(from source: URL, to root: URL) throws -> PetPack {
+        let directory = try PetPackDirectory(url: source.deletingLastPathComponent())
+        let data = try directory.read(source.lastPathComponent, limit: PetPackManifest.imageByteLimit)
+        return try install(PetLocalAnimation.convert(data, name: displayName(source)), at: root)
+    }
+
+    public static func importSpriteSheet(from source: URL, to root: URL) throws -> PetPack {
+        let directory = try PetPackDirectory(url: source.deletingLastPathComponent())
+        let data = try directory.read(source.lastPathComponent, limit: PetSpriteSheet.byteLimit)
+        return try install(PetSpriteSheet.convert(data, name: displayName(source)), at: root)
+    }
+
+    private static func install(_ validated: PetPackAssets, at root: URL) throws -> PetPack {
         try Task.checkCancellation()
         let directory = try PetPackDirectory(url: root, create: true, privateFiles: true)
         guard try choices(in: directory).count < 32 else { throw PetPackFailure.resourceLimit }
@@ -61,12 +81,7 @@ public enum PetPackLibrary {
                        presentation: try validated.manifest.presentation(bytes: validated.frames))
     }
 
-    private struct Validated {
-        let manifest: PetPackManifest
-        let frames: [String: Data]
-    }
-
-    private static func validate(_ directory: PetPackDirectory) throws -> Validated {
+    private static func validate(_ directory: PetPackDirectory) throws -> PetPackAssets {
         let manifest = try PetPackManifest.decode(directory.read("manifest.json", limit: PetPackManifest.byteLimit))
         var frames: [String: Data] = [:]
         var encoded = 0
@@ -86,7 +101,14 @@ public enum PetPackLibrary {
             dimensions = size
             frames[name] = data
         }
-        return Validated(manifest: manifest, frames: frames)
+        return PetPackAssets(manifest: manifest, frames: frames)
+    }
+
+    private static func displayName(_ source: URL) -> String {
+        let name = source.deletingPathExtension().lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, name.utf8.count <= 80,
+              !name.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) else { return "Custom pet" }
+        return name
     }
 
     private static func validID(_ id: String) -> Bool {

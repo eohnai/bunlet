@@ -2,14 +2,14 @@
 
 ## Now
 
-The full nine-area MVP goal remains active on `feat/codex-mvp`. Sources 1–3 are saved as `299d021`/`32f7b0f`; `6554af7` adds Claude action adapters. Turn 4 action setup/consent is saved as `521440b`. Turn 5 pet reactions/movement is saved as `474188a`. Turn 6 adds bounded manifest/PNG import, private staged persistence, artwork selection, rollback and built-in recovery in source.
-Tests/builds/runtime/qualification remain NOT RUN. Helper output receipt is not provider acceptance. Follow-ups use a waiting Claude Stop hook for at most 60 seconds; Codex actions remain unsupported.
-Local milestone commits are authorized. Preserve FM7/editor/CI drafts; no pushes, PRs, extra branches or worktrees. Desktop/navigation and the final source audit remain unfinished. Company code, internal libraries and proprietary snippets are excluded.
+The full nine-area MVP goal is active again on `feat/codex-mvp` after the user resumed it. Sources 1–7 are implemented to their recorded contracts; the latest saved pack milestone is `4904db4`. Turn 7 adds the requested local PNG transform animation and seven-row sprite-sheet normalization in source.
+The user excludes AI generation/workflow, prompts and subscription linking. New customization uses original Swift/CoreGraphics code and user-supplied assets; no company source/scripts/artwork. Tests/builds/runtime/qualification remain NOT RUN.
+Local commits remain authorized. Preserve FM7/editor/CI drafts; no pushes, PRs, extra branches or worktrees. Desktop/navigation and final source audit remain unfinished. Claude Stop replies remain a 60-second existing-prompt capability; Codex actions remain unsupported.
 
 ## Next
 
-1. Complete validated terminal/application/manual navigation and native Notch display/Space/sleep/focus recovery.
-2. Complete navigation/desktop recovery and the full nine-area source handoff. All nine criteria remain the finish line.
+1. Save the coherent local-only PNG/sheet source milestone, excluding unrelated drafts.
+2. Complete validated terminal/application/manual navigation and native Notch display/Space/sleep/focus recovery, then the full nine-area source handoff. All nine criteria remain the finish line.
 3. Keep tests/builds/probes/launches/captures, installed configuration access and runtime qualification deferred; preserve unrun acceptance checkboxes.
 4. Commit coherent source milestones on this branch and record hashes, excluding unrelated drafts.
 5. Keep SSH/cloud, extra agents, statistics/telemetry, branding and CI overhaul outside this local MVP.
@@ -39,5 +39,5 @@ Local milestone commits are authorized. Preserve FM7/editor/CI drafts; no pushes
 - Stale: `docs/specs/usage/codex-allowance.md` leaves U3b2 unchecked despite historical goal-log evidence. Review U3b2, U1 and I2a–I2c evidence before changing those checkboxes.
 - Stale: `scripts/check-event-contract.py` permits a previously conflicting turn ID to restore working state; SessionStore enforces the accepted unseen-turn rule.
 - Usage datagram buffers now have a source correction (16 KiB send/128 KiB receive), not runtime verification. Historical probes saw defaults reject over 2,048 bytes (`EMSGSIZE`) and 4,096 bytes (`ENOBUFS`). Existing UsageReceiver tests encode the earlier provider/source and endpoint policy; they have not been run or rewritten to imply acceptance of the revised Claude-only ingress/recovery contract.
-- Sprite-sheet input choice P5 remains proposed and blocks optional source P6. Monitoring pause/disconnect/resume and notice retention now have source paths and a contract in sessions/monitoring-controls; runtime acceptance is unverified. No deadlines or owners are recorded.
+- Sprite-sheet import conversion is selected and implemented in source under the local-only request; P5/P6 acceptance remains NOT RUN. Monitoring pause/disconnect/resume and notice retention now have source paths and a contract in sessions/monitoring-controls; runtime acceptance is unverified. No deadlines or owners are recorded.
 - Activity counting and token-counter sources remain unverified. Define coverage, units, deduplication, and time boundaries before statistics implementation. Hook events do not establish chat-message totals, and tokens do not establish remaining allowance.

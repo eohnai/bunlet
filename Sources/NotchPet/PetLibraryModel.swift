@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import Observation
 import Pet
+import UniformTypeIdentifiers
 
 @MainActor
 @Observable
@@ -26,7 +27,11 @@ final class PetLibraryModel {
     }
 
     private enum Operation: Sendable {
-        case restore(String), select(String), importFolder(URL)
+        case restore(String), select(String), importFolder(URL), animatePNG(URL), importSheet(URL)
+    }
+
+    private enum Input: Equatable, Sendable {
+        case folder, png, sheet
     }
 
     init(defaults: UserDefaults, onChange: @escaping (PetPresentation) -> Void) {
@@ -39,24 +44,38 @@ final class PetLibraryModel {
     func start() { perform(.restore(defaults.string(forKey: Self.selectionKey) ?? "builtin")) }
     func select(_ id: String) { perform(.select(id)) }
 
-    func chooseImport() {
+    func chooseImport() { choose(.folder) }
+    func choosePNG() { choose(.png) }
+    func chooseSpriteSheet() { choose(.sheet) }
+
+    private func choose(_ input: Input) {
         guard !busy else { return }
         busy = true
         let panel = NSOpenPanel()
         picker = panel
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
+        panel.canChooseFiles = input != .folder
+        panel.canChooseDirectories = input == .folder
+        if input != .folder { panel.allowedContentTypes = [.png] }
         panel.allowsMultipleSelection = false
         panel.resolvesAliases = false
         panel.prompt = "Import"
-        panel.message = "Choose a folder containing manifest.json and its PNG frames."
+        switch input {
+        case .folder: panel.message = "Choose a folder containing manifest.json and its PNG frames."
+        case .png: panel.message = "Choose a transparent PNG. Simple movement, tilt and breathing reuse your image; no new poses are drawn."
+        case .sheet: panel.message = "Choose a PNG with seven rows: idle, play, sleep, running, attention, complete, drag."
+        }
         panel.begin { [weak self, weak panel] response in
             MainActor.assumeIsolated {
                 guard let self else { return }
                 let source = panel?.url
                 self.picker = nil
                 self.busy = false
-                if response == .OK, let source { self.perform(.importFolder(source)) }
+                guard response == .OK, let source else { return }
+                switch input {
+                case .folder: self.perform(.importFolder(source))
+                case .png: self.perform(.animatePNG(source))
+                case .sheet: self.perform(.importSheet(source))
+                }
             }
         }
     }
@@ -93,6 +112,14 @@ final class PetLibraryModel {
             case .importFolder(let source):
                 pack = try PetPackLibrary.importPack(from: source, to: root)
                 id = pack?.choice.id ?? "builtin"
+            case .animatePNG(let source):
+                let imported = try PetPackLibrary.importPNG(from: source, to: root)
+                pack = imported
+                id = imported.choice.id
+            case .importSheet(let source):
+                let imported = try PetPackLibrary.importSpriteSheet(from: source, to: root)
+                pack = imported
+                id = imported.choice.id
             }
             return Result(choices: try PetPackLibrary.choices(at: root), pack: pack, id: id)
         }
@@ -155,7 +182,10 @@ final class PetLibraryModel {
         case .unreadable: "Pet assets could not be read."
         case .changed: "Pet files changed while reading. Finish edits, then retry."
         case .invalidManifest: "The version-1 manifest needs a name, idle animation and valid frame names/timing."
-        case .invalidPNG: "Frames must be single-image alpha PNGs with matching dimensions up to 1024 × 1024."
+        case .invalidPNG: "Use a valid single-image PNG with an alpha channel. Pack frames must match dimensions and be at most 1024 × 1024."
+        case .transparentPNGRequired: "Use a PNG with visible artwork and a transparent background. Opaque and empty images cannot be animated."
+        case .invalidSheet: "The sheet needs seven equal-height rows, square cells, whole columns and a visible idle row."
+        case .sheetGap: "A row has a blank cell before a visible frame. Move unused transparent cells to the row’s right edge."
         case .resourceLimit: "The pet exceeds a file, frame, image-memory or library limit."
         case .writeFailed: "Pet assets could not be saved. Your selected pet is unchanged."
         }

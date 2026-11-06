@@ -40,8 +40,8 @@ Version 1 JSON manifest uses name (1–80 UTF-8 bytes) and animations keyed by t
 Each animation has frames (simple ASCII basename without extension, PNG files in the same directory)
 and frameDurationMs (40–10000). Idle is required; optional missing poses fall back to idle.
 Imported output contains no scripts, links, nested paths, atlases, archives or executable plugins.
-Only manifest-referenced PNGs are read/copied; other source-folder files are ignored. The optional sheet importer
-remains blocked on P5, outside this MVP. Bounds: manifest 64 KiB; 64 frames/pose, 128 unique PNGs;
+Only manifest-referenced PNGs are read/copied; other source-folder files are ignored. The later local-only request adds sheet conversion and ordinary PNG transform animation; see the
+[PNG animation](../specs/pets/local-png-animation.md) and [sheet import](../specs/pets/sprite-sheet-import.md) contracts. Bounds: manifest 64 KiB; 64 frames/pose, 128 unique PNGs;
 each PNG 2 MiB, 16 MiB total encoded; dimensions 1–1024 per axis, equal across all frames;
 32 MiB total decoded RGBA. Require single-image PNG with alpha and successful bounded decode.
 Import copies only validated bytes into a private staged Application Support directory, revalidates,
@@ -73,3 +73,15 @@ pack share dimensions. Imported frames are immutable in-memory bytes during play
 32 MiB/128-entry decoded image cache. Selecting a saved pack revalidates its assets. Failed selection
 retains the active pet. A missing/invalid startup selection temporarily falls back to bundled artwork
 and keeps its saved ID; explicit Use Built-in Pet resets it even if pack storage is unavailable.
+
+
+## Local-only extension, 2026-11-06
+
+The user accepted offline PNG animation and sprite-sheet import and excluded the AI workflow.
+Both normalize into the existing asset-only pack transaction; no new runtime format, dependency,
+provider authentication, model call or generation prompt. The full MVP goal was paused while this choice was discussed. The user resumed it during
+implementation; after this coherent customization milestone, navigation and final handoff remain.
+
+PNG source memory bounds account conservatively for 8/16-bit channels before ImageIO decode. Canonical
+RGBA and generated outputs use 8-bit channels; opaque/empty ordinary PNGs are rejected. No background
+removal or new-pose synthesis is implied by local transforms.

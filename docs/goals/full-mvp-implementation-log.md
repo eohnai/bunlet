@@ -3,7 +3,7 @@
 - Goal file: goals/full-mvp-implementation.md
 - Created: 2026-11-06 11:47 +08
 - Turn limit: 60
-- Status: active since 2026-11-06; execution turn 6
+- Status: active since 2026-11-06; execution turn 7
 - Scope: all nine source criteria; four milestones are not separate completion goals
 - Verification: tests, builds, runtime checks and provider qualification NOT RUN by user instruction
 - Branch/base: feat/codex-mvp / 8707bdf; current checkout only
@@ -19,6 +19,7 @@
 | 4 | 2026-11-06 14:58 +08 | Sources 1–4 implemented; 5–7 incomplete; 8 partial; 9 incomplete. All acceptance unverified. | Finished separate guarded Claude action scope, shared recovery/lock, explicit response consent, Settings composers, disconnect partial-removal reporting and bounded transient-history cleanup. Removed ambiguous shared composer shortcut. Preserved unrelated drafts. Tests/builds/runtime/qualification NOT RUN. |
 | 5 | 2026-11-06 15:07 +08 | Sources 1–6 implemented; 7 partial; 8 partial; 9 incomplete. Acceptance unverified. | Saved action milestone `521440b`. Added pet-owned moods, app-owned snapshot adapter, bounded deduplicated response cues, native alpha drag/pass-through, island hide/overlap/menu return and saved screen-relative placement/sound. Recorded missing Pets feature contracts before implementation. User excludes company code; original/repository code and public documentation only. Tests/builds/runtime/qualification NOT RUN. |
 | 6 | 2026-11-06 15:16 +08 | Sources 1–7 implemented; 8 partial; 9 incomplete. Acceptance unverified. | Saved pet reactions/movement as `474188a`. Added bounded manifest/PNG loader, descriptor-relative asset reads, private staged persistence, revalidation/exclusive rename, immutable playback data/cache, import/selection UI and cancellation/rollback/built-in recovery. Company code excluded. Tests/builds/runtime/qualification NOT RUN. |
+| 7 | 2026-11-06 15:39 +08 | Sources 1–7 implemented; 8 partial; 9 incomplete. Acceptance unverified. | User requested local PNG transforms and compatible sheet import, excluded AI workflow and company code, then resumed the full goal. Added shared bounded RGBA codec, affine frame generation, exhaustive alpha slicing, Settings input choices and reuse of existing private pack transaction/rollback. No tests/builds/runtime/qualification. |
 
 Preparation is not an execution turn. Continue numbering from the latest execution row after activation.
 Each row must account for all nine criteria and separate missing source implementation from unverified behavior.
@@ -251,6 +252,25 @@ Saved pet reactions/movement commit: `474188a` — `feat: add pet reactions and 
 No tests, builds, probes, launches, captures, installed configuration or credentials were accessed.
 No company code/internal library/proprietary snippet was imported. Primary interface reading was limited
 to repository source/records and public macOS SDK declarations.
+
+Saved custom pack commit: `4904db4` — `feat: import and select bounded asset-only pet packs`.
+All behavior remains unverified. The full goal remains active; criterion 8 and final criterion 9 are unfinished.
+
+## Turn 7 source audit
+
+1. **Implemented in source, unverified — setup.** Existing provider setup/guarded three-scope transaction remains unchanged. Local customization starts no provider process and changes no provider settings.
+2. **Implemented in source, unverified — sessions.** Existing SessionStore/event bounds/cards remain. PNG/sheet conversion does not read, clear or synthesize session/request state.
+3. **Implemented in source, unverified — quotas.** Existing concrete Codex reads and Claude forwarding/receiver/store/strip remain. Neither new input adds quota or provider work.
+4. **Implemented in source, unverified — actions.** Existing exact request/turn validation, explicit controls, separate helper and receipts remain. No AI SDK, prompt, paid turn or terminal input is introduced.
+5. **Implemented in source, unverified — reactions.** Existing app adapter still selects pet-owned moods and bounded once-per-response cues. Generated animations supply art for the same pose names; text preserves unknown/attention even when supplied rows fall back to idle.
+6. **Implemented in source, unverified — movement.** Native drag/hide/overlap/menu return and normalized placement remain. New packs flow through setArtwork to refresh the existing alpha hit image; no replacement Notch or session surface is created.
+7. **Implemented in source, unverified — customization.** PetLibraryView exposes Animate PNG, Import Sprite Sheet and folder import. PetLibraryModel uses one native chooser and one cancellable detached worker. PetPackLibrary.importPNG/importSpriteSheet read bounded no-follow source files and normalize into the same private staging/validate/exclusive-rename/preference path. PetLocalAnimation fits visible subject pixels into 256px cells and emits six affine frames per pose. PetSpriteSheet validates seven-row square-cell geometry, exhaustively scans alpha, rejects gaps/empty idle, and maps empty optional rows to idle fallback. Shared PetPNGRaster checks encoded/header/source-depth memory bounds before decode and uses canonical RGBA for deterministic alpha reads. No source image, generated pack or captured runtime data enters Git. Failure/cancellation preserves current selection; committed unselected copies remain possible as documented.
+8. **Partial — navigation/desktop.** Pet recovery exists; exact-pane/application/manual navigation and full Notch recovery remain. The full goal was paused for customization questions and has now been explicitly resumed.
+9. **Incomplete — final handoff.** Current pet/source specs, contract, README, architecture and STATUS record local-only scope/provenance and source paths. Deferred acceptance boxes are preserved. Final 9/9 audit still waits for criterion 8.
+
+Verification: source reads/rg/nl and git diff whitespace inspection only. Tests, builds, type checks,
+app/helper launches, probes, captures, installed configuration and credential/transcript access NOT RUN.
+No company code, scripts or assets were copied; no image-generation tool or external model was invoked.
 
 ## Final result
 

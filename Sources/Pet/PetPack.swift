@@ -1,9 +1,8 @@
-import CoreGraphics
 import Foundation
-import ImageIO
 
 public enum PetPackFailure: String, Error, Sendable {
     case missing, unsafePath, unreadable, changed, invalidManifest, invalidPNG, resourceLimit, writeFailed
+    case transparentPNGRequired, invalidSheet, sheetGap
 }
 
 public struct PetPackChoice: Equatable, Sendable, Identifiable {
@@ -81,24 +80,10 @@ struct PetPackManifest: Codable, Equatable {
         return PetPresentation(idle: idle, animations: result, frameData: bytes, name: name)
     }
 
-    /// Header bounds precede decompression. A frame is one alpha PNG, never an animated image/container.
+    /// Shared header/decode bounds also apply to folder-imported frames.
     static func validatePNG(_ data: Data) throws -> (width: Int, height: Int) {
-        guard data.count <= imageByteLimit else { throw PetPackFailure.resourceLimit }
-        guard data.starts(with: [137, 80, 78, 71, 13, 10, 26, 10]),
-              let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary),
-              CGImageSourceGetType(source) as String? == "public.png", CGImageSourceGetCount(source) == 1,
-              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-              let width = (properties[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue,
-              let height = (properties[kCGImagePropertyPixelHeight] as? NSNumber)?.intValue,
-              (1...1024).contains(width), (1...1024).contains(height) else { throw PetPackFailure.invalidPNG }
-        guard let image = CGImageSourceCreateImageAtIndex(source, 0,
-                [kCGImageSourceShouldCacheImmediately: true] as CFDictionary),
-              image.width == width, image.height == height,
-              [CGImageAlphaInfo.first, .last, .premultipliedFirst, .premultipliedLast].contains(image.alphaInfo),
-              let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
-                  bytesPerRow: width * 4, space: CGColorSpaceCreateDeviceRGB(),
-                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { throw PetPackFailure.invalidPNG }
-        context.draw(image, in: CGRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)))
-        return (width, height)
+        let image = try PetPNGRaster.decode(data, byteLimit: imageByteLimit,
+            dimensionLimit: 1024, decodedLimit: 4 * 1024 * 1024)
+        return (image.width, image.height)
     }
 }
