@@ -121,7 +121,7 @@ refused-endpoint recovery and enlarged socket buffers implement the [quota intak
 `NotchPetStatusLine` retains bounded parse input while streaming original stdin to the original shell
 command with inherited output/cwd/environment. Cancellation targets its process group; quota forwarding
 is nonblocking and has no terminal output. Owned wrapper setup/restoration is implemented by the separate Claude quota scope. No new
-source behavior is compiler- or runtime-verified.
+source behavior is runtime-qualified. Subsequent hosted compilation/tests passed on the merged PR head; see the handoff below.
 
 The receiver, adapters, inbox, stores and visible session/allowance surfaces are implemented.
 Both providers expose explicit Check/setup/repair/removal and independent monitoring controls.
@@ -472,8 +472,10 @@ playback representation. Both use PetPackLibrary’s existing private transactio
 The nine source criteria in [the full implementation goal](goals/full-mvp-implementation.md) have
 concrete production paths; its [final audit](goals/full-mvp-implementation-log.md#turn-9-final-source-audit)
 traces adapters, services, ownership and native controls. This completes the implementation-only goal,
-not broader roadmap or release acceptance. All changed code remains unbuilt and untested at the user's
-request. Existing historical evidence does not qualify this checkout.
+not broader roadmap or release acceptance. PR #16 merged as `fa691f4` after hosted CI passed the
+packaged build/helper checks, 194 existing tests and coverage reporting at `ab2ae13`. No new local
+checks ran for this documentation update. Native/provider qualification remains deferred; see the
+[merged handoff](specs/notch-companion.md#merged-mvp-handoff-2026-11-06).
 
 Documented provider candidates are Codex 0.164.0 and Claude Code 2.1.306; the runtime qualification
 registry remains empty. Claude supplies approve-once/deny, structured answers and bounded Stop-hook

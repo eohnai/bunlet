@@ -1,5 +1,9 @@
 # Local provider setup implementation policy
 
+Merged implementation and verification scope: [MVP handoff](../specs/notch-companion.md#merged-mvp-handoff-2026-11-06).
+PR #16 has hosted build/test/package evidence; live provider/native qualification remains deferred.
+Earlier implementation-run NOT RUN statements below describe that stage, not the subsequent CI result.
+
 Selected under the approved full MVP goal, 2026-11-06. Tests, builds and runtime qualification are
 explicitly deferred. This supersedes only the old qualification-before-installation gate; it does
 not grant hook trust, change permissions, or call a documented integration runtime-qualified.

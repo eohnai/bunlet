@@ -1,5 +1,9 @@
 # Pet workflows implementation policy
 
+Merged implementation and verification scope: [MVP handoff](../specs/notch-companion.md#merged-mvp-handoff-2026-11-06).
+PR #16 has hosted build/test/package evidence; live provider/native qualification remains deferred.
+Earlier implementation-run NOT RUN statements below describe that stage, not the subsequent CI result.
+
 Selected under the approved full nine-area MVP goal on 2026-11-06. Source implementation only;
 tests, builds, native interaction, captures and resource measurement remain NOT RUN. This specifies
 routine implementation choices within decisions 0006/0013 and the accepted drag/overlap workflow.

@@ -1,5 +1,16 @@
 # Build and test changes through GitHub Actions
 
+## Merged MVP CI integration, 2026-11-06
+
+[PR #16](https://github.com/eohnai/notch-pet/pull/16) merged as `fa691f4` after
+[run 42194558749](https://github.com/eohnai/notch-pet/actions/runs/42194558749) passed all six jobs
+at `ab2ae13`. This is a passing PR-head baseline, not completion of F8b's deliberate hosted drills.
+Coverage export includes the test runner and all three helper binaries, with actual binary fingerprints.
+Its inventory lists the exact declaration-only Agent.swift as not applicable (no LLVM executable map),
+guarding its full contents so adding code requires review. Other production coverage rows/HTML/totals
+remain mandatory; no percentage threshold or test failure was bypassed. Earlier failures and
+intermittent process/socket timeouts remain in the full-MVP log. Historic evidence below is unchanged.
+
 ## Goal
 
 Give each pull request a reproducible build-and-test result, useful reports, and an identifiable native build.

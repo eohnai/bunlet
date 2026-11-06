@@ -10,6 +10,14 @@ Code: `Sources/AgentActions/`, `Sources/NotchPetActionHook/` and native action s
 - `structured-answers`: Answer a verified structured question from the notch. Needs: permission-decisions.
 - `follow-up-replies`: Explicitly send text to the selected existing conversation. Needs: permission-decisions.
 
+## Merged MVP status, 2026-11-06
+
+Implementation is merged through PR #16 (including PR #15). See the
+[nine-area handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06) for production paths,
+hosted build/test evidence and capability limits. Existing unchecked acceptance tasks are not
+missing implementation by default; inspect their current feature handoff before selecting work.
+Native/provider acceptance remains deferred. Broader roadmap entries without specs remain future work.
+
 ## Shared context
 
 - Later priority after the session-and-limits delivery path, approved on 2026-10-30. Existing scope and dependencies remain intact.

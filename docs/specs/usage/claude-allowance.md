@@ -1,6 +1,13 @@
 # Forward Claude allowance to the notch
 
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
 Needs: codex-allowance
+
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 ## Goal
 
@@ -72,8 +79,9 @@ independently missing windows. Codex refresh retries with bounded backoff; it do
 The notch exposes stale readings, receiver failure and intake/capacity loss. The old view-owned
 receiver and ambiguous `sync(execute:)` build finding below are historical, not this code path.
 
-Tests, builds, process launches, socket probes, installed configuration access and runtime
-qualification were NOT RUN. Original verification-bearing checkboxes are preserved.
+Hosted build/test evidence now covers compilation and the existing receiver cases. No local checks,
+installed configuration access, live status-line comparison or runtime qualification were run. Original
+verification-bearing checkboxes are preserved.
 `ClaudeStatusLinePlanner` and `ProviderHookTransaction` now implement separate guarded quota
 setup/removal/restoration, and `ProviderSetupView` exposes quota ownership/helper/receipt state.
 See [Claude setup](../sessions/claude-setup.md). Live terminal preservation remains unverified.

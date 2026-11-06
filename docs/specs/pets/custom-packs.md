@@ -1,6 +1,10 @@
 # Asset-only custom packs
 
-Status: source implementation present under the approved full MVP task list; acceptance unverified.
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 Implement decision 0006 manifest/PNG imports, safe private staging, selection rollback and saved preferences. No executable plugins. The later local-only request adds the separate PNG/sheet input features linked below. Settings must expose import, selection and built-in recovery.
 
@@ -11,7 +15,7 @@ Source: `PetLibraryView` → app-owned `PetLibraryModel` → detached `PetPackLi
 `PetPackDirectory` guarded reads/staging → manifest/PNG validation → exclusive rename → saved selection
 → `PetPanelController.setArtwork` and Settings preview. Invalid/cancelled input cannot switch selection;
 built-in recovery does not depend on the pack directory. UserDefaults retains generated pack ID, size,
-sound and normalized placement; imported bytes remain in private Application Support. Sheet conversion is now selected and has a source path; its original P5/P6 acceptance remains unverified. Tests/builds/runtime/acceptance remain NOT RUN; original P3/P4/P7/P8
+sound and normalized placement; imported bytes remain in private Application Support. Sheet conversion is now selected and has a source path; its original P5/P6 acceptance remains unverified. Native/provider acceptance remains NOT RUN; hosted build/test evidence is recorded above; original P3/P4/P7/P8
 checkboxes are preserved.
 
 Additional local inputs: [ordinary PNG animation](local-png-animation.md) and [sprite sheets](sprite-sheet-import.md). Both reuse this persistence and selection contract.

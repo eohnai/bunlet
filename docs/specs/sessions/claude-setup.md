@@ -1,12 +1,19 @@
 # Claude Code setup
 
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
 Needs: integration-health, notch/session-island
+
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 ## Scope and approval
 
 The full MVP task list authorizes source implementation of Claude setup, independent monitoring,
 quota wrapping and removal. This fulfills the Claude portion of source I4/I5/I6 without migrating
-or ticking their historical verification tasks. Tests/builds/runtime/qualification remain NOT RUN.
+or ticking their historical verification tasks. Local checks and feature-specific native/provider qualification remain NOT RUN; hosted evidence is recorded above.
 
 ## Contract
 
@@ -25,8 +32,9 @@ Remove then Connect at its new location; setup never adopts an unowned lookalike
 Quota setup is a separate statusLine operation. It wraps the original shell command, preserves field
 members and stores the exact original value privately for restoration. Absent original status lines
 use silent forwarding. The original value is restored only while the complete owned field matches.
-Lifecycle and quota share a writer lock and recover either known pending journal before changing
-settings. Disconnect pauses intake first, removes owned quota wrapping, then lifecycle hooks. A
+Lifecycle, quota and local-action scopes share a writer lock and recover known pending journals
+before changing settings. Disconnect pauses intake and disables responses first, then removes owned
+local-action hooks, quota wrapping and lifecycle hooks. A
 partial failure leaves monitoring paused and reports what already happened.
 
 ## Source implementation
@@ -38,8 +46,8 @@ partial failure leaves monitoring paused and reports what already happened.
 - CL5: `ProviderSetupController`/`ProviderSetupView`, app-owned controllers and both menu submenus.
 - Separate quota planner: `ClaudeStatusLinePlanner`, with its own ownership and pending record names.
 
-These are source findings. No compiler, installed configuration, hook execution, terminal output,
-cancellation, native focus or real Claude session result has been established by this implementation.
+These are source findings. Hosted CI establishes compilation, packaging and the existing suite result. Installed configuration,
+hook execution, terminal output/cancellation, native focus and real Claude session results remain unverified.
 
 ## Deferred acceptance
 

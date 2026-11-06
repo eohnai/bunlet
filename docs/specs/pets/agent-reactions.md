@@ -1,6 +1,10 @@
 # Optional agent reactions
 
-Status: source implementation present under the approved full MVP task list; acceptance unverified.
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 App-owned PetSessionAdapter observes authoritative shared snapshots, selecting pet-owned moods and bounded one-shot response-ready cues. Native status text preserves attention/unknown/ended even with idle-only artwork. Requires Pet; Agents and its monitoring are optional. Notch/navigation metadata are not required.
 

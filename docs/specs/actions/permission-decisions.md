@@ -1,6 +1,12 @@
 # Local permission decisions
 
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
 Needs: verified-channels, notch/session-island
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 The approved MVP requires explicit approve-once or deny for an exact confirmed pending request.
 The initial documented/unverified path is Claude PermissionRequest with a separate held action helper.
@@ -15,4 +21,4 @@ request are unavailable. Helper receipt, provider acceptance and lifecycle resol
 Implemented: typed decision encoding, transient store, single dispatch, uncertainty/cancellation and
 native controls, guarded opt-in action-hook setup/check/removal and Settings/disconnect integration.
 Source coverage is recorded in the full-goal turn-4 audit; acceptance remains unverified.
-Original A3/A4 and relevant A7/A8 checks are preserved; tests/builds/runtime checks NOT RUN.
+Original A3/A4 and relevant A7/A8 checks are preserved; native/provider acceptance NOT RUN; hosted build/test evidence is recorded above.

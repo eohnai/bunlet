@@ -1,6 +1,10 @@
 # Desktop movement and return
 
-Status: source implementation present under the approved full MVP task list; acceptance unverified.
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 Native PetPanelController supports alpha-limited pointer drag, island hide/overlap-return and menu Return Pet. Placement restores by display identity and normalized origin, clamped for resize/display/wake/Spaces changes. Pet-only use has no Notch dependency; surface changes leave shared session/action state intact.
 

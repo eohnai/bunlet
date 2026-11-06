@@ -10,6 +10,39 @@ Its new tasks are proposals. Original P0–P8 task lines and historical evidence
 Historical evidence below remains intact during migration. Do not count moved tasks twice.
 Its earlier single-spec instructions are historical and superseded. Do not drop tasks or treat implementation as verified completion during migration.
 
+## Merged MVP handoff, 2026-11-06
+
+[PR #16](https://github.com/eohnai/notch-pet/pull/16) merged as
+`fa691f47be6fef39445c3d37d434c1c12c76c78b`; it includes PR #15's independent feature-management
+commits. [Hosted run 42194558749](https://github.com/eohnai/notch-pet/actions/runs/42194558749)
+passed at PR head `ab2ae13`: 194 existing tests, packaged Build and Helper, Contract, Workflow,
+coverage export/inventory and Required. This is recorded hosted evidence, not a new local run.
+Earlier failed runs and process/socket timeouts remain in the [implementation log](../goals/full-mvp-implementation-log.md).
+
+The full nine-area implementation-only MVP is merged. The broader release checklist below is not
+complete: installed-provider setup/actions, stream preservation, real terminal focus, physical-notch
+interaction, imports/restart recovery and resource measurements still require their own acceptance.
+Hosted test coverage does not establish end-to-end coverage of every new feature. No local builds,
+tests, app/provider launches, installed configuration access or captures were run for this docs update.
+
+| Area | Merged production path | Remaining limits/acceptance |
+|---|---|---|
+| Provider setup | ProviderSetupController/View → ProviderSetupService → ProviderHookTransaction/HookFileDirectory; separate lifecycle/quota/actions ownership | Codex 0.164.0 and Claude 2.1.306 are documented bindings; runtime-qualified registry is empty. Real trust, policy, preservation and recovery acceptance is deferred. |
+| Sessions and Notch | AgentServices → SessionEventInbox → SessionStore → NotchPresentation/NotchSessionView; menu contains recovery/setup controls, no session list | Native panel/focus/hit-testing and live event delivery acceptance remain open. |
+| Quota | CodexUsageConnection/AgentUsageController; NotchPetStatusLine → ClaudeUsageProvider → UsageReceiver/UsageInbox → UsageStore → NotchAllowanceStrip | Claude-only hashed-source ingress and owned socket recovery are implemented. Live Claude stream preservation and account/reconnect acceptance remain open. |
+| Local actions | NotchPetActionHook/ClaudeHookActionAdapter → ActionTransport/ActionStore → LocalActionController/View in Notch and Settings | Claude approve-once/deny, structured answers and ≤60-second Stop feedback; Codex actions and arbitrary-time replies are unsupported. Helper receipt does not prove provider acceptance. |
+| Pet reactions | App-owned PetSessionAdapter → independent Pet moods/poses and bounded cues | Response ready does not mean success; native animation/sound acceptance remains deferred. |
+| Pet movement | PetDragView/PetPanelController → retained Notch hide/return and saved display-relative placement | Pet works without Agents/Notch; real drag/overlap/display acceptance remains open. |
+| Custom pets | PetLibraryModel/View → PetPackLibrary/PetPackDirectory → validated private staged assets → playback/preferences | Manifest packs, offline PNG transforms and seven-row sheets are implemented; no AI workflow or company code. Native import/rollback/restart acceptance remains open. |
+| Navigation/desktop | TerminalNavigation + optional ITermPaneAdapter; NotchWindowState/NotchPanelController and Settings recovery | Any chosen running terminal supports application/manual return. Exact pane focus is explicit user-linked iTerm2 only, not automatic agent mapping. Legacy Otty hints stay untrusted. Native/Automation qualification is deferred. |
+| Handoff | [Nine-area source audit](../goals/full-mvp-implementation-log.md#turn-9-final-source-audit), contracts, feature specs and this reconciliation | Implementation completion is separate from feature/release acceptance. Original verification-bearing checkboxes remain open. |
+
+The local-only sprite-sheet conversion choice is accepted and implemented under the full MVP;
+its earlier P5 proposal is superseded. P5/P6 native acceptance is not established by that source finding.
+Unimplemented broader roadmap work (login/language preferences, automatic attention/haptics,
+telemetry/statistics, additional agents and SSH/cloud) is not delivered by this merge.
+Bunlet and Notchbun remain name candidates; no product rename was approved or implemented.
+
 ## Goal
 
 Show when Codex CLI or Claude Code needs attention on the user's M2 MacBook Air, without requiring Otty.
@@ -62,7 +95,7 @@ The [reference findings](../notes/flux-island-adoption.md) separate observed Flu
 - Unsupported agent/version actions show a reason and the available terminal navigation or manual-return guidance.
 - The release compatibility record identifies verified agent, version, terminal, and action combinations without promising universal support.
 
-The sprite-sheet compatibility proposal below has its own acceptance checks. It is not an accepted change to decision 0006.
+The historical sprite-sheet proposal below retains its acceptance checks. The later local-only conversion decision and merged implementation are recorded in the handoff above; decision 0006's asset-only runtime remains intact.
 
 ## Out of scope
 
@@ -412,7 +445,7 @@ Terminal navigation is optional under decision 0012, including for the integrate
 - [ ] P3: Specify and validate versioned manifest/frame packs with bounded image resources, safe paths, single-frame idle support, and optional-animation fallbacks.
 - [ ] P4: Import validated packs into Application Support and switch selection only after successful import; invalid input must preserve the existing selected pet and assets.
 - [ ] P5: Settle the proposed sprite-sheet input choice with its row, alpha, gap, timing, and resource rules; record whether conversion or a second runtime loader is accepted.
-- [ ] P6: Implement the approved optional sprite-sheet importer using independently created fixtures and verify row mapping, padding, invalid geometry, and rollback. (blocked: sprite-sheet input choice P5 remains proposed)
+- [ ] P6: Implement the approved optional sprite-sheet importer using independently created fixtures and verify row mapping, padding, invalid geometry, and rollback. (blocked: native sprite-sheet acceptance remains deferred by the user)
 - [ ] P7: Persist pet selection, size, sound preference, and screen-relative placement using the accepted preferences/file boundaries, with safe defaults for missing assets and displays.
 - [ ] P8: Verify detach/return, custom artwork, unknown and attention states, invalid-import preservation, and preference restoration in the actual app with isolated assets.
 

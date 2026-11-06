@@ -10,6 +10,14 @@ Feature-specific behavior stays with Sessions, Notch, Usage, Pets, and Telemetry
 - `settings-window`: Open a native sidebar settings window from the app menu and show the existing pet controls through a working page.
 - `general-preferences`: Save launch-at-login and language preferences and apply them through supported native behavior. Needs: settings-window.
 
+## Merged MVP status, 2026-11-06
+
+Implementation is merged through PR #16 (including PR #15). See the
+[nine-area handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06) for production paths,
+hosted build/test evidence and capability limits. Existing unchecked acceptance tasks are not
+missing implementation by default; inspect their current feature handoff before selecting work.
+Native/provider acceptance remains deferred. Broader roadmap entries without specs remain future work.
+
 ## Shared context
 
 - [D7: Install and uninstall features from Settings](../../DECISIONS.md#d7-install-and-uninstall-features-from-settings) is accepted on 2026-11-02. Retain one app; Pet works without Notch or Agents. Keep the feature manager reachable when optional surfaces are uninstalled. Feature availability is separate from runtime enablement and provider connection health.
@@ -30,4 +38,4 @@ Feature-specific behavior stays with Sessions, Notch, Usage, Pets, and Telemetry
 
 - Review launch-at-login ownership and the enabled/disabled/error states before changing system registration.
 - Choose supported languages and define fallback and restart behavior during general-preferences planning.
-- Define how the shared window hosts feature pages while preserving existing pet setup and settings entry points.
+- The merged PetSettingsController/AppSettingsView hosts feature pages and preserves pet setup/recovery. A retrospective settings-window spec is still unwritten; native FM7 acceptance remains deferred.

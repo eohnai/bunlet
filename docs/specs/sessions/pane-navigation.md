@@ -1,11 +1,16 @@
 # Optional terminal navigation
 
-Status: source implementation present; tests/builds/native qualification NOT RUN.
+Status: implementation merged in PR #16; feature acceptance remains deferred.
 
 The user reaffirmed terminal-independent use on 2026-11-06. Monitoring, quota, provider actions, pet
 reactions and session identity require no terminal executable or metadata. Navigation is a separate
 app-owned capability, with exact-pane, application-only and manual-return results. No terminal is a
 prerequisite; no foreground app, folder, transcript or process activity establishes session identity.
+
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 ## Implementation policy
 

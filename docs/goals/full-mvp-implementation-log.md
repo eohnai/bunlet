@@ -387,3 +387,29 @@ matching totals. No synthetic zero/100 percent record, percentage threshold chan
 app behavior workaround. Known failed attempts and one retry remain recorded; hosted confirmation
 of this narrow report-model correction is pending. User considered Bunlet/Notchbun; no rename chosen
 or branding change implemented in this merge task.
+
+Final hosted confirmation: run 42194558749, head ab2ae13, passes Tests (194 functions), complete coverage
+export/inventory, Build, packaged Helper, Contract, Workflow and Required. No local build/test/probe
+or native/provider acceptance was run. No failed assertion/coverage gate was disabled; the only
+non-applicable source classification pins Agent.swift's exact declaration and lists it explicitly.
+
+Authorized merge completed 2026-11-06 09:25 UTC: PR #16 -> main, merge commit
+fa691f47be6fef39445c3d37d434c1c12c76c78b. GitHub automatically marked PR #15 MERGED two seconds
+later because its commits were included. No manual close, branch deletion, forced merge, admin bypass,
+new branch/worktree or extra PR was needed. Existing FM7/editor/CI drafts are preserved. These final
+checkpoint lines are local after-merge records, not part of the merge commit. Naming remains a
+conversation: Bunlet recommended over Notchbun; no rename or asset change has been implemented.
+
+
+## Merged specification reconciliation, 2026-11-06
+
+The user approved reconciling specs with the merged MVP and a documentation-only commit directly
+on main. The source specification now provides one nine-area implementation/evidence handoff,
+linked from affected feature/area records. Current source paths, documented-setup capability,
+Claude forwarding/recovery, pet inputs, optional terminal navigation and hosted-vs-local verification
+claims are reconciled. Older dated results remain historical; acceptance checkbox states are unchanged.
+P6's obsolete unsettled-choice blocker is replaced by its actual deferred-native-acceptance blocker.
+No feature/release spec is declared done by the implementation-only merge. Bunlet/Notchbun remain
+candidates; no rename, app/source change, test run or extra CI job is introduced. Existing FM7/editor/CI
+drafts are preserved and excluded from the commit. Verification is source/document inspection,
+relative-link and unchanged-checkbox-state review, progress-board generation and git diff --check.

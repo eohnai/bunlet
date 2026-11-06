@@ -1,6 +1,11 @@
 # Local animation from a PNG
 
-Status: source implementation present; verification NOT RUN at the user's request.
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 ## Scope and decisions
 
@@ -30,4 +35,4 @@ conversion. A completed copy may remain unselected if cancellation/save failure 
 
 No tests, builds, helper/app launches, source image generation or captures are authorized by this task.
 
-Source path: PetLibraryView → PetLibraryModel chooser/worker → PetPackLibrary input adapter → bounded converter → private staged pack install → saved selection → existing panel/preview playback. Tests/builds/native interaction remain NOT RUN.
+Source path: PetLibraryView → PetLibraryModel chooser/worker → PetPackLibrary input adapter → bounded converter → private staged pack install → saved selection → existing panel/preview playback. Native interaction remains NOT RUN; hosted build/test evidence is recorded above.

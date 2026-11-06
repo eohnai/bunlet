@@ -7,11 +7,19 @@ Code: `Sources/NotchPet/` and shared presentation services in `Sources/SessionSt
 
 - `session-island`: Open, expand, collapse, and inspect sessions and requests without unsolicited focus, replacing the menu session list. Needs: sessions/session-state.
 - `session-cards`: Show compact session cards with a prompt timer and tool-name request cards, and resize the expanded panel. Comes before session-island's acceptance checks, by the user's choice on 2026-10-31.
-- `allowance-strip`: Show each active provider's logo, 5-hour percent left, and reset countdown in the expanded top row, with details in a tooltip. Takes over the display part of usage/codex-allowance U5. Needs: session-cards.
+- `allowance-strip`: Show each active provider's logo, 5-hour percent left, and reset countdown in the expanded top row; tooltips were omitted under decision 0014. Takes over the display part of usage/codex-allowance U5. Needs: session-cards.
 - `attention-behavior`: Save expansion preferences, suppress automatic expansion for a verified foreground target, and provide optional haptic feedback. Needs: session-island, settings/settings-window.
 - `desktop-recovery`: [Keep the notch accessible](desktop-recovery.md) through display changes, Spaces, fullscreen, and sleep/wake. Needs: session-island.
 - `accessible-controls`: [Support native keyboard, motion and focus controls](accessible-controls.md) without unsolicited focus. Needs: session-island.
 - `resource-efficiency`: Measure and constrain idle CPU, memory, wakeups, rendering, and provider refresh across native components.
+
+## Merged MVP status, 2026-11-06
+
+Implementation is merged through PR #16 (including PR #15). See the
+[nine-area handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06) for production paths,
+hosted build/test evidence and capability limits. Existing unchecked acceptance tasks are not
+missing implementation by default; inspect their current feature handoff before selecting work.
+Native/provider acceptance remains deferred. Broader roadmap entries without specs remain future work.
 
 ## Shared context
 

@@ -1,6 +1,11 @@
 # Sprite-sheet import
 
-Status: source implementation present; verification NOT RUN at the user's request.
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 ## Decisions
 
@@ -28,4 +33,4 @@ Do not add the external AI workflow, generation prompts, subscription linking or
 
 Original P5/P6/P8 checkbox/evidence history stays in the source spec. All checks remain NOT RUN.
 
-Source path: PetLibraryView → PetLibraryModel chooser/worker → PetPackLibrary input adapter → bounded converter → private staged pack install → saved selection → existing panel/preview playback. Tests/builds/native interaction remain NOT RUN.
+Source path: PetLibraryView → PetLibraryModel chooser/worker → PetPackLibrary input adapter → bounded converter → private staged pack install → saved selection → existing panel/preview playback. Native interaction remains NOT RUN; hosted build/test evidence is recorded above.

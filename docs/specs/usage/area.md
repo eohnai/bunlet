@@ -9,6 +9,14 @@ Code: usage services in `Sources/SessionState/`, `Sources/NotchPet/AgentUsageCon
 - `claude-allowance`: Forward real Claude allowance while preserving terminal output and cancellation. Needs: codex-allowance.
 - `refresh-recovery`: Handle stale data, sparse updates, account changes, disconnects, cancellation, and bounded retries. Needs: codex-allowance, claude-allowance.
 
+## Merged MVP status, 2026-11-06
+
+Implementation is merged through PR #16 (including PR #15). See the
+[nine-area handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06) for production paths,
+hosted build/test evidence and capability limits. Existing unchecked acceptance tasks are not
+missing implementation by default; inspect their current feature handoff before selecting work.
+Native/provider acceptance remains deferred. Broader roadmap entries without specs remain future work.
+
 ## Shared context
 
 - Sessions, Notch, and Usage are the immediate priority, approved on 2026-10-30. First deliver optional Codex setup, a visible real session, and real Codex limits.
@@ -28,8 +36,8 @@ Code: usage services in `Sources/SessionState/`, `Sources/NotchPet/AgentUsageCon
 - U1, U3b2, and U5 have implementation or earlier evidence but remain unchecked in the source spec. Review evidence before changing their states.
 - PetAppController owns the shared usage store. Optional AgentServices owns AgentUsageController and its cancellable Codex reads;
   the Notch controller receives shared stores and has no provider-I/O lifetime responsibility. Usage is a separate target.
-- UsageReceiver exists, but the current optional app path does not start it. Claude forwarding and app receipt remain unfinished.
-- Claude forwarding and live verification remain incomplete. Installed configuration changes need a reversible plan and explicit approval.
+- AgentServices starts/stops Claude UsageReceiver independently of Notch, batches through UsageInbox and updates UsageStore receiver/intake health. The packaged status-line helper and guarded setup/restoration are implemented.
+- Claude forwarding is implemented; live status-line/output preservation is unverified. Runtime installation remains an explicit reversible provider action, not a startup side effect.
 - Migrate U1, U3a–U3b2, and Codex U5/U6 coverage into codex-allowance. Migrate U2 and Claude U5/U6 coverage into claude-allowance.
 - U3c, U4, and failure/reconnect/account-switch U6 coverage belong to refresh-recovery.
 - Claude depends on the shared usage foundation delivered by codex-allowance, not on a Codex account or active Codex session.
@@ -37,6 +45,6 @@ Code: usage services in `Sources/SessionState/`, `Sources/NotchPet/AgentUsageCon
 
 ## Open questions
 
-- Review U3b2 evidence before ticking it. The usage socket has no crash-stale endpoint recovery.
-- Codex ownership is reconciled in the implementation-only MVP. Reconcile Claude's historical receiver/build-error descriptions during its feature review.
-- Settle the five recorded Claude receiver decisions against current code before U2c3; shared app/store ownership is implemented, while Claude forwarding/receipt is not.
+- Review U3b2 live/account evidence before ticking it. The usage socket implements owned refused-endpoint recovery; native/live recovery acceptance remains open.
+- Both provider ownership paths are reconciled in the merged MVP. Older view-owned receiver/build-error descriptions remain historical.
+- The five Claude receiver decisions are settled in the quota-intake contract. U2c3 retains live forwarding/notch/setup acceptance; it is not a request to implement another receiver.

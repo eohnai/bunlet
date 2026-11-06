@@ -1,6 +1,13 @@
 # Independent provider monitoring
 
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
 Needs: codex-setup, claude-setup
+
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 ## Behavior
 
@@ -38,5 +45,5 @@ provider filter/cutoffs + `SessionStore.suspendMonitoring(agent:)` + cancellable
 - [ ] Cancellation, queued delivery, sleep/clock boundaries and preference failure behavior.
 - [ ] Disconnect with missing CLI, partial removals, conflicts and journal recovery.
 
-Tests/builds/runtime checks and qualification NOT RUN. These checks remain open; source implementation
+No local checks or feature-specific native/provider qualification were run; hosted evidence is recorded above. These checks remain open; source implementation
 does not replace the original shared I5/I6 or native feature acceptance requirements.

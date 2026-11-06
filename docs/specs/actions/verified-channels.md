@@ -1,6 +1,10 @@
 # Local response channels
 
-Status: source implementation complete to the documented contract; runtime unverified.
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 The approved full MVP goal permits documented channel implementation without running tests/builds or
 runtime qualification. [Local actions v1](../../contracts/local-actions-v1.md) defines exact identities,

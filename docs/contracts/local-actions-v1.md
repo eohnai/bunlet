@@ -1,5 +1,9 @@
 # Local actions v1
 
+Merged implementation and verification scope: [MVP handoff](../specs/notch-companion.md#merged-mvp-handoff-2026-11-06).
+PR #16 has hosted build/test/package evidence; live provider/native qualification remains deferred.
+Earlier implementation-run NOT RUN statements below describe that stage, not the subsequent CI result.
+
 Implementation contract selected under the approved full MVP goal, 2026-11-06. Runtime qualification,
 tests and builds are NOT RUN. This contract implements documented channels; it claims no tested support.
 The one-way observation envelope/helper and its 250ms deadline remain unchanged.

@@ -1,15 +1,22 @@
 # Report integration health
 
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
 Needs: observation-bridge
+
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 ## Goal
 
 Implementation update, 2026-11-06: health models/probes now live in `Integration`, with shared `Agent` identity.
 The optional app-owned `AgentServices` retains the observable health controller. Explicit Codex Check actions
-use `CodexSetupService`; their results replace only version/configuration/helper evidence, preserving receiver
+use `ProviderSetupService`; their results replace only version/configuration/helper evidence, preserving receiver
 and delivery values. The Agents settings page renders separate evidence and action results.
 New cancellation forwarding stops the bounded probe worker and suppresses cancelled UI results.
-No tests, builds, probes or app launches were run for this implementation-only MVP; existing acceptance stays open.
+Local probes/app launches and feature-specific acceptance remain deferred. Hosted build/test evidence is recorded above; actual app-wiring acceptance stays open.
 
 Show, for each agent, separate evidence about version support, hook configuration, the helper, the receiver, and the last delivery.
 A user can then tell "not set up" apart from "set up but quiet" without the app guessing.
@@ -34,7 +41,7 @@ The I2 code exists, but its verification is incomplete. All three tasks stay unc
 
 - Installing and removing hooks: `codex-setup` and `claude-setup` (I3–I5).
 - Setup, check, and removal controls in the interface: I6 in the source spec.
-- Health of the separate usage receiver. It is an open decision in [usage/claude-allowance](../usage/claude-allowance.md).
+- Health of the separate usage receiver. Its implemented state belongs to [usage/claude-allowance](../usage/claude-allowance.md).
 - Action-channel capability. Lifecycle hooks do not prove approval or reply support.
 - Terminal navigation capability. Missing navigation is not a health failure, under [decision 0012](../../decisions/0012-support-terminal-independent-operation.md).
 
@@ -48,10 +55,10 @@ The I2 code exists, but its verification is incomplete. All three tasks stay unc
 ## Verify
 
 - Seam: `IntegrationHealthController` in `Sources/NotchPet/NotchPetApp.swift`, fed by the bridge lifecycle and the inbox.
-  The model and probe are in `Sources/SessionState/IntegrationHealth.swift`.
+  The model and probe are in `Sources/Integration/IntegrationHealth.swift`.
 - Build: `bash scripts/run.sh --build-only`.
 - Swift checks: `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/notch-pet-dev/build`.
-  The ten I2 tests are in `Tests/SessionStateTests/IntegrationHealthTests.swift`.
+  The ten I2 tests are in `Tests/IntegrationTests/IntegrationHealthTests.swift`.
 - Real app: `bash scripts/run.sh`, then check receiver and delivery evidence with fictional helper events.
 
 These are reproduction commands. This retrospective spec ran documentation checks only.

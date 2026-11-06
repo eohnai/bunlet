@@ -1,6 +1,10 @@
 # Native controls and focus
 
-Status: source implementation present; acceptance NOT RUN. VoiceOver testing excluded by D8.
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 Keep native SwiftUI buttons, fields, labels, keyboard controls and focus states. Menu/Settings Open
 Sessions explicitly expands and focuses the island. Respond explicitly focuses its composer; incoming

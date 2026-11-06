@@ -14,6 +14,14 @@ Code: `Sources/EventBridge/`, `Sources/SessionState/`, `Sources/Integration/` an
 - `pane-navigation`: [Optional terminal navigation](pane-navigation.md) reports user-linked exact-pane, application-only, or manual-return capability through separate adapters. Needs: session-state.
 - `first-use`: Verify setup, live alerts, navigation, removal, and release instructions. Needs: codex-setup, claude-setup, pane-navigation, notch/desktop-recovery, notch/accessible-controls, usage/refresh-recovery, actions/structured-answers, actions/follow-up-replies, pets/detachable-pet, pets/custom-packs.
 
+## Merged MVP status, 2026-11-06
+
+Implementation is merged through PR #16 (including PR #15). See the
+[nine-area handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06) for production paths,
+hosted build/test evidence and capability limits. Existing unchecked acceptance tasks are not
+missing implementation by default; inspect their current feature handoff before selecting work.
+Native/provider acceptance remains deferred. Broader roadmap entries without specs remain future work.
+
 ## Shared context
 
 - Roadmap approved on 2026-10-30: prioritize Sessions, Notch, and Usage. First deliver optional Codex setup, a visible real session, and real Codex limits.
@@ -26,13 +34,13 @@ Code: `Sources/EventBridge/`, `Sources/SessionState/`, `Sources/Integration/` an
 - These are approved feature boundaries and order. Full specifications and implementation task lists still need feature-level planning.
 - Setup and monitoring controls contribute the Agents page when settings/settings-window exists. A shared settings shell does not replace setup ownership or authorize installed configuration changes.
 - [Record layout decision](../../decisions/0011-organize-records-by-feature.md).
-- [Terminal independence](../../decisions/0012-support-terminal-independent-operation.md) is accepted. Otty is one optional navigation adapter.
+- [Terminal independence](../../decisions/0012-support-terminal-independent-operation.md) is accepted. Otty is not required; legacy hints remain untrusted. Exact-pane source support currently uses explicit user-linked iTerm2, with application/manual return for other terminals.
 - Monitoring, alerts, pet reactions, and supported allowance reads must work without terminal metadata or an Otty installation.
 - Missing navigation does not imply broken agent setup or unavailable provider actions. Report those capabilities separately.
 - [Observation bridge](observation-bridge.md) owns its migrated completed tasks and historical evidence.
 - [Source specification](../notch-companion.md): unmigrated tasks and evidence remain authoritative until their feature migration.
 - Implemented: native app shell, bounded event bridge, both agent adapters, session store, and inbox. Preserve completed foundation tasks and G1–G2 evidence.
-- Implemented but awaiting verification: I2a–I2c integration-health code. I3a setup proposal is completed documentation, not an implemented installer.
+- Integration-health models/probes and both provider installers are implemented and included in hosted compilation/tests. I2c app-wiring and real setup/recovery acceptance remain deferred; historical I3a is documentation evidence only.
 - Codex setup maps I3b–I3c and the Codex portion of I5–I6 to approved smaller tasks.
   Keep the original source checklist until shared acceptance has complete destinations. Migrate I4 and the Claude portion into claude-setup.
 - Keep original source lines and checkbox states during that migration. Defining feature ownership does not move or complete those tasks.
@@ -47,8 +55,8 @@ Code: `Sources/EventBridge/`, `Sources/SessionState/`, `Sources/Integration/` an
 
 Both provider setup services/controls, independent monitoring, scoped Claude quota setup and bounded
 quota delivery have source implementations. See the detailed Claude/monitoring specs and
-[provider contract](../../contracts/provider-setup.md). The user waived tests/builds/runtime qualification;
-no source update closes the original live acceptance or changes their historical checkbox evidence.
+[provider contract](../../contracts/provider-setup.md). Local verification was deferred; subsequent hosted CI passed on the merged PR head.
+That CI result does not close original live acceptance or change historical checkbox evidence.
 Earlier ordering/gate proposals above remain historical where superseded by that explicit full goal.
 
 ## Open questions

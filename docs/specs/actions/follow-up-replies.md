@@ -1,6 +1,12 @@
 # Explicit follow-up replies
 
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
 Needs: permission-decisions
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 The initial documented/unverified Claude binding replies through a live Stop hook. User-submitted text
 becomes that hook's blocking reason, continuing the same existing prompt as feedback. It does not create
@@ -18,4 +24,4 @@ Implemented: the concrete Stop-feedback adapter, native composer, identity/draft
 lifecycle, opt-in guarded setup/check/removal and Settings controls. Setup explains the bounded reply
 window and possible prompt delay. The full-goal turn-4 audit records the complete source path.
 This bounded channel is a capability limit, not a claim of arbitrary-time replies to every provider.
-Original A6 and follow-up-specific A7/A8 checks remain open; tests/builds/runtime checks NOT RUN.
+Original A6 and follow-up-specific A7/A8 checks remain open; native/provider acceptance NOT RUN; hosted build/test evidence is recorded above.

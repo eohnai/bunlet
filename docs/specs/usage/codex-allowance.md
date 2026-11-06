@@ -1,6 +1,13 @@
 # Show Codex allowance in the notch
 
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
 Needs: notch/session-island
+
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 ## Goal
 
@@ -48,8 +55,8 @@ These checks come from "Feature 2: see the limits of agents in use" in the sourc
 
 ## Verify
 
-- Seam: `CodexUsageConnection.read` into `UsageStore`, shown by `NotchUsageView` in the running app.
-- Code: `Sources/SessionState/UsageStore.swift`, `CodexUsageProvider.swift`, `CodexUsageProtocol.swift`, `CodexUsageConnection.swift`, and `Sources/NotchPet/NotchUsageView.swift`.
+- Seam: `CodexUsageConnection.read` into `UsageStore`, shown by `NotchAllowanceStrip` in the running app.
+- Code: `Sources/Usage/UsageStore.swift`, `CodexUsageProvider.swift`, `CodexUsageProtocol.swift`, `CodexUsageConnection.swift`, and `Sources/NotchPet/NotchAllowanceStrip.swift`.
 - Build: `bash scripts/run.sh --build-only`.
 - Swift checks: `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/notch-pet-dev/build`.
 - Real app: `bash scripts/run.sh` with fictional Codex sessions, then a sanitized live managed-provider read. Keep no raw quota or account IDs in the repository.
@@ -76,7 +83,7 @@ losing active Codex evidence cancels that work; hiding/removing Notch does not o
 The notch observes snapshots and performs no provider I/O. Usage code now lives in the separate Usage target.
 The 2026-11-06 Codex MVP reuses this production route and explicit successful-Connect monitoring activation;
 it ran no tests, builds, live reads or installed configuration changes. U1/U3b2/U5/U6 acceptance remains open.
-The remaining Claude receiver/forwarding decisions are still owned by [claude-allowance](claude-allowance.md#open-decisions).
+Claude receiver/forwarding policy is settled in [claude-allowance](claude-allowance.md#receiver-implementation-policy-2026-11-06); live acceptance is deferred.
 
 ## My calls
 

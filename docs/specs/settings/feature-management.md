@@ -1,6 +1,11 @@
 # Install and uninstall optional features
 
-Status: in progress
+Status: in progress; FM1–FM6 merged through PR #16; FM7 native acceptance deferred.
+
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 ## Goal
 
@@ -45,6 +50,13 @@ VoiceOver/screen-reader testing is excluded from feature acceptance under [D8](.
 Retain meaningful control labels, keyboard access, Reduce Motion and focus behavior.
 
 ## Current code and gaps
+
+The merged MVP supersedes this baseline: FeatureRuntimeOwner owns independent deferred runtimes,
+AppSettingsView supplies the shared Settings shell, and Agents owns monitoring/usage independently
+of Pet/Notch. FM1–FM6 source/tests are included in PR #16; the uncommitted FM7 checker remains a
+separate local draft. FM7 native acceptance is not established by hosted model/transition tests.
+
+### Historical pre-implementation baseline
 
 Baseline: main `e856686`, after PR #13. These are source findings rather than new runtime acceptance:
 

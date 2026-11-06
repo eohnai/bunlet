@@ -1,6 +1,12 @@
 # Structured question answers
 
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
 Needs: permission-decisions
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 The documented/unverified Claude path holds PreToolUse for AskUserQuestion, then returns the original
 questions/input with the user's answer map in updatedInput and the required allow decision. The app
@@ -15,4 +21,4 @@ to another request. Cancel/expiry returns to the provider's normal question flow
 Implemented: adapter/encoding, validation, drafts/options, native composer and single dispatch/receipt.
 Guarded interactive-hook setup/check/removal and Settings/disconnect controls complete the source path.
 A5 and question-specific A7/A8
-acceptance remain open; tests/builds/runtime qualification NOT RUN.
+acceptance remain open; native/provider qualification NOT RUN; hosted build/test evidence is recorded above.

@@ -12,6 +12,14 @@ Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; an app-owned
 - `sprite-sheet-import`: [Import seven-row PNG sheets](sprite-sheet-import.md) into the existing pack format. Needs: custom-packs.
 - `local-png-animation`: [Animate an ordinary transparent PNG locally](local-png-animation.md) using transforms. Needs: custom-packs.
 
+## Merged MVP status, 2026-11-06
+
+Implementation is merged through PR #16 (including PR #15). See the
+[nine-area handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06) for production paths,
+hosted build/test evidence and capability limits. Existing unchecked acceptance tasks are not
+missing implementation by default; inspect their current feature handoff before selecting work.
+Native/provider acceptance remains deferred. Broader roadmap entries without specs remain future work.
+
 ## Shared context
 
 - Later priority after the session-and-limits delivery path, approved on 2026-10-30. Preserve pet-first startup and deferred acceptance.
@@ -30,7 +38,7 @@ Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; an app-owned
 - P1 belongs to agent-reactions under the approved split. Keep its original line in the source spec until that feature is written.
 - P2 and pet-specific R1–R3 checks belong to detachable-pet. Those checks must also preserve notices when agent reactions are enabled.
 - P3–P4 and pack-selection preferences from P7 belong to custom-packs. Placement preferences from P7 belong to detachable-pet.
-- P5–P6 belong to sprite-sheet-import. Preserve P6's blocked state until P5 is accepted.
+- P5–P6 belong to sprite-sheet-import. Local-only conversion is now accepted and merged; P6 remains blocked only on deferred native acceptance, not an unsettled input choice.
 - Divide P8 actual-app checks among the features they verify. Preserve pet Reduce Motion and hidden/asleep animation checks from R4.
 - R5 includes the animated-pet resource profile on the target Mac. Do not replace measured acceptance with a native-stack assumption.
 - Basic pet setup and size controls belong to built-in-pet. Custom artwork selection and desktop placement keep their existing owners.
@@ -43,8 +51,8 @@ Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; an app-owned
 ## Decisions
 
 - **Keep pet-first startup with optional agent services; add drag-out and overlap-return presentation.** Accepted on 2026-10-30: dragging the pet out hides the island, and overlapping the detached pet with the island's location returns the pet and restores the island. The user chose Flux's interaction while retaining decision 0013's independent pet module and optional services.
-- **Make overlap-return conditional on installed Notch, 2026-11-02:** D7 permits Pet without Notch. Independent pet placement must remain usable in that combination; returning to a notch surface applies when that feature is installed. Detailed placement and dependency behavior remains to be planned.
-- Detachment and return belong to `detachable-pet` and work without an agent connection. Switching surfaces does not start or stop monitoring, change connection settings, or resolve retained notices. This accepts behavior; the feature's task list and implementation plan still require approval.
+- **Make overlap-return conditional on installed Notch, 2026-11-02:** D7 permits Pet without Notch. Independent pet placement must remain usable in that combination; returning to a notch surface applies when that feature is installed. Placement/dependency behavior is now implemented in detachable-pet; native acceptance remains open.
+- Detachment and return belong to `detachable-pet` and work without an agent connection. Switching surfaces does not start or stop monitoring, change connection settings, or resolve retained notices. The later full-MVP task list approved its implementation; this historical decision is not native acceptance.
 - **Use original white lionhead rabbit artwork for the default pet.** Accepted on 2026-10-30: the user chose newly created original artwork over supplying an existing image, then specified a white lionhead rabbit. At this decision point the standalone-rabbit goal was prepared but not activated; its later approved asset step and implementation are summarized below.
 
 - **Local-only custom pets, accepted 2026-11-06:** support ordinary PNG transform animation and ready-made sprite-sheet import. The user explicitly excludes AI generation/workflow, prompts and subscription linking. Normalize both into the existing manifest/frame runtime. Original Swift/CoreGraphics implementation and user-supplied artwork only; no company source/scripts/assets.
@@ -56,7 +64,7 @@ Built-in-pet implementation includes pet-first startup, optional agent services,
 playback policy, and BP6b2 visibility/sleep wiring for the panel and preview. It merged into main in 1c5d9cf.
 The implementation-only goal is closed. Full acceptance remains deferred by the user.
 See the [current handoff](built-in-pet.md#implementation-handoff-after-testing-deferral-2026-10-30)
-and [completion log](../../goals/complete-built-in-pet-log.md). Detachment and agent reactions now have source implementation under the full MVP goal; their acceptance remains unverified. Custom manifest/PNG import, selection and rollback also have source paths; all new behavior remains unverified.
+and [completion log](../../goals/complete-built-in-pet-log.md). Detachment and agent reactions now have source implementation under the full MVP goal; their acceptance remains unverified. Custom manifest/PNG import, selection and rollback also have source paths; hosted compilation/tests passed, while new feature-specific native behavior remains unverified.
 
 ## Open questions
 

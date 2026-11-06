@@ -1,5 +1,12 @@
 # Connect Codex through owned lifecycle hooks
 
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
+
 ## Current source implementation, 2026-11-06
 
 The full MVP goal authorizes documented integration with tests/builds/runtime qualification left
@@ -29,9 +36,11 @@ Design acceptance does not close prerequisites, qualify a release, or resume run
 
 ### Implementation-only MVP, 2026-11-06
 
+This subsection records the historical initial Codex slice; the full-MVP contract and merged evidence above supersede its old deployment gate.
+
 The user activated `docs/goals/codex-mvp-implementation.md` and explicitly requested implementation without testing.
 This authorizes source work despite deferred prerequisite acceptance; it does not complete verification requirements.
-All work stays on `feat/codex-mvp` in the original checkout, with no new branches/worktrees, commits, pushes or PRs.
+That initial slice used `feat/codex-mvp` in the original checkout before the user subsequently authorized milestone commits, push and PR #16 merge. It created no additional worktree.
 
 The existing `633b4d0` module/identity/architecture changes were selectively reused around the checkout's FM7 drafts.
 Existing upstream test-file relocations and caller/import/type changes were retained solely for refactor coherence;
@@ -47,8 +56,7 @@ Production source now includes:
 - Explicit successful-Connect monitoring activation and the existing helper/inbox/shared-store/notch/Codex quota route.
   Missing Notch offers Features recovery; Pet remains independent.
 
-The exact-release registry remains empty. No installer release or effective-policy probe was qualified, so automatic
-Connect remains gated. The full valid-input transaction path is implemented behind that gate; release qualification
+At this initial slice, the exact-release registry was empty and Connect remained gated. The later full MVP permits explicitly unverified documented setup under the contract above; runtime qualification remains empty. The full valid-input transaction path is implemented behind that gate; release qualification
 is still required before a normal user can connect automatically. Removal uses content ownership and needs no working CLI.
 
 Source implementation is not compiler correctness, a real installed session, successful provider timeout enforcement,
@@ -183,6 +191,12 @@ These are future verification requirements. No runtime verification ran while wr
 - [ ] I6b: Freeze the disposable verification recipe and verify real Codex setup, repeat setup, trust review, visible-notch delivery, removal, and conflict cleanup; run the approved suite/build and record evidence.
 
 ## Source task coverage and historical evidence
+
+R2/R3/R4 and the installer/control source paths are merged; hosted CI compiled and exercised the
+existing suite. R5 verification-instrumentation consolidation and R6's separate capacity review are
+not completed by the nine-area MVP. Planner/transaction fault coverage and I6b real-provider
+acceptance still need their specified evidence. Do not treat the open checklist as an instruction
+to create another module split, planner or installer.
 
 The [source specification](../notch-companion.md#i-see-sessions-and-manage-agent-setup) remains unchanged.
 Its original task IDs, wording, checkboxes, and shared acceptance obligations remain authoritative during migration.

@@ -1,6 +1,13 @@
 # Access sessions in the notch
 
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
 Needs: sessions/session-state
+
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 ## Goal
 
@@ -45,7 +52,7 @@ These checks come from "Feature 1: access sessions in the notch" in the source s
 ## Verify
 
 - Seam: the bundled `NotchPetHook` helper into the running app and the visible notch panel.
-- Code: `Sources/NotchPet/NotchPanelController.swift`, `NotchSessionView.swift`, `NotchSessionRow.swift`, and `Sources/SessionState/NotchPresentation.swift`.
+- Code: `Sources/NotchPet/NotchPanelController.swift`, `NotchSessionView.swift`, `NotchSessionCard.swift`, `NotchRequestCard.swift`, and `Sources/SessionState/NotchPresentation.swift`.
 - Build: `bash scripts/run.sh --build-only`.
 - Swift checks: `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/notch-pet-dev/build`.
   Placement tests are in `NotchPresentationTests.swift`. Selection and provider tests are in `NotchSelectionTests.swift`.
@@ -67,6 +74,16 @@ These are reproduction commands. This retrospective spec ran documentation check
 - N5 moves here, not to `session-state`. Its rules decide presentation order and selection, not session meaning.
 - N6 stays in the source spec. It needs live agents and Otty pane jumps, which depend on N1–N2.
 - No new tasks are added. The remaining work is actual-app verification, which N3–N5 and I1 already require.
+
+## Merged source coverage
+
+`CompanionMenu` now contains Show Pet/Return Pet, Show Notch/Open Sessions, provider setup controls,
+Settings and Quit as installed features allow; it renders no session rows. Open Sessions explicitly
+opens the retained native panel and enables keyboard input. NotchSessionView owns selected SessionKey
+and renders shared snapshots/cards, requests, navigation and supported action composers. Observable
+NotchWindowState updates geometry without rebuilding selection/drafts. NotchPresentation owns ordering,
+selection and observed-turn timers; hidden/asleep/collapsed presentation stops unnecessary ticking.
+I1/N3–N5 source implementation is merged; their remaining actual-app checks are not new implementation tasks.
 
 ## Open questions
 

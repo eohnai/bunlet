@@ -1,6 +1,10 @@
 # Native desktop recovery
 
-Status: source implementation present under the full MVP; native acceptance NOT RUN.
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
 
 The app owns the Notch panel and shared session/action services. Keeping its hosting view alive across
 hide/return, display changes, sleep and Spaces preserves card selection, field focus and drafts.

@@ -1,5 +1,12 @@
 # Built-in pet
 
+Status: implementation merged in PR #16; feature acceptance remains deferred.
+
+
+Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
+coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
+historical results and unrun acceptance checkboxes retain their original meaning.
+
 ## Goal
 
 Let someone launch and set up a pet without coding agents, terminal software, or hook configuration.
