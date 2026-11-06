@@ -2,21 +2,22 @@
 
 ## Now
 
-The Codex MVP goal is implementation complete on `feat/codex-mvp`, based on `c760308`: all six source criteria have a file/line audit in `docs/goals/codex-mvp-implementation.md` and its log.
-Reused the module/identity/scanner/planner work and added guarded owned setup/removal/recovery, cancellable menu/Settings controls and explicit optional-service/session/quota wiring. The user authorized a local MVP commit; existing FM7/editor/CI drafts remain outside its scope. No push or PR is authorized.
-The user requested no testing. Tests, builds, live probes, installed configuration changes and native acceptance were not run. The qualified-release registry is empty, so automatic Connect remains unavailable despite the complete production path behind its gate. Older goals remain paused.
+Prepared `docs/goals/full-mvp-implementation.md` and its log for the user's clarified full local MVP: all nine source criteria across both providers, sessions/quota, actions, pet workflows/imports and desktop/navigation. The four milestones do not shrink that finish line. This goal is not activated yet.
+The user confirmed "don't need to test first, just leave it unverified. i just want the code implementation". Tests/builds/runtime/qualification remain not run; full source coverage is still required.
+The earlier Codex-focused source slice is saved as `8707bdf` on `feat/codex-mvp`; it is not full MVP completion. The user now authorizes coherent local milestone commits for the full goal. Preserve existing FM7/editor/CI drafts; no pushes, PRs or new branches/worktrees are authorized.
+The current Codex qualification registry remains empty and automatic Connect unavailable. The full goal requires concrete documented provider bindings and honest unverified states, never fabricated qualification, trust bypass or unavailable placeholders counted as implementation.
 
 ## Next
 
-1. Review the local MVP save and source audit in `docs/goals/codex-mvp-implementation-log.md`; retain existing FM7/editor/CI drafts separately. Push or PR only when explicitly requested.
-2. Keep tests/builds/live qualification and native acceptance deferred. Automatic Connect cannot be enabled until an exact Codex release and supported effective-policy probe are separately qualified; do not turn historical compatibility into qualification.
-3. Preserve FM7, built-in-pet, terminal-matrix and installed-agent acceptance as open. No app launches, captures, global settings or installed configuration changes are authorized by source completion.
-4. Select later Claude/action/pet/statistics work only when requested; this source-only Codex goal does not complete the broader Flux Island roadmap.
-5. Reconcile the history-first telemetry branch and its D3 collision only when telemetry is selected. Keep other goals and original UI/rabbit directions intact; no other branches or worktrees are needed for this work.
+1. Activate `docs/goals/full-mvp-implementation.md` when requested; stay on `feat/codex-mvp` in this checkout and audit all nine criteria from base `8707bdf`.
+2. Implement milestones in order: both providers/sessions/quota; local actions/replies; pet reactions/movement/imports; navigation/desktop recovery and full source handoff. No milestone or single provider closes the full goal.
+3. Keep tests/builds/probes/launches/captures, installed configuration access and runtime qualification deferred. Record source implementation separately from missing/unsupported contracts and unverified behavior.
+4. Commit coherent source milestones on `feat/codex-mvp` under the new authorization; record hashes and NOT RUN verification. Preserve FM7/editor/CI drafts and acceptance checkboxes. Do not push, open PRs or create branches/worktrees.
+5. Keep SSH/cloud, additional agents, statistics/telemetry, branding and CI overhaul outside this local MVP. Reconcile those roadmap branches only when separately selected.
 
 ## Blockers
 
-- Automatic Connect is gated: no exact Codex installer release or effective-policy probe is qualified. Source completion under the user's no-testing instruction establishes no compiler correctness, timeout/trust qualification, real session delivery or native acceptance. Check and ownership-based removal have production source paths; their new runtime behavior is unverified.
+- Full MVP implementation is incomplete. Claude setup/forwarding/app receipt, concrete provider support/action bindings, pet reactions/drag/imports and desktop/navigation remain in the new nine-item goal. The empty Codex qualification registry still gates automatic Connect. The user requests code now with verification unverified: implement documented paths without fabricated qualification or trust bypass; no compiler/live/native acceptance is established.
 - Reused `633b4d0` refactor and adapted `2925880` planner source around existing drafts. Original spec checkboxes remain open where their checks were not run against this changed checkout. Do not count upstream historical verification as fresh local evidence.
 - Telemetry planning conflict: `origin/docs/local-telemetry` records a history-first decision superseding collector-first D2, but this checkout retains the old order. Its D3 identifier collides with this branch's view-model D3. Reconcile decisions and links without dropping later statistics scope or marking withdrawn tasks complete.
 - A5/C5 user review established cards, fixed/running timers, usage limits and preserved focus. Broader session-island acceptance remains unverified; VoiceOver is excluded by D8. The final provider filter has unit coverage; no later visual pass is claimed.
