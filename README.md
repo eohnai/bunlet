@@ -125,7 +125,7 @@ shared stores; it owns no provider I/O. Pet-only use starts no provider services
 
 **Tests, builds, app/helper launches, probes, captures, installed configuration access and runtime
 qualification were NOT RUN for this implementation.** Source coverage for setup/sessions/quota is
-present, together with Claude local actions and terminal-independent navigation/native recovery. The final source audit remains in the
+present, together with Claude local actions and terminal-independent navigation/native recovery. All nine source criteria are recorded in the completed implementation-only
 [full MVP goal](docs/goals/full-mvp-implementation.md). See its [log](docs/goals/full-mvp-implementation-log.md),
 [provider setup contract](docs/contracts/provider-setup.md) and [quota contract](docs/contracts/usage-intake.md).
 

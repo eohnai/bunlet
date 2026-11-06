@@ -465,3 +465,19 @@ PetSpriteSheet for seven-row slicing with exhaustive alpha detection and trailin
 PetPNGRaster centralizes header, source bit-depth, decode, canonical RGBA and output PNG bounds.
 Neither path adds provider/model calls, prompts, authentication, imported executable code or a second
 playback representation. Both use PetPackLibrary’s existing private transaction and selection rollback.
+
+
+## Full local MVP source handoff, 2026-11-06
+
+The nine source criteria in [the full implementation goal](goals/full-mvp-implementation.md) have
+concrete production paths; its [final audit](goals/full-mvp-implementation-log.md#turn-9-final-source-audit)
+traces adapters, services, ownership and native controls. This completes the implementation-only goal,
+not broader roadmap or release acceptance. All changed code remains unbuilt and untested at the user's
+request. Existing historical evidence does not qualify this checkout.
+
+Documented provider candidates are Codex 0.164.0 and Claude Code 2.1.306; the runtime qualification
+registry remains empty. Claude supplies approve-once/deny, structured answers and bounded Stop-hook
+feedback; arbitrary-time input and Codex local actions are unsupported. Exact terminal pane focus is
+optional, explicitly user-linked and currently limited to the iTerm2 adapter; application/manual return
+remains available elsewhere. No monitoring path requires Otty. No AI artwork workflow or company code
+was added. Original acceptance checkboxes, deferred FM7 and separate CI/telemetry work remain open.

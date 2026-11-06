@@ -82,7 +82,7 @@ Keep feature availability separate from existing runtime monitoring consent. A p
 | Notch | Optional island surface with a calm explanation that monitoring is not installed; no agent probes |
 | Agents | App-owned monitoring/health controls available in Settings; no automatic pet/island creation |
 | Pet + Notch | Both presentation features; no agent work |
-| Pet + Agents | Pet plus monitoring; no Notch. Agent reactions remain a separately planned adapter |
+| Pet + Agents | Pet plus monitoring; no Notch. App-owned PetSessionAdapter provides optional reactions; runtime acceptance is unverified |
 | Notch + Agents | Existing session/allowance presentation without creating the pet |
 | All three | Shared session authority; each surface and its service lifecycle still follows its own feature choice |
 

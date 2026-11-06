@@ -22,7 +22,7 @@ Code: `Sources/EventBridge/`, `Sources/SessionState/`, `Sources/Integration/` an
 - Resolve existing session-state closure and integration-health acceptance before dependent implementation. Roadmap approval does not complete those features.
 - Setup features own configuration changes and removal logic. Monitoring controls own runtime behavior and reuse that removal logic.
 - `monitoring-controls` initially depends on Codex setup. Extend it to Claude when Claude setup exists; Codex does not wait for Claude setup.
-- Detailed pause, resume, disconnect, and notice-retention semantics remain proposed. Coordinate later collector controls with telemetry/background-collection.
+- Pause, resume, disconnect and notice-retention semantics have source contracts in monitoring-controls; acceptance is unrun. Coordinate later collector controls with telemetry/background-collection.
 - These are approved feature boundaries and order. Full specifications and implementation task lists still need feature-level planning.
 - Setup and monitoring controls contribute the Agents page when settings/settings-window exists. A shared settings shell does not replace setup ownership or authorize installed configuration changes.
 - [Record layout decision](../../decisions/0011-organize-records-by-feature.md).

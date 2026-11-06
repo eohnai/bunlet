@@ -25,7 +25,7 @@ Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; an app-owned
 - Reaffirmed on 2026-11-02: standalone Pet keeps ordinary behavior; with enabled Agents, an app-owned adapter maps session evidence into pet-owned moods. Working, answer/approval attention and response-ready cues reuse the shared session authority. Trigger completion once per observed finished response, without claiming task success. This belongs to agent-reactions; modular feature management preserves its integration seam without inventing missing animations or making Notch a dependency.
 - Unknown observations and retained requests must not disappear merely because events stop. Paused monitoring is distinct from a confirmed session end.
 - P0's direction is accepted. Its original unchecked line remains in the source spec pending final planning review.
-- [Source specification](../notch-companion.md): P1–P8 remain open. Shared presentation code exists, but does not establish implemented pet rendering.
+- [Source specification](../notch-companion.md): P1–P8 retain original acceptance history. Built-in rendering, reactions, detachment, custom packs and local PNG/sheet conversion now have source paths under the full MVP; native acceptance remains unverified.
 - [Accepted asset-only pack format](../../decisions/0006-import-asset-only-pet-packs.md).
 - P1 belongs to agent-reactions under the approved split. Keep its original line in the source spec until that feature is written.
 - P2 and pet-specific R1–R3 checks belong to detachable-pet. Those checks must also preserve notices when agent reactions are enabled.
@@ -62,5 +62,5 @@ and [completion log](../../goals/complete-built-in-pet-log.md). Detachment and a
 
 - Setup/slider/menu interactions, actual multi-frame scheduling, Reduce Motion changes, and visual/fallback appearance remain unverified.
 - Later nonvisual harness evidence is recorded in built-in-pet. Do not retry captures or resume tests without a user request.
-- Detailed pause, disconnect, resume, and notice-retention behavior needs planning in sessions/monitoring-controls and agent-reactions.
+- Pause, disconnect, resume and notice-retention source contracts are recorded in sessions/monitoring-controls and agent-reactions; runtime acceptance remains unrun.
 - Sprite-sheet import-time conversion is selected by the later local-only customization request and implemented in source. P5/P6 native/visual acceptance remains unrun.

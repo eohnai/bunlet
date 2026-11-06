@@ -2,22 +2,19 @@
 
 ## Now
 
-The full nine-area MVP goal is active on `feat/codex-mvp`. Sources 1–8 are implemented to their recorded contracts; final source audit/handoff (criterion 9) is next. Local PNG/sheet customization is saved as `d2cb963`; terminal-independent navigation and native desktop recovery are the current milestone.
-Monitoring, quotas, actions and pet reactions require no terminal integration. Any selected running application can be activated; optional exact-pane focus uses an explicit user link through iTerm2 public process-addressed Apple Events. Automatic Otty mapping is unsupported; legacy hints remain untrusted.
-The user excludes AI workflow/subscription linking and company code. All additions use original/repository code, user assets and public interfaces. Tests/builds/runtime/qualification remain NOT RUN. Claude Stop replies are limited to a 60-second existing-prompt capability; Codex actions remain unsupported.
-Local commits remain authorized. Preserve FM7/editor/CI drafts; no pushes, PRs, extra branches or worktrees.
+The full local MVP implementation-only goal is complete in source on `feat/codex-mvp`: all nine production paths and final audit are recorded in `docs/goals/full-mvp-implementation-log.md`. Navigation/native recovery is saved as `708db53`; final handoff follows it.
+Monitoring, quotas, provider actions and pet reactions require no terminal integration. Any chosen running terminal can be activated; optional exact-pane focus uses explicit user-linked iTerm2 public Apple Events. No Otty prerequisite, AI workflow or company code was added.
+All changed code remains UNVERIFIED: tests/builds/type checks/probes/launches/captures/runtime qualification NOT RUN. Local commits were authorized; unrelated FM7/editor/CI drafts are preserved. No push, PR, extra branch or worktree.
 
 ## Next
 
-1. Save the terminal-independent navigation and native recovery milestone.
-2. Finish the full nine-area source audit and handoff. All nine criteria remain the finish line.
-3. Keep tests/builds/probes/launches/captures, installed configuration access and runtime qualification deferred; preserve unrun acceptance checkboxes.
-4. Commit coherent source milestones on this branch and record hashes, excluding unrelated drafts.
-5. Keep SSH/cloud, extra agents, statistics/telemetry, branding and CI overhaul outside this local MVP.
+1. Review the final source handoff and supported-capability limits before using the new integrations.
+2. When explicitly authorized, build and verify provider I/O/actions, imports, native focus and display recovery; retain all current unrun acceptance until then.
+3. Keep deferred FM7/CI/telemetry work separate; do not resume it automatically.
 
 ## Blockers
 
-- Full MVP implementation awaits its final nine-area source audit/handoff; desktop/navigation now has source paths. Pet reactions, movement, imports and preference recovery now have source paths; native behavior remains unverified. Claude actions now have concrete adapter, transport, controls and guarded installation source paths; no installed/end-to-end integration was exercised. Documented support is unverified; no compiler/live/native acceptance or runtime qualification is established.
+- Implementation-only MVP is complete; compiler correctness, provider compatibility and native/runtime acceptance remain unverified. Pet reactions, movement, imports and preference recovery now have source paths; native behavior remains unverified. Claude actions now have concrete adapter, transport, controls and guarded installation source paths; no installed/end-to-end integration was exercised. Documented support is unverified; no compiler/live/native acceptance or runtime qualification is established.
 - Reused `633b4d0` refactor and adapted `2925880` planner source around existing drafts. Original spec checkboxes remain open where their checks were not run against this changed checkout. Do not count upstream historical verification as fresh local evidence.
 - Telemetry planning conflict: `origin/docs/local-telemetry` records a history-first decision superseding collector-first D2, but this checkout retains the old order. Its D3 identifier collides with this branch's view-model D3. Reconcile decisions and links without dropping later statistics scope or marking withdrawn tasks complete.
 - A5/C5 user review established cards, fixed/running timers, usage limits and preserved focus. Broader session-island acceptance remains unverified; VoiceOver is excluded by D8. The final provider filter has unit coverage; no later visual pass is claimed.
@@ -30,7 +27,7 @@ Local commits remain authorized. Preserve FM7/editor/CI drafts; no pushes, PRs, 
 - The user approved F10's internal wait seam, revised test, both reset mutations, EventBridge tests, one full suite run, commit, push, and PR. Additional repairs, unrelated runtime checks, captures, and installed configuration changes remain outside that scope. F8b's deliberate hosted drills still need authorization.
 - The user approved F9's previously proposed script extraction, multi-file exception, and local verification after PR #10 passed on main. Verification used saved CI reports and fictional commands. Further repairs, broader runtime tests, hosted drills, app launches, captures, and installed configuration changes need separate authorization. Account-specific security capabilities and additional runner combinations remain unqualified.
 - Stale: `docs/goals/ci-foundation-local-log.md` still says F7 awaits commit approval. F7 is committed as `a45d0ae` and merged in PR #8. Preserve that historical goal record until its owning update.
-- Full built-in-pet acceptance is deferred: setup/slider/menu interaction, actual multi-frame scheduling, Reduce Motion changes and visual appearance remain unverified. Keep BP2/BP3/BP5/BP6b3/BP7 open; agent reactions and detachment remain separate unimplemented features. The implementation-only goal is closed.
+- Full built-in-pet acceptance is deferred: setup/slider/menu interaction, actual multi-frame scheduling, Reduce Motion changes and visual appearance remain unverified. Keep BP2/BP3/BP5/BP6b3/BP7 open; agent reactions and detachment now have separate source implementation, with acceptance still unrun. The implementation-only goal is closed.
 - Capture reproduction command: `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer python3 scripts/check-standalone-pet.py --app "/private/var/folders/t3/6n_zw1rn5nn6vv7ccx9r6s240000gn/T/notch-pet-dev/Notch Pet.app" --artifacts /private/tmp/notch-pet-completion/evidence/standalone` failed with `could not create image from window` / screencapture exit 1. The native preflight returned screenCaptureAuthorized=false; the user explicitly prohibited further captures and later all further testing. Do not request that permission or retry the failing capture.
 - Telemetry C1–C8, H1–H7 and S1–S6 remain proposed implementation tasks. Service lifecycle, IPC, schema/durability and instrumentation coverage require their recorded reviews. Battery targets are provisional and unmeasured.
 - I3b1's design is accepted, including the final independent-editor race and indistinguishable identical replacement. Codex 0.164.0 is a qualification candidate, not a qualified installer release. Effective enablement/policy evidence and timeout enforcement still need isolated verification. `integration-health` and `notch/session-island` acceptance remain open before dependent implementation.

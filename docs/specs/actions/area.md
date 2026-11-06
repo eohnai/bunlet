@@ -14,7 +14,7 @@ Code: `Sources/AgentActions/`, `Sources/NotchPetActionHook/` and native action s
 
 - Later priority after the session-and-limits delivery path, approved on 2026-10-30. Existing scope and dependencies remain intact.
 - [Record layout decision](../../decisions/0011-organize-records-by-feature.md).
-- [Source specification](../notch-companion.md): A1–A8 remain planned, not implemented capabilities.
+- [Source specification](../notch-companion.md): A1–A8 retain their original unrun acceptance. The full MVP has concrete Claude channels, guarded setup, native composers and source-only handoff; see local-actions-v1. Codex actions remain unsupported.
 - [Accepted local-action scope](../../decisions/0010-add-local-agent-actions.md).
 - [Terminal independence](../../decisions/0012-support-terminal-independent-operation.md) keeps provider action channels separate from terminal navigation.
 - Verify attachment to the existing local agent session without requiring Otty. Missing navigation alone must not disable a supported action.
