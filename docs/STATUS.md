@@ -2,17 +2,19 @@
 
 ## Now
 
-The full local MVP implementation-only goal is complete in source on `feat/codex-mvp`: all nine production paths and final audit are recorded in `docs/goals/full-mvp-implementation-log.md`. Navigation/native recovery is saved as `708db53`; final handoff follows it.
+PR #16 includes all six commits of PR #15 plus the full MVP. The user authorized merging #16 and closing #15. Hosted run 42189628912 revealed Swift/C interop compile errors; ACL pointer/enum conversions and status-line argv/environment imports are being corrected before merge. Neither PR has been merged or closed yet. The source-only audit remains in `docs/goals/full-mvp-implementation-log.md`.
 Monitoring, quotas, provider actions and pet reactions require no terminal integration. Any chosen running terminal can be activated; optional exact-pane focus uses explicit user-linked iTerm2 public Apple Events. No Otty prerequisite, AI workflow or company code was added.
-All changed code remains UNVERIFIED: tests/builds/type checks/probes/launches/captures/runtime qualification NOT RUN. Local commits were authorized; unrelated FM7/editor/CI drafts are preserved. No push, PR, extra branch or worktree.
+Local tests/builds/type checks/probes/launches/captures/runtime qualification remain NOT RUN. Hosted CI did run after the authorized push and failed compilation; do not call that result unverified or passing. Unrelated FM7/editor/CI drafts are preserved.
 
 ## Next
 
-1. Review the final source handoff and supported-capability limits before using the new integrations.
-2. When explicitly authorized, build and verify provider I/O/actions, imports, native focus and display recovery; retain all current unrun acceptance until then.
-3. Keep deferred FM7/CI/telemetry work separate; do not resume it automatically.
+1. Push the targeted Swift/C compiler corrections and inspect hosted CI before the authorized PR #16 merge.
+2. After #16 merges, close #15 if GitHub has not already marked it merged.
+3. Keep local testing and deferred FM7/CI/telemetry work stopped; all runtime acceptance remains unrun.
 
 ## Blockers
+
+- `gh run view 42189628912 --repo eohnai/notch-pet --job 127798174265 --log-failed` shows `acl_t` versus raw-pointer and ACL enum versus Int32 errors in HookFiles/PetPackDirectory, plus String-to-C-string and missing `_NSGetEnviron` errors in NotchPetStatusLine. Targeted source fixes await hosted confirmation. Required/Build/Tests checks failed at b8feffe; no merge bypass is authorized.
 
 - Implementation-only MVP is complete; compiler correctness, provider compatibility and native/runtime acceptance remain unverified. Pet reactions, movement, imports and preference recovery now have source paths; native behavior remains unverified. Claude actions now have concrete adapter, transport, controls and guarded installation source paths; no installed/end-to-end integration was exercised. Documented support is unverified; no compiler/live/native acceptance or runtime qualification is established.
 - Reused `633b4d0` refactor and adapted `2925880` planner source around existing drafts. Original spec checkboxes remain open where their checks were not run against this changed checkout. Do not count upstream historical verification as fresh local evidence.

@@ -189,7 +189,7 @@ final class HookFileDirectory {
                   UInt64(truncatingIfNeeded: info.st_dev) == existing.device else { throw ProviderSetupFailure.changed }
             errno = 0
             if let acl = acl_get_fd(original) {
-                defer { acl_free(acl) }
+                defer { acl_free(UnsafeMutableRawPointer(acl)) }
                 guard acl_set_fd(fd, acl) == 0 else { throw ProviderSetupFailure.unsafeMetadata }
             } else if errno != ENOENT {
                 throw ProviderSetupFailure.unsafeMetadata
@@ -305,7 +305,7 @@ final class HookFileDirectory {
 
     private static func clearACL(_ fd: Int32) throws {
         guard let acl = acl_init(0) else { throw ProviderSetupFailure.unsafeMetadata }
-        defer { acl_free(acl) }
+        defer { acl_free(UnsafeMutableRawPointer(acl)) }
         guard acl_set_fd(fd, acl) == 0 else { throw ProviderSetupFailure.unsafeMetadata }
     }
 
@@ -315,9 +315,9 @@ final class HookFileDirectory {
             guard errno == ENOENT else { throw ProviderSetupFailure.unsafeMetadata }
             return
         }
-        defer { acl_free(acl) }
+        defer { acl_free(UnsafeMutableRawPointer(acl)) }
         var entry: acl_entry_t?
-        guard acl_get_entry(acl, ACL_FIRST_ENTRY, &entry) != 0 else {
+        guard acl_get_entry(acl, Int32(ACL_FIRST_ENTRY.rawValue), &entry) != 0 else {
             throw ProviderSetupFailure.unsafeMetadata
         }
     }

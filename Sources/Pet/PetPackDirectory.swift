@@ -28,7 +28,7 @@ final class PetPackDirectory {
                 current = next
                 if created && index == parts.count - 1 && privateFiles {
                     guard let acl = acl_init(0) else { throw PetPackFailure.writeFailed }
-                    defer { acl_free(acl) }
+                    defer { acl_free(UnsafeMutableRawPointer(acl)) }
                     guard acl_set_fd(current, acl) == 0 else { throw PetPackFailure.writeFailed }
                 }
             }
@@ -102,7 +102,7 @@ final class PetPackDirectory {
         guard fd >= 0 else { throw PetPackFailure.writeFailed }
         defer { close(fd) }
         guard let acl = acl_init(0) else { throw PetPackFailure.writeFailed }
-        defer { acl_free(acl) }
+        defer { acl_free(UnsafeMutableRawPointer(acl)) }
         guard acl_set_fd(fd, acl) == 0 else { throw PetPackFailure.writeFailed }
         var offset = 0
         while offset < data.count {
@@ -177,8 +177,8 @@ final class PetPackDirectory {
             guard errno == ENOENT else { throw PetPackFailure.unsafePath }
             return
         }
-        defer { acl_free(acl) }
+        defer { acl_free(UnsafeMutableRawPointer(acl)) }
         var entry: acl_entry_t?
-        guard acl_get_entry(acl, ACL_FIRST_ENTRY, &entry) != 0 else { throw PetPackFailure.unsafePath }
+        guard acl_get_entry(acl, Int32(ACL_FIRST_ENTRY.rawValue), &entry) != 0 else { throw PetPackFailure.unsafePath }
     }
 }

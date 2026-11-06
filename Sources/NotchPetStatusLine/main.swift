@@ -1,4 +1,5 @@
 import Darwin
+import Darwin.crt_externs
 import Foundation
 import Usage
 
@@ -195,7 +196,7 @@ enum StatusLineForwarder {
               posix_spawnattr_setsigdefault(&attributes, &defaults) == 0,
               posix_spawnattr_setsigmask(&attributes, &mask) == 0,
               posix_spawnattr_setflags(&attributes, flags) == 0 else { return nil }
-        let arguments = ["/bin/sh", "-c", command].map { strdup($0) }
+        let arguments = ["/bin/sh", "-c", command].map { value in value.withCString { strdup($0) } }
         defer { for argument in arguments { free(argument) } }
         guard arguments.allSatisfy({ $0 != nil }) else { return nil }
         var argv = arguments + [nil]

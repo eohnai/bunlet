@@ -326,3 +326,15 @@ Original acceptance and deferred broader roadmap (including FM7, CI, telemetry, 
 attention preferences/haptics, SSH/cloud and additional agents) are not completed by this goal.
 The unsupported provider/terminal combinations above remain explicit product limits, not stubbed
 required paths. No push, PR, extra branch or worktree was created.
+
+
+## Post-handoff hosted compiler failure
+
+The user authorized pushing, then merging PR #16 and closing the included PR #15. Reading existing
+hosted run 42189628912 (build job 127798174265) revealed actual compiler errors at b8feffe, superseding
+only the earlier statement that compiler behavior was entirely unverified. No local build/test was run.
+Darwin SDK declarations confirm acl_free takes a raw pointer and acl_get_entry takes Int32, while the
+constants import as a C enum. Explicit pointer/raw-value conversions correct both production callers.
+The status-line helper needs scoped withCString conversions for strdup and the explicit Darwin.crt_externs
+module for _NSGetEnviron. No ACL policy, input stream, child environment or test assertion is changed.
+The changes await hosted CI; PRs remain open until merge is permitted. Unrelated drafts are excluded.
