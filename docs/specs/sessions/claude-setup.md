@@ -23,6 +23,8 @@ the bounded observer as `--agent claude`. Other settings, Otty hooks, trust and 
 Check reports version, shape, bundled helper, owned entries, policy, receiver and observed delivery
 separately. The documented 2.1.306 binding is unverified; user settings do not establish effective
 project/managed policy. Never set disableAllHooks/allowManagedHooksOnly or change policy automatically.
+Under [0019](../../decisions/0019-accept-newer-provider-versions.md), Connect also accepts newer 2.x releases.
+Check still labels them unverified.
 
 Repair recovers known journal states and reinstalls unchanged owned configuration idempotently.
 Edited/missing/duplicated owned entries conflict rather than being reconstructed over a user's edits.

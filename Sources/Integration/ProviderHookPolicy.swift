@@ -2,11 +2,17 @@ import EventBridge
 import Foundation
 
 public enum ProviderHookPolicy {
+    /// Decision 0019: exact-version matching broke Connect after every provider release,
+    /// so accept the documented version or newer within the same major version.
     public static func supportsDocumented(_ version: String, agent: Agent) -> Bool {
-        switch agent {
-        case .codex: version == "0.164.0"
-        case .claude: version == "2.1.306"
+        let documented = agent == .codex ? [0, 164, 0] : [2, 1, 306]
+        guard version.utf8.count <= 32 else { return false }
+        let parts = version.split(separator: ".", omittingEmptySubsequences: false)
+        let numbers = parts.compactMap { part in
+            part.utf8.allSatisfy { (48...57).contains($0) } ? Int(part) : nil
         }
+        guard parts.count == 3, numbers.count == 3, numbers[0] == documented[0] else { return false }
+        return numbers.lexicographicallyPrecedes(documented) == false
     }
 
     static func installationFailure(_ support: HookSetupSupport, agent: Agent) -> HookPlanningFailure? {

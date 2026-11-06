@@ -146,7 +146,8 @@ These are future verification requirements. No runtime verification ran while wr
 - **Use app-lock/recheck/replace with an explicit independent-writer limit, accepted 2026-10-30.** The user selected option A after the lost-edit example.
   This retains the Connect path. Deferring automatic writes, option B, was not selected. Preservation does not cover arbitrary concurrent editors.
 - **Qualify exact Codex releases, accepted 2026-10-30.** Start with 0.164.0 as a candidate. No installer release is qualified yet.
-  Reject a minimum-version range because version-specific evidence is incomplete. Missing effective enablement/policy evidence prevents installation.
+  Reject a minimum-version range because version-specific evidence is incomplete. Missing effective enablement/policy evidence prevents installation. (replaced 2026-11-06)
+- [0019: Accept newer provider versions within the same major version](../../decisions/0019-accept-newer-provider-versions.md), accepted 2026-11-06. Connect accepts 0.164.0 or a newer 0.x release.
 - **Use a three-second synchronous hook timeout, accepted 2026-10-30.** Allow process-launch overhead beyond the unchanged 250 ms helper deadline.
   The helper deadline alone does not bound the whole invocation. Agent enforcement still requires qualification for the chosen release.
 - **Accept content-based ownership limits, accepted 2026-10-30.** Exact descriptions detect visible edits and duplicates, but cannot detect identical replacement history.
