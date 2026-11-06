@@ -6,7 +6,7 @@ struct PetLibraryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Picker("Pet artwork", selection: Binding(get: { library.selectedID }, set: library.select)) {
+            Picker("Pet artwork", selection: Binding(get: { library.selectedID }, set: { library.select($0) })) {
                 Text("White lionhead rabbit (built-in)").tag("builtin")
                 ForEach(library.choices) { choice in Text(choice.name).tag(choice.id) }
             }

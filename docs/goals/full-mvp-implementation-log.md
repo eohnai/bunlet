@@ -344,3 +344,11 @@ Its full build artifact identifies circular type inference at PetAppController.l
 providerMonitoring; downstream member-resolution/menu type-check errors follow those declarations.
 Explicit concrete property annotations break inference recursion without changing lazy runtime ownership.
 The changed declarations alone are staged from HEAD so existing FM7 additions remain local.
+
+Run 42191161959 (7168af5) cleared the prior source diagnostics but crashed swift-frontend during IRGen
+for PetLibraryView, signal 6 / SmallVector capacity overflow, Swift 6.3.2. The earlier assumption that
+remaining failures were ordinary source diagnostics is disproved by the full build artifact. The failing
+compiler-generated String/actor function conversion maps to the picker's actor-isolated method reference.
+Hypothesis: spelling Binding's setter as an explicit closure avoids that conversion thunk. This one-line,
+behavior-equivalent workaround is the third scoped correction; no toolchain/CI gate or test is changed.
+Hosted CI is the observation for this hypothesis; no local build/test is authorized or run.
