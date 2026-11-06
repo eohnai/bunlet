@@ -1,5 +1,19 @@
 # Connect Codex through owned lifecycle hooks
 
+## Current source implementation, 2026-11-06
+
+The full MVP goal authorizes documented integration with tests/builds/runtime qualification left
+unverified. [Provider setup](../../contracts/provider-setup.md) supersedes the earlier qualification
+gate only; trust, permission policy and the guarded ownership/recovery design are preserved.
+`ProviderHookPolicy` binds Codex 0.164.0, with a bounded initialized app-server policy inspector.
+Known disabled/managed-only policy blocks installation; unknown policy is labelled unverified.
+`ProviderSetupService`/`ProviderHookTransaction` and the generic setup controller/view now implement
+Connect, Check, Repair, Remove, Pause/Resume and Disconnect. The runtime-qualified registry stays empty.
+Reinstall is idempotent; edited/missing owned entries conflict. A moved helper needs Remove then Connect.
+Both providers now share these mechanics; see [Claude setup](claude-setup.md) and
+[monitoring controls](monitoring-controls.md). Earlier source-state descriptions below are historical;
+the original verification-bearing task checkboxes are unchanged because no acceptance checks ran.
+
 Needs: integration-health, notch/session-island
 
 ## Goal
@@ -12,6 +26,35 @@ The user confirmed this scope and menu-first controls on 2026-10-30.
 The user approved the eight-task list and accepted I3b1's design choices on 2026-10-30.
 The [accepted I3b1 review](../../contracts/codex-hook-setup.md#i3b1-review-2026-10-30) records prerequisite evidence and fictional-case results.
 Design acceptance does not close prerequisites, qualify a release, or resume runtime verification.
+
+### Implementation-only MVP, 2026-11-06
+
+The user activated `docs/goals/codex-mvp-implementation.md` and explicitly requested implementation without testing.
+This authorizes source work despite deferred prerequisite acceptance; it does not complete verification requirements.
+All work stays on `feat/codex-mvp` in the original checkout, with no new branches/worktrees, commits, pushes or PRs.
+
+The existing `633b4d0` module/identity/architecture changes were selectively reused around the checkout's FM7 drafts.
+Existing upstream test-file relocations and caller/import/type changes were retained solely for refactor coherence;
+no new test cases were added, no assertions weakened to manufacture completion, and no tests were run.
+The `2925880` scanner/planner was adapted to `Integration`, typed identities and the accepted contract.
+
+Production source now includes:
+
+- Lossless hook JSON scanning, seven-group planning, unchanged reinstall, exact ownership validation and targeted removal.
+- Guarded install/remove with private ownership records, descriptor-relative safe-path/metadata checks, candidate synchronization,
+  journal publication, fresh-state checks, replacement, ownership finalization and known-state recovery.
+- Cancellable Connect/Check/Remove action state and native menu/Agents settings controls. Check is read-only and never grants trust.
+- Explicit successful-Connect monitoring activation and the existing helper/inbox/shared-store/notch/Codex quota route.
+  Missing Notch offers Features recovery; Pet remains independent.
+
+The exact-release registry remains empty. No installer release or effective-policy probe was qualified, so automatic
+Connect remains gated. The full valid-input transaction path is implemented behind that gate; release qualification
+is still required before a normal user can connect automatically. Removal uses content ownership and needs no working CLI.
+
+Source implementation is not compiler correctness, a real installed session, successful provider timeout enforcement,
+or native acceptance. I3b2/I3b3/I3c1/I3c2/I5a/I6a and the older R2/R3/R4 checkboxes remain unchecked here where
+their acceptance requires checks not run on the changed source. I6b and prerequisite/feature acceptance remain open.
+See the goal's six-item source audit for implementation evidence and the log for its NOT RUN verification status.
 
 ## Done when
 
@@ -116,7 +159,8 @@ These are future verification requirements. No runtime verification ran while wr
 - R1–R6 come from the [2026-10-30 review](../../reports/2026-10-30-session-state-and-architecture-review.md), which the user accepted in full on 2026-10-30.
   R1–R3 come before I3b2, because the scanner and planner need the new `Integration` module and typed hook names. R4–R6 can run in any order.
 - The user added R7 and R8 on 2026-10-31, after the R1 review of two external Swift skills. Both skills assume `@Observable`, which needs macOS 14.
-  No record explains the original macOS 13 target. R8 follows R7. The user authorized builds and tests for R7 and R8.- Preserve the source checklist until shared Codex/Claude checks have complete destinations. This spec's tasks refine that work; they are not extra source requirements.
+  No record explains the original macOS 13 target. R8 follows R7. The user authorized builds and tests for R7 and R8.
+- Preserve the source checklist until shared Codex/Claude checks have complete destinations. This spec's tasks refine that work; they are not extra source requirements.
   Do not add source and refinement counts as independent work estimates.
 
 ## Tasks

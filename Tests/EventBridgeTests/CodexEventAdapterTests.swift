@@ -18,11 +18,11 @@ struct CodexEventAdapterTests {
             let payload = try #require(example["payload"] as? [String: Any])
             let input = try raw(payload)
             let direct = try CodexEventAdapter.project(rawHook: input, paneSelector: "fictional-pane")
-            let routed = try HookEnvelopeV1.project(rawHook: input, agent: "codex", paneSelector: "fictional-pane")
+            let routed = try HookEnvelopeV1.project(rawHook: input, agent: .codex, paneSelector: "fictional-pane")
             for envelope in [direct, routed] {
-                #expect(envelope.agent == "codex")
+                #expect(envelope.agent == .codex)
                 #expect(envelope.sessionID == payload["session_id"] as? String)
-                #expect(envelope.hookEventName == payload["hook_event_name"] as? String)
+                #expect(envelope.hookEventName.rawValue == payload["hook_event_name"] as? String)
                 #expect(envelope.turnID == payload["turn_id"] as? String)
                 #expect(envelope.toolUseID == payload["tool_use_id"] as? String)
                 #expect(envelope.toolName == payload["tool_name"] as? String)
@@ -48,7 +48,7 @@ struct CodexEventAdapterTests {
         let before = Int64(Date().timeIntervalSince1970 * 1000)
         let envelope = try CodexEventAdapter.project(rawHook: input)
         let after = Int64(Date().timeIntervalSince1970 * 1000)
-        #expect(envelope.version == 1 && envelope.agent == "codex")
+        #expect(envelope.version == 1 && envelope.agent == .codex)
         #expect(envelope.observedAtMs >= before && envelope.observedAtMs <= after)
         #expect(UUID(uuidString: envelope.eventID)?.uuidString.lowercased() == envelope.eventID)
         #expect(envelope.terminal == nil)
@@ -79,7 +79,7 @@ struct CodexEventAdapterTests {
     func unverifiedHooksAreRejected(hook: String) throws {
         let input = try raw(["session_id": "fictional", "hook_event_name": hook])
         #expect(throws: BridgeError.invalidMessage) { try CodexEventAdapter.project(rawHook: input) }
-        #expect(throws: BridgeError.invalidMessage) { try HookEnvelopeV1.project(rawHook: input, agent: "codex") }
+        #expect(throws: BridgeError.invalidMessage) { try HookEnvelopeV1.project(rawHook: input, agent: .codex) }
     }
 
     @Test func invalidSourceFieldsAreRejectedWithoutGuessing() throws {
@@ -137,17 +137,15 @@ struct CodexEventAdapterTests {
             try CodexEventAdapter.project(rawHook: input, paneSelector: nil, deadline: 0)
         }
         #expect(throws: BridgeError.timeout) {
-            try HookEnvelopeV1.project(rawHook: input, agent: "codex", paneSelector: nil, deadline: 0)
+            try HookEnvelopeV1.project(rawHook: input, agent: .codex, paneSelector: nil, deadline: 0)
         }
     }
 
     @Test func claudeProjectionKeepsItsExistingIdentityMapping() throws {
         let input = try raw(["session_id": "fictional", "hook_event_name": "UserPromptSubmit",
                              "prompt_id": "claude-prompt", "turn_id": "not-the-claude-turn"])
-        let envelope = try HookEnvelopeV1.project(rawHook: input, agent: "claude")
-        #expect(envelope.agent == "claude" && envelope.turnID == "claude-prompt")
-        #expect(throws: BridgeError.invalidMessage) {
-            try HookEnvelopeV1.project(rawHook: input, agent: "unsupported")
-        }
+        let envelope = try HookEnvelopeV1.project(rawHook: input, agent: .claude)
+        #expect(envelope.agent == .claude && envelope.turnID == "claude-prompt")
+        #expect(Agent(rawValue: "unsupported") == nil)
     }
 }

@@ -67,6 +67,17 @@ def production_sources() -> set[Path]:
     return sources
 
 
+def declaration_only_sources(sources: set[Path]) -> set[Path]:
+    # LLVM emits no coverage mapping for this declaration. Any source change must be reviewed again.
+    agent = ROOT / "Sources/EventBridge/Agent.swift"
+    require(agent in sources, "missing agent declaration")
+    expected = (b"public enum Agent: String, Codable, CaseIterable, Sendable {\n"
+                b"    case codex, claude\n}\n")
+    require(read_regular(agent, MAX_FILE) == expected,
+            "agent declaration changed; review its coverage classification")
+    return {agent}
+
+
 def validated_metric(value: dict) -> tuple[int, int]:
     require(type(value) is dict, "invalid coverage metric")
     count, covered, percent = value.get("count"), value.get("covered"), value.get("percent")
@@ -93,7 +104,13 @@ def normalize_report(report: dict, sources: set[Path]) -> tuple[dict, dict]:
     require(type(report.get("data")) is list and len(report["data"]) == 1, "invalid coverage data set")
     data = report["data"][0]
     require(type(data) is dict and data.keys() == {"files", "totals"}, "unfiltered or malformed coverage data")
-    require(type(data["files"]) is list and len(data["files"]) == len(sources), "missing production file coverage")
+    require(type(data["files"]) is list, "invalid production file coverage")
+    if len(data["files"]) != len(sources):
+        reported = {Path(row["filename"]).resolve() for row in data["files"]
+                    if type(row) is dict and type(row.get("filename")) is str}
+        missing = sorted(path.relative_to(ROOT).as_posix() for path in sources - reported)
+        raise CoverageError("missing production file coverage: " + ", ".join(missing)
+                            + f" (expected {len(sources)}, reported {len(data['files'])})")
     require(type(data["totals"]) is dict, "missing coverage totals")
     seen: set[Path] = set()
     modules: dict = {}
@@ -271,6 +288,9 @@ def write_summary(path: Path, summary: dict) -> None:
         lines = module["lines"]
         percent = f'{lines["percent"]:.2f}%' if lines["percent"] is not None else "not applicable"
         rows.append(f'| {name} | {module["file_count"]} | {lines["covered"]}/{lines["count"]} | {percent} |')
+    if summary.get("declaration_only_files"):
+        rows.extend(["", "Not applicable (declarations with no executable coverage mapping):", ""])
+        rows.extend("- " + name for name in summary["declaration_only_files"])
     rows.extend(["", "Coverage records execution. It does not establish test adequacy.", ""])
     path.write_text("\n".join(rows), encoding="utf-8")
 
@@ -283,10 +303,16 @@ def export_coverage(build_root: Path, output: Path) -> None:
     debug = profile.parent.parent
     require(binary.parents[3] == debug, "test runner and profile build mismatch")
     helper = debug / "NotchPetHook"
+    status_line_helper = debug / "NotchPetStatusLine"
+    action_hook_helper = debug / "NotchPetActionHook"
     fingerprints = {"profile_sha256": hashlib.sha256(read_regular(profile, MAX_FILE)).hexdigest(),
                     "test_runner_sha256": hashlib.sha256(read_regular(binary, MAX_FILE)).hexdigest(),
-                    "helper_sha256": hashlib.sha256(read_regular(helper, MAX_FILE)).hexdigest()}
+                    "helper_sha256": hashlib.sha256(read_regular(helper, MAX_FILE)).hexdigest(),
+                    "status_line_helper_sha256": hashlib.sha256(read_regular(status_line_helper, MAX_FILE)).hexdigest(),
+                    "action_hook_helper_sha256": hashlib.sha256(read_regular(action_hook_helper, MAX_FILE)).hexdigest()}
     sources = production_sources()
+    declaration_only = declaration_only_sources(sources)
+    measured_sources = sources - declaration_only
     output = output.resolve()
     require(not output.is_relative_to(ROOT), "coverage output must be outside the checkout")
     destination = output / "coverage"
@@ -299,15 +325,19 @@ def export_coverage(build_root: Path, output: Path) -> None:
         temporary = Path(temporary)
         staged = temporary / "coverage"
         staged.mkdir()
-        arguments = [str(binary), "--object", str(helper), "--instr-profile", str(profile), "--debuginfod=false"]
-        source_arguments = ["--sources", *map(str, sorted(sources))]
+        arguments = [str(binary), "--object", str(helper),
+                     "--object", str(status_line_helper), "--object", str(action_hook_helper),
+                     "--instr-profile", str(profile), "--debuginfod=false"]
+        source_arguments = ["--sources", *map(str, sorted(measured_sources))]
         exported = temporary / "llvm-export.json"
         run_native(["export", *arguments, "--skip-functions", "--skip-expansions", *source_arguments], exported, log)
         raw = json.loads(read_regular(exported, MAX_JSON), object_pairs_hook=unique_object)
-        report, summary = normalize_report(raw, sources)
+        report, summary = normalize_report(raw, measured_sources)
+        summary["production_file_count"] = len(sources)
+        summary["declaration_only_files"] = sorted(path.relative_to(ROOT).as_posix() for path in declaration_only)
         run_native(["show", *arguments, "--format=html", "--output-dir", str(temporary / "raw-html"),
                     *source_arguments], temporary / "llvm-show.txt", log)
-        portable_html(temporary / "raw-html", staged / "html", sources)
+        portable_html(temporary / "raw-html", staged / "html", measured_sources)
         run_native(["--version"], temporary / "llvm-version.txt", log)
         version = read_regular(temporary / "llvm-version.txt", MAX_LOG).decode("utf-8").strip()
         metadata = {"schema_version": 1, "generated_at": datetime.now(timezone.utc).isoformat(),

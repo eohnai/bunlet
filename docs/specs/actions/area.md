@@ -1,7 +1,7 @@
 # Actions
 
 Owns explicit local permission decisions, structured answers, and follow-up replies to verified agent targets.
-Code: future shared action services, provider adapters, and notch/pet action controls.
+Code: `Sources/AgentActions/`, `Sources/NotchPetActionHook/` and native action service/controls. Pet controls remain future work.
 
 ## Specs
 
@@ -14,7 +14,7 @@ Code: future shared action services, provider adapters, and notch/pet action con
 
 - Later priority after the session-and-limits delivery path, approved on 2026-10-30. Existing scope and dependencies remain intact.
 - [Record layout decision](../../decisions/0011-organize-records-by-feature.md).
-- [Source specification](../notch-companion.md): A1–A8 remain planned, not implemented capabilities.
+- [Source specification](../notch-companion.md): A1–A8 retain their original unrun acceptance. The full MVP has concrete Claude channels, guarded setup, native composers and source-only handoff; see local-actions-v1. Codex actions remain unsupported.
 - [Accepted local-action scope](../../decisions/0010-add-local-agent-actions.md).
 - [Terminal independence](../../decisions/0012-support-terminal-independent-operation.md) keeps provider action channels separate from terminal navigation.
 - Verify attachment to the existing local agent session without requiring Otty. Missing navigation alone must not disable a supported action.
@@ -29,4 +29,4 @@ Code: future shared action services, provider adapters, and notch/pet action con
 
 ## Open questions
 
-- Supported response channels and attachment to existing local sessions remain unverified. Do not choose a channel before A1–A2 evidence.
+- Initial Claude channels now have primary documentation and source implementation under the full MVP verification waiver. Runtime behavior remains unverified; guarded action setup/check/removal, consent, Settings and disconnect integration are implemented in source. Codex response channels remain unsupported.

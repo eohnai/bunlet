@@ -18,9 +18,10 @@ Those skills assume iOS 17, MVVM, and XCTest. This project uses none of those, s
   Example: `NotchPanelController`, `PetSettingsController`.
 - Add a view model only where a view owns state ([D3](DECISIONS.md#d3-add-view-models-only-where-a-view-owns-state)). Read-only views observe stores directly.
 - Give each module one concern.
-  **Not yet:** `SessionState` holds sessions, usage, and integration health. R2 splits it.
+  Example: `SessionState` owns sessions, `Usage` owns allowance data, and `Integration` owns health evidence and probes.
 - Write each rule once.
-  **Not yet:** the executable search exists twice with different fallbacks (review M2, fixed by R2). Other copies are listed in review L1.
+  Example: `AgentPathLocator` implements executable search once, with explicit health/usage policies preserving the existing caller rules.
+  Other copies are listed in review L1.
 - Keep verification instrumentation in one type with one entry point.
   **Not yet:** it is spread over `ServiceStartLedger`, `PetPanelController`, and `PetAppController`. R5 collects it.
 - Add no package dependency without a recorded decision. The package has none.
@@ -54,13 +55,14 @@ Those skills assume iOS 17, MVVM, and XCTest. This project uses none of those, s
 - Bound every external input with a named constant.
 - Report failures as small enums. Never include raw content, such as configuration, commands, or event text, in messages, logs, or diagnostics.
 - Keep agent and hook identity typed. Decode wire strings once, at the boundary.
-  **Not yet:** agent and hook names are plain strings in several modules. R3 adds `Agent` and `HookEvent`.
+  Example: `EventBridge.Agent` and `HookEvent` type validated envelopes; `SessionKey` retains the agent enum.
+  Usage transport keeps its provider string and validates it through `Agent` without changing rejection behavior.
 
 ## Code style
 
 - Use no force unwraps outside tests. Use `guard let` and return a bounded result instead.
-  **Not yet:** eight remain, in `SessionStore`, `EventBridgeServer`, `HookEnvelopeV1`, `SocketSupport`, and `CodexUsageConnection`.
-  R3 removes the ones that typed hook events make unnecessary (review M7). Remove the others when you next change their code.
+  **Not yet:** three remain, in `EventBridgeServer`, `SocketSupport`, and `CodexUsageConnection`.
+  R3 removes both envelope unwraps. `SessionStore` already guards its tool name. Remove others when you next change their code.
 - Write one statement per line.
   **Not yet:** see review L5 for the known exceptions.
 - Comment the reason for a rule, not what the code does.

@@ -254,6 +254,13 @@ Prototype alert timings and placement tolerances on the target Mac instead of co
 
 ### Pet import compatibility proposal
 
+Update 2026-11-06: the user requested the compatible custom-pet workflow, accepted local PNG animation
+and sprite-sheet import, then explicitly excluded the AI workflow. Import-time conversion into the
+existing runtime is selected and implemented in source; see [sheet import](pets/sprite-sheet-import.md)
+and [local PNG animation](pets/local-png-animation.md). The older options below record the proposal
+that led to this choice. P5/P6/P8 acceptance remains unchecked because tests/builds/native checks were
+not run. No company source, scripts or artwork is reused.
+
 Decision 0006 remains the accepted runtime format: a versioned JSON manifest and transparent PNG frame sequences.
 The proposed addition is an optional importer for user-supplied seven-row PNG sheets in Flux-compatible row order:
 `idle`, `play`, `sleep`, `running`, `attention`, `complete`, `drag`.

@@ -1,10 +1,13 @@
 # Notch Pet
 
-A macOS companion for Codex CLI and Claude Code, under development, with terminal-independent operation as an accepted requirement.
-The current app provides a menu-bar control and Quit action.
-It also runs a local event receiver and bundles a silent hook helper.
-Agent notifications, the notch interface, the detachable pet, and usage limits are planned next.
-Local approval/deny controls, question answers, and follow-up replies are also planned, subject to verified agent/version support.
+A macOS companion for Codex CLI and Claude Code, under development, with terminal-independent monitoring and optional terminal navigation.
+The source implements independently selectable Pet, Notch and Agents features, shared native Settings,
+session cards, provider limits and a silent observation helper. Agents owns optional receiver and quota work.
+Both providers have setup/check/repair/removal controls, independent monitoring and owned transactions. Claude quota forwarding has separate reversible setup. Runtime qualification remains unverified.
+Pet reactions, desktop dragging, island overlap/menu return and saved placement/sound are implemented in source. Custom manifest/PNG pack import, selection and rollback are also implemented in source; native behavior remains unverified.
+Local action adapters, a separate helper, native composers and guarded opt-in setup/removal are implemented in source. Runtime support is unverified.
+Choose any terminal application for activation/manual return. Optional exact-pane focus uses an explicit user link through the iTerm2 adapter; Otty is not required. Open Sessions provides keyboard access, and native display/Space/sleep recovery is implemented in source.
+The full MVP remains unverified: no new tests, builds, launches or runtime qualification were run for this implementation.
 SSH and cloud-agent integrations are optional future work.
 
 The working name is `notch-pet`; the user has not chosen a product name.
@@ -29,12 +32,15 @@ From the repository root, run:
 bash scripts/run.sh
 ```
 
-Click the paw icon in the menu bar. The menu says that agent connections are not set up.
+Click the paw icon in the menu bar. Settings manages feature availability; installed surfaces have recovery actions.
+When Agents is installed, Codex and Claude Code submenus offer setup, Check, Repair, Pause/Resume and Disconnect.
+Claude quota forwarding is configured separately on the Agents settings page.
 Select **Quit Notch Pet** to close the app. Command-Q also quits while its menu is open.
-The app has no Dock icon and opens no window.
+The app has no Dock icon. Pet, Notch and Settings windows follow the selected features and explicit actions.
 
 The script builds a Swift package and creates `Notch Pet.app` under `${TMPDIR:-/private/tmp}/notch-pet-dev`.
-Build products stay there too. The app uses no external package dependencies and changes no agent settings.
+Build products stay there too. The app uses no external package dependencies.
+Starting the app or opening Settings does not install provider hooks.
 Quit the running app before rebuilding. Repeating the launch command reuses the same app bundle.
 Temporary files can be removed by macOS; rerun the command to rebuild them.
 
@@ -49,12 +55,12 @@ This is a development bundle; distribution packaging and signing are a later tas
 
 ## Local event bridge
 
-The app listens at `/private/tmp/notch-pet-<uid>/events-v1.sock` while it runs.
+With Agents installed and monitoring enabled, the app listens at `/private/tmp/notch-pet-<uid>/events-v1.sock`.
 The directory has mode `0700`. The socket has mode `0600`.
 Both endpoints check the connected user's numeric ID.
 The receiver validates [version-1 envelopes](docs/contracts/agent-events-v1.md) before calling its consumer.
 The app retains validated observations in a shared session store with bounded ordering and freshness rules.
-Live session presentation and agent setup are later tasks.
+The notch reads the shared store; setup, configured hooks and observed delivery remain separate evidence.
 
 The bundle includes `Contents/MacOS/NotchPetHook`.
 Run it with `--agent codex` or `--agent claude`, with one raw hook JSON object on stdin.
@@ -65,7 +71,8 @@ There is no acknowledgement, retry, queue, or saved activity.
 
 The helper limits stdin, connection, and writing to 50 ms each.
 It also enforces a shared 250 ms deadline after executable entry.
-Process launch time is additional. Future hook setup must also set the agent's execution timeout.
+Process launch time is additional. The setup planner specifies a three-second synchronous handler timeout;
+agent enforcement remains a release-qualification requirement.
 The receiver allows 100 ms to finish one frame, including fragmented reads.
 A successful write does not prove that an observation reached session state.
 
@@ -91,8 +98,50 @@ They do not establish installed Codex compatibility in interactive Otty sessions
 The earlier controlled hook investigation covered Codex `0.163.0`. The CLI now reports `0.164.0`.
 Partial interactive checks used isolated configuration and a mock provider.
 The remaining Codex interactive checks are deferred to immediately before final workflow verification under decision 0009.
-No hooks are installed by this implementation.
+No hooks were installed during development of this implementation.
 See the [compatibility record](docs/notes/agent-event-compatibility.md) for evidence boundaries and known limits.
+
+## Provider implementation, unverified
+
+Both submenus and Agents settings expose optional Connect, read-only Check, Repair, Remove hooks,
+Pause/Resume and Disconnect. Codex 0.164.0 and Claude Code 2.1.306 have documented setup bindings.
+Other versions need a supported binding. **No release is runtime-qualified.** Known disabled or
+managed-only policy blocks setup; unknown policy is clearly unverified. Setup never enables hook
+features, grants trust or changes permissions. Complete the provider's normal trust/workspace review.
+
+Owned writes preserve unrelated settings/Otty hooks, reject ownership conflicts and recover only
+known saved transaction states. Finish other configuration edits before changing setup. If the app
+moved, remove old owned entries, then Connect at its new location. Removal needs no CLI or old helper.
+A separate Claude **Connect quota** action wraps the existing status line, keeps its original command
+and fields, and saves the exact original value privately for restoration. **Remove forwarding** restores
+it only while the owned field is unchanged. Lifecycle removal preserves the status line; **Disconnect**
+pauses first, removes owned forwarding, then hooks. Partial failure remains paused and is reported.
+
+The master Agents switch and separate provider controls stop monitoring without removing hooks.
+Pending requests remain unconfirmed; resume waits for fresh evidence. Active Codex sessions drive
+bounded read-only quota reads/retries; Claude forwards status-line fields over private bounded IPC.
+Sources/accounts stay separate and unknown account/measurement identity stays unverified. Notch reads
+shared stores; it owns no provider I/O. Pet-only use starts no provider services.
+
+**Tests, builds, app/helper launches, probes, captures, installed configuration access and runtime
+qualification were NOT RUN for this implementation.** Source coverage for setup/sessions/quota is
+present, together with Claude local actions and terminal-independent navigation/native recovery. All nine source criteria are recorded in the completed implementation-only
+[full MVP goal](docs/goals/full-mvp-implementation.md). See its [log](docs/goals/full-mvp-implementation-log.md),
+[provider setup contract](docs/contracts/provider-setup.md) and [quota contract](docs/contracts/usage-intake.md).
+
+Local actions have concrete documented Claude bindings, native composers in Notch and Settings, and
+separate guarded setup/check/removal with explicit response consent. The follow-up binding continues a waiting Stop callback as
+feedback in the same prompt, with a 60-second window; it does not provide arbitrary-time replies or
+Codex actions. See the [action contract](docs/contracts/local-actions-v1.md). No runtime support is claimed.
+
+Pet Settings offers Import Pet Pack, saved artwork selection and Use Built-in Pet recovery. Choose a
+folder with a version-1 `manifest.json` and matching alpha PNG frames. The [pet workflow contract](docs/contracts/pet-workflows.md)
+contains the format, limits, placement/reaction behavior and failure rules. Imported packs stay in
+Application Support. Pet Settings also offers **Animate PNG** (offline breathing, bobbing and tilt of
+your existing transparent image) and **Import Sprite Sheet** (seven equal rows of pre-drawn animation
+frames). Both produce ordinary asset packs; no AI generation, prompts, subscription linking or hosted
+service is included. See the [PNG](docs/specs/pets/local-png-animation.md) and
+[sheet](docs/specs/pets/sprite-sheet-import.md) specifications for limits and unrun acceptance.
 
 ## Verify the bridge
 
@@ -153,7 +202,8 @@ Process timings include launch time. They are observations on this Mac, not a re
 
 The original task list and architecture decisions 0001–0009 have recorded approvals; decision 0010 records the subsequently accepted local-interaction scope.
 [Decision 0012](docs/decisions/0012-support-terminal-independent-operation.md) accepts terminal-independent operation; live verification beyond Otty remains open.
-[Standalone pet use and packaging](docs/decisions/0013-separate-standalone-pet-scope.md) remain proposed, including whether to use one app, separate apps, or a service.
+[Standalone pet use and packaging](docs/decisions/0013-separate-standalone-pet-scope.md) are accepted:
+one app with an independent Pet module and optional agent services, extended by D7's feature availability.
 The user requested the 2026-10-28 Flux-informed plan update; its revised remaining tasks are proposed for review.
 See the specification and [reference findings](docs/notes/flux-island-adoption.md) for selected behaviors,
 open choices, and the distinction between planned features and implemented code.

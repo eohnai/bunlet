@@ -62,7 +62,7 @@ Checked 2026-11-02 on `feat/notch-allowance-strip`, working tree based on `96ff9
 - The user confirmed advancing/fixed timers and preserved terminal focus. Tooltips were removed at their request under 0014.
 - Provider filtering is covered for both agents and all session states under 0015. This last filter change did not repeat the visual review.
 - The review app quit normally, clearing fictional sessions and removing its event socket. Existing agent configuration was preserved.
-- VoiceOver, real-session hook setup, and live Claude forwarding remain outside this completed review.
+- Real-session hook setup and live Claude forwarding remain outside this completed review. D8 excludes VoiceOver testing from feature acceptance.
 - The known version-probe timeout recurred before the passing rerun. It remains unresolved.
 
 Final logs: `/private/tmp/notch-pet-a5-active-providers-rerun.log` and `/private/tmp/notch-pet-a5-active-providers-build.log`.
@@ -434,7 +434,7 @@ The user supplied screenshots establishing actual delivery, logos/header fit, re
 Claude's empty state, card labels, request guidance, short IDs, and expanded identity details.
 The user confirmed timer advancement and preserved terminal focus while hovering and after clicking.
 A stopped card showed three seconds; confirmation that it stayed fixed remains pending for C5.
-VoiceOver remains untested. Fictional observations expire after two minutes, as the store requires.
+Historical check: VoiceOver was untested; D8 now excludes it from feature acceptance. Fictional observations expire after two minutes, as the store requires.
 
 The user's real Codex session did not appear. Bounded hook-structure inspection found no direct
 `NotchPetHook` call in the selected hook file's supported event groups. Configuration and commands were not printed or changed.

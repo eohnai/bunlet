@@ -1,15 +1,18 @@
 import AppKit
 import SwiftUI
 
+@MainActor
 public struct PetView: View {
     private let presentation: PetPresentation
     private let pose: PetPose
     private let isVisible: Bool
     private let isSleeping: Bool
+    private let onFrameImage: ((NSImage?) -> Void)?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var elapsedSeconds = 0.0
 
     private struct PlaybackID: Hashable {
+        let presentationID: UUID
         let frames: [String]
         let frameDurationMs: Int
         let isVisible: Bool
@@ -18,11 +21,13 @@ public struct PetView: View {
     }
 
     public init(presentation: PetPresentation, pose: PetPose = .idle,
-                isVisible: Bool = true, isSleeping: Bool = false) {
+                isVisible: Bool = true, isSleeping: Bool = false,
+                onFrameImage: ((NSImage?) -> Void)? = nil) {
         self.presentation = presentation
         self.pose = pose
         self.isVisible = isVisible
         self.isSleeping = isSleeping
+        self.onFrameImage = onFrameImage
     }
 
     func frame(at elapsedSeconds: Double, reduceMotion: Bool) -> String {
@@ -32,8 +37,8 @@ public struct PetView: View {
 
     private func image(for frame: String) -> NSImage? {
         let idle = presentation.animation(for: .idle).frames[0]
-        return PetArtwork.url(for: frame).flatMap(NSImage.init(contentsOf:))
-            ?? PetArtwork.url(for: idle).flatMap(NSImage.init(contentsOf:))
+        return PetFrameImages.image(frame: frame, presentation: presentation)
+            ?? PetFrameImages.image(frame: idle, presentation: presentation)
     }
 
     private func updatePlayback() async {
@@ -69,11 +74,36 @@ public struct PetView: View {
                     .accessibilityLabel("Pet artwork unavailable")
             }
         }
+        .onAppear { onFrameImage?(image) }
+        .onChange(of: presentation.id.uuidString + frame(at: elapsedSeconds, reduceMotion: reduceMotion)) { _, _ in onFrameImage?(image) }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(image == nil ? "Pet artwork unavailable" : "White lionhead rabbit")
-        .task(id: PlaybackID(frames: animation.frames, frameDurationMs: animation.frameDurationMs,
+        .accessibilityLabel(image == nil ? "Pet artwork unavailable" : presentation.name)
+        .task(id: PlaybackID(presentationID: presentation.id, frames: animation.frames, frameDurationMs: animation.frameDurationMs,
                              isVisible: isVisible, isSleeping: isSleeping, reduceMotion: reduceMotion)) {
             await updatePlayback()
         }
+    }
+}
+
+/// Bounded decoded-frame cache; imported bytes never resolve a source path during playback.
+@MainActor
+private enum PetFrameImages {
+    private static let cache: NSCache<NSString, NSImage> = {
+        let value = NSCache<NSString, NSImage>()
+        value.totalCostLimit = 32 * 1024 * 1024
+        value.countLimit = 128
+        return value
+    }()
+
+    static func image(frame: String, presentation: PetPresentation) -> NSImage? {
+        let key = (presentation.id.uuidString + ":" + frame) as NSString
+        if let cached = cache.object(forKey: key) { return cached }
+        let image: NSImage?
+        if let bytes = presentation.data(for: frame) { image = NSImage(data: bytes) }
+        else { image = PetArtwork.url(for: frame).flatMap(NSImage.init(contentsOf:)) }
+        guard let image else { return nil }
+        let pixels = image.cgImage(forProposedRect: nil, context: nil, hints: nil)
+        cache.setObject(image, forKey: key, cost: min(4 * 1024 * 1024, (pixels?.width ?? 1) * (pixels?.height ?? 1) * 4))
+        return image
     }
 }

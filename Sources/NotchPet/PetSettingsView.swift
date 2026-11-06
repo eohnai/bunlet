@@ -28,9 +28,9 @@ struct PetSettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 5) {
-                Text(firstUse ? "Meet your rabbit" : "Your rabbit")
+                Text(firstUse ? "Meet your pet" : "Your pet")
                     .font(.title2.weight(.semibold))
-                Text("White lionhead")
+                Text(presentation.name)
                     .foregroundStyle(.secondary)
             }
 

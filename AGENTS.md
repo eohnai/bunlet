@@ -4,6 +4,7 @@
 - Read the active specification and relevant decision records before changing code.
 - Read `docs/SWIFT-PRACTICES.md` before writing or reviewing Swift code.
 - Keep proposed decisions distinct from accepted decisions.
+- VoiceOver/screen-reader testing is excluded from all feature acceptance at the user's request. Keep native labels, keyboard controls, Reduce Motion and focus behavior.
 - Make Flux Island and other external UI references self-contained in repository notes: describe layout, triggers, states, actions and limitations so implementation does not require the reference app or this chat. Start with `docs/notes/flux-island-adoption.md` and `docs/notes/companion-ui-direction.md`.
 - The repository contains a native app shell and project records.
 - Do not start implementation until the user approves the task list.

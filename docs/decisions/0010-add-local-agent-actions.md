@@ -1,5 +1,11 @@
 # 0010: Include local approvals and replies in the first release
 
+Implementation addendum, 2026-11-06: the user requested full code implementation with tests,
+builds and runtime qualification left unverified. Documented action bindings may be implemented
+with an explicit unverified label; they do not become runtime-verified capabilities. See the
+[local action contract](../contracts/local-actions-v1.md) for the initial Claude callback scope
+and its bounded Stop-feedback follow-up limitation. The accepted local-action scope below is unchanged.
+
 - Status: accepted
 - Date: 2026-10-28
 

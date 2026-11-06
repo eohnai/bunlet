@@ -42,3 +42,14 @@ Preserve the version-1 wire contract and all historical Otty evidence and deferr
 Plan any additional terminal metadata separately before changing the contract.
 Verify both supported agents in at least one local terminal other than Otty before claiming terminal-independent release acceptance.
 This decision establishes a requirement, not verified compatibility with every terminal, IDE, or remote environment.
+
+
+## Source implementation update, 2026-11-06
+
+The user reaffirmed terminal-independent use during full MVP implementation. Monitoring/provider
+services remain independent of navigation. Native application selection/activation works without
+terminal metadata. Exact-pane support is an optional adapter; the initial documented source binding
+uses an explicit user link to iTerm2's public session ID/tty, not an inferred agent mapping. Otty
+hints remain untrusted and its automatic mapping is unsupported. See
+[pane navigation](../specs/sessions/pane-navigation.md) for the source policy and unrun acceptance.
+No terminal-independent release/native compatibility claim is made.

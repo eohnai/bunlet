@@ -1,8 +1,10 @@
 @MainActor
-protocol AppAgentService: AnyObject {
+protocol AppFeatureService: AnyObject {
     func start()
     func stop()
 }
+
+typealias AppAgentService = AppFeatureService
 
 /// The app creates agent services only after an explicit opt-in.
 @MainActor

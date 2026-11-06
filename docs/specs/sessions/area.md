@@ -1,7 +1,7 @@
 # Sessions
 
 Owns terminal-independent agent observation, session state, integration setup and health, monitoring controls, and optional terminal navigation.
-Code: `Sources/EventBridge/`, session and integration-health services in `Sources/SessionState/`, and app integration controls.
+Code: `Sources/EventBridge/`, `Sources/SessionState/`, `Sources/Integration/` and app integration controls.
 
 ## Specs
 
@@ -11,7 +11,7 @@ Code: `Sources/EventBridge/`, session and integration-health services in `Source
 - `codex-setup`: Connect, check, and remove owned Codex integration through explicit controls without overwriting user changes. Needs: integration-health, notch/session-island.
 - `claude-setup`: Connect, check, and remove owned Claude lifecycle integration while preserving the status line. Needs: integration-health, notch/session-island.
 - `monitoring-controls`: Pause, resume, and disconnect configured monitoring while preserving unresolved notices. Needs: codex-setup.
-- `pane-navigation`: Report exact-pane, application-only, or unavailable navigation through optional terminal adapters. Needs: session-state.
+- `pane-navigation`: [Optional terminal navigation](pane-navigation.md) reports user-linked exact-pane, application-only, or manual-return capability through separate adapters. Needs: session-state.
 - `first-use`: Verify setup, live alerts, navigation, removal, and release instructions. Needs: codex-setup, claude-setup, pane-navigation, notch/desktop-recovery, notch/accessible-controls, usage/refresh-recovery, actions/structured-answers, actions/follow-up-replies, pets/detachable-pet, pets/custom-packs.
 
 ## Shared context
@@ -22,7 +22,7 @@ Code: `Sources/EventBridge/`, session and integration-health services in `Source
 - Resolve existing session-state closure and integration-health acceptance before dependent implementation. Roadmap approval does not complete those features.
 - Setup features own configuration changes and removal logic. Monitoring controls own runtime behavior and reuse that removal logic.
 - `monitoring-controls` initially depends on Codex setup. Extend it to Claude when Claude setup exists; Codex does not wait for Claude setup.
-- Detailed pause, resume, disconnect, and notice-retention semantics remain proposed. Coordinate later collector controls with telemetry/background-collection.
+- Pause, resume, disconnect and notice-retention semantics have source contracts in monitoring-controls; acceptance is unrun. Coordinate later collector controls with telemetry/background-collection.
 - These are approved feature boundaries and order. Full specifications and implementation task lists still need feature-level planning.
 - Setup and monitoring controls contribute the Agents page when settings/settings-window exists. A shared settings shell does not replace setup ownership or authorize installed configuration changes.
 - [Record layout decision](../../decisions/0011-organize-records-by-feature.md).
@@ -43,8 +43,16 @@ Code: `Sources/EventBridge/`, session and integration-health services in `Source
 - Review features against approved behavior and accepted decisions, then check code for support and gaps. Existing code alone does not define scope.
 - Keep agent configuration intact and captured session data outside the repository.
 
+## Full MVP source update, 2026-11-06
+
+Both provider setup services/controls, independent monitoring, scoped Claude quota setup and bounded
+quota delivery have source implementations. See the detailed Claude/monitoring specs and
+[provider contract](../../contracts/provider-setup.md). The user waived tests/builds/runtime qualification;
+no source update closes the original live acceptance or changes their historical checkbox evidence.
+Earlier ordering/gate proposals above remain historical where superseded by that explicit full goal.
+
 ## Open questions
 
-- Specify how monitoring controls stop intake and refresh, preserve unconfirmed notices, and require fresh evidence after resume.
-- Codex setup interruption recovery remains proposed. See the [setup contract](../../contracts/codex-hook-setup.md).
+- Monitoring controls now specify and implement intake/refresh gates, retained unconfirmed notices and fresh-evidence cutoffs. Native/live acceptance remains open.
+- Owned interruption recovery has source implementation for both providers and Claude quota. The accepted contract and deferred runtime acceptance remain separate.
 - During feature migration, divide shared acceptance checks without losing any original requirement or checkbox state.

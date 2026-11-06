@@ -1,13 +1,24 @@
+import AgentActions
 import SessionState
 import SwiftUI
+import Usage
 
 struct NotchSessionView: View {
     let sessionStore: SessionStore
     let usageStore: UsageStore
-    let headerHeight: CGFloat
-    let notchWidth: CGFloat
+    let features: FeatureSettingsModel
+    let onOpenFeatures: () -> Void
+    let windowState: NotchWindowState
+    var headerHeight: CGFloat { windowState.headerHeight }
+    var notchWidth: CGFloat { windowState.notchWidth }
+    var expanded: Bool { windowState.expanded }
     let onExpand: (Bool) -> Void
-    @State private var expanded = false
+    let isVisible: Bool
+    let isSleeping: Bool
+    var navigation: TerminalNavigation? = nil
+    var actions: LocalActionController? = nil
+    var beginInput: () -> Void = {}
+    var endInput: () -> Void = {}
     @State private var selection: SessionKey?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -26,7 +37,7 @@ struct NotchSessionView: View {
                 HStack(spacing: 0) {
                     Color.clear
                         .overlay {
-                            if expanded {
+                            if expanded && isVisible && !isSleeping {
                                 NotchAllowanceStrip(
                                     store: usageStore,
                                     activeProviders: NotchPresentation.activeProviders(sessionStore.sessions))
@@ -59,11 +70,38 @@ struct NotchSessionView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Sessions").font(.headline)
-                            if sessionStore.sessions.isEmpty {
+                            HStack {
+                                Text("Sessions").font(.headline)
+                                Spacer()
+                                if windowState.hasKeyboardFocus { Button("Done Editing", action: endInput) }
+                            }
+                            if let actions {
+                                Text(actions.status).font(.caption).foregroundStyle(.secondary)
+                                if actions.store.capacityReached {
+                                    Text("Local response history capacity reached. Return to the existing session for new requests.")
+                                        .font(.caption).foregroundStyle(.orange)
+                                }
+                            }
+                            if let issue = sessionStore.capacityIssue {
+                                Text(issue == .sessionCapacity
+                                     ? "Session capacity reached. New sessions are not being observed. Existing requests are retained."
+                                     : "A session reached its identity or request capacity. Its state is unconfirmed.")
+                                    .font(.callout).foregroundStyle(.yellow)
+                            }
+                            if sessionStore.deliveryOverflowed {
+                                Text("Some events were lost. Affected sessions need fresh evidence.")
+                                    .font(.callout).foregroundStyle(.yellow)
+                            }
+                            if !features.installed.contains(.agents) {
+                                Text("Agents is not installed.").foregroundStyle(.secondary)
+                                Button("Open Features", action: onOpenFeatures)
+                            } else if !features.monitoringEnabled {
+                                Text("Monitoring is off.").foregroundStyle(.secondary)
+                                Button("Open Features", action: onOpenFeatures)
+                            } else if sessionStore.sessions.isEmpty {
                                 Text("No sessions observed yet.").foregroundStyle(.secondary)
                             }
-                            if NotchPresentation.shouldTickPromptTimers(expanded: expanded,
+                            if NotchPresentation.shouldTickPromptTimers(expanded: expanded && isVisible && !isSleeping,
                                                                       sessions: sessionStore.sessions) {
                                 TimelineView(.periodic(from: .now, by: 1)) { context in
                                     sessionCards(at: Int64(context.date.timeIntervalSince1970 * 1000))
@@ -88,6 +126,11 @@ struct NotchSessionView: View {
         }
         .preferredColorScheme(.dark)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.24), value: expanded)
+        .onExitCommand {
+            windowState.expanded = false
+            onExpand(false)
+            endInput()
+        }
         .onAppear {
             selection = NotchPresentation.selection(selection, sessions: sessionStore.sessions)
         }
@@ -97,7 +140,7 @@ struct NotchSessionView: View {
     }
 
     private func toggleExpansion() {
-        expanded.toggle()
+        windowState.expanded.toggle()
         onExpand(expanded)
     }
 
@@ -108,8 +151,22 @@ struct NotchSessionView: View {
                     NotchSessionCard(snapshot: snapshot,
                                      presentation: NotchPresentation.card(for: snapshot, among: sessionStore.sessions),
                                      nowMs: nowMs, selection: $selection)
+                    if selection == snapshot.key, let navigation {
+                        TerminalNavigationView(controller: navigation, session: snapshot.key)
+                    }
                     ForEach(snapshot.pendingRequests, id: \.eventID) { request in
-                        NotchRequestCard(request: request)
+                        NotchRequestCard(request: request, hasLocalResponse: actions?.store.snapshots.contains {
+                            $0.observedRequestID == request.eventID &&
+                                SessionKey(agent: $0.offer.provider, sessionID: $0.offer.sessionID) == snapshot.key &&
+                                $0.phase == .available
+                        } == true)
+                    }
+                    if let actions {
+                        ForEach(actions.store.snapshots.filter {
+                            SessionKey(agent: $0.offer.provider, sessionID: $0.offer.sessionID) == snapshot.key
+                        }) { action in
+                            LocalActionView(snapshot: action, controller: actions, beginInput: beginInput)
+                        }
                     }
                 }
             }

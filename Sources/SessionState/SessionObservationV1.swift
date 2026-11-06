@@ -28,16 +28,16 @@ public struct SessionObservationV1: Sendable {
         self.envelope = envelope
         self.receiptWallMs = receiptWallMs
         self.receiptMonotonicNs = receiptMonotonicNs
-        let questionTool = envelope.agent == "codex" ? "request_user_input" : "AskUserQuestion"
+        let questionTool = envelope.agent == .codex ? "request_user_input" : "AskUserQuestion"
         let isQuestion = envelope.toolName == questionTool
         switch envelope.hookEventName {
-        case "SessionStart": kind = .sessionStarted
-        case "UserPromptSubmit": kind = .turnSubmitted
-        case "PreToolUse": kind = isQuestion ? .requestOpened(.questionNeeded) : .toolObserved
-        case "PermissionRequest": kind = .requestOpened(isQuestion ? .questionNeeded : .approvalNeeded)
-        case "PostToolUse": kind = .toolFinished
-        case "Stop": kind = .responseReady
-        default: kind = .sessionEnded // The validator permits only these seven hooks.
+        case .sessionStart: kind = .sessionStarted
+        case .userPromptSubmit: kind = .turnSubmitted
+        case .preToolUse: kind = isQuestion ? .requestOpened(.questionNeeded) : .toolObserved
+        case .permissionRequest: kind = .requestOpened(isQuestion ? .questionNeeded : .approvalNeeded)
+        case .postToolUse: kind = .toolFinished
+        case .stop: kind = .responseReady
+        case .sessionEnd: kind = .sessionEnded
         }
     }
 }
@@ -50,21 +50,21 @@ struct SourceIdentity: Hashable, Sendable {
 }
 
 public struct SessionKey: Hashable, Sendable {
-    public let agent: String
+    public let agent: Agent
     public let sessionID: String
 
-    public init(agent: String, sessionID: String) {
+    public init(agent: Agent, sessionID: String) {
         self.agent = agent
         self.sessionID = sessionID
     }
 
     public static func == (lhs: Self, rhs: Self) -> Bool {
-        SourceIdentity(value: lhs.agent) == SourceIdentity(value: rhs.agent)
+        lhs.agent == rhs.agent
             && SourceIdentity(value: lhs.sessionID) == SourceIdentity(value: rhs.sessionID)
     }
 
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(SourceIdentity(value: agent))
+        hasher.combine(agent)
         hasher.combine(SourceIdentity(value: sessionID))
     }
 }
@@ -93,6 +93,7 @@ public enum SessionUnknownReason: String, Sendable {
     case uncorrelatedResolution = "uncorrelated_resolution"
     case clockOrWake = "clock_or_wake"
     case deliveryOverflow = "delivery_overflow"
+    case monitoringStopped = "monitoring_stopped"
 }
 
 public enum SessionApplyResult: String, Sendable {

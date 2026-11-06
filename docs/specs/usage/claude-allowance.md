@@ -9,7 +9,7 @@ The forwarding must keep the user's status-line output and cancellation behavior
 It reuses the shared usage store and notch sections from [codex-allowance](codex-allowance.md). See the [usage area](area.md) for shared context.
 
 This is a retrospective spec. It moves U2a, U2b, U2c1, U2c2, and U2c3 out of the [source specification](../notch-companion.md).
-The parser, sender, and receiver exist. The forwarding wrapper and the app wiring are unfinished.
+The parser, sender, receiver, forwarding executable and app wiring now have source implementations. Owned status-line installation/restoration and Settings health also have source paths. Live acceptance remains incomplete.
 
 ## Done when
 
@@ -41,7 +41,7 @@ The parser, sender, and receiver exist. The forwarding wrapper and the app wirin
 ## Verify
 
 - Seam: a fictional status-line payload through the forwarding wrapper and `UsageDelivery` to `UsageReceiver`, then `UsageStore` in the running app.
-- Code: `Sources/SessionState/ClaudeUsageProvider.swift`, `UsageDelivery.swift`, `UsageReceiver.swift`, `UsageStore.swift`, and the app wiring in `Sources/NotchPet/`.
+- Code: `Sources/Usage/{ClaudeUsageProvider,UsageDelivery,UsageReceiver,UsageStore,UsageInbox,UsageEndpointLease,UsageValidation}.swift`, `Sources/NotchPetStatusLine/main.swift`, and app wiring in `Sources/NotchPet/`.
 - Build: `bash scripts/run.sh --build-only`.
 - Swift checks: `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/notch-pet-dev/build`.
 - Real app: `bash scripts/run.sh`, then a live Claude status line with the reviewed configuration plan. Compare terminal output with and without forwarding.
@@ -56,42 +56,34 @@ These are reproduction commands. This retrospective spec ran documentation check
 - [0011: Organize records by area and feature](../../decisions/0011-organize-records-by-feature.md).
 - [0012: Support terminal-independent operation](../../decisions/0012-support-terminal-independent-operation.md).
 
-## Open decisions
+## Receiver implementation policy, 2026-11-06
 
-A code review on 2026-10-30 checked the uncommitted receiver wiring in `NotchPanelController.swift` and `NotchPetApp.swift`.
-It found five gaps where no requirement exists. Each needs your choice before U2c3 continues. The options are proposals, not accepted choices.
+The user's approved full MVP goal authorizes routine implementation choices. The earlier five
+proposals are resolved for this implementation in [quota intake](../../contracts/usage-intake.md):
+Claude-only socket ingress; refused-owned-socket recovery under a persistent private lock;
+UsageStore-owned receiver health rendered by the notch; session-hashed anonymous sources with
+24-hour expiry and visible refusal at capacity; app-owned receiver/store/Codex refresh.
+These are implementation choices, not claims of tested compatibility or provider authentication.
 
-- **Open: Usage socket providers.** The receiver accepts any provider, including `codex`. The app reads Codex itself, so a local process can replace the in-app Codex reading until the next 120-second read.
-  - Accept only `claude` on the socket. Pro: closes the overwrite path. Con: a future forwarded provider needs a rule change.
-  - Accept any provider but never let socket data replace an in-app source. Pro: stays general. Con: needs a source-ownership rule in the store.
-- **Open: Stale usage socket recovery.** `UsageReceiver.start` refuses an existing socket file. Only a normal quit removes it. After a crash, every later start fails until a reboot or a manual delete.
-  - Probe the old socket and remove it only when the connection is refused, as `EventBridgeServer` does. Pro: recovers by itself. Con: adds endpoint lifecycle code and tests.
-  - Keep refusing, and report the failure with a recovery step. Pro: no new endpoint logic. Con: the user must act after every crash.
-- **Open: Usage receiver health.** A start failure is dropped. `usageReceiverAvailable` is written but never read. Integration health reports only the event bridge.
-  - Report usage receiver state through `IntegrationHealthController`. Pro: one place for health. Con: changes the integration-health model.
-  - Show the failure only in the notch usage section. Pro: small change. Con: health stays split across two places.
-- **Open: Usage source lifetime.** `UsageStore` keeps at most 128 sources and never removes one. The Claude `sourceID` scheme is not defined.
-  - Use one stable `sourceID` for each Claude installation. Pro: the cap is never reached. Con: two accounts on one machine share a source.
-  - Use one `sourceID` for each session, and remove sources after a fixed age. Pro: keeps sources apart. Con: needs an eviction rule and tests.
-- **Open: Usage service ownership.** `NotchPanelController` owns the usage store and receiver, and `NotchUsageView` runs the Codex refresh loop.
-  Decision 0002 puts I/O in services. The goal plan gave store ownership to the app.
-  - Move the store, receiver, and Codex refresh into a usage service owned by `BridgeAppDelegate`. Pro: one lifecycle owner, next to the event bridge. Con: touches three app files.
-  - Keep the panel as owner and move only the Codex loop out of the view. Pro: smaller change. Con: two owners for app lifecycle.
+Sources now trace the forwarding executable through `ClaudeUsageProvider.forward` and
+`UsageDelivery` into `AgentServices`' generation-guarded `UsageInbox` and shared UsageStore.
+Per-socket buffers address the historically unreachable 8192-byte limit. Full snapshots replace
+independently missing windows. Codex refresh retries with bounded backoff; it does not start turns.
+The notch exposes stale readings, receiver failure and intake/capacity loss. The old view-owned
+receiver and ambiguous `sync(execute:)` build finding below are historical, not this code path.
 
-## Known code state
-
-- The uncommitted wiring does not build. `swift build` fails at `NotchPanelController.swift:37` with `ambiguous use of 'sync(execute:)'`, because the closure returns the unused `Bool` from `apply`.
-  The reviewer confirmed in a scratch copy that `_ =` fixes it. This spec records the error and does not fix it.
-- The receiver handler hands each datagram to the main thread and waits, up to 32 times per read. Each one redraws the usage view.
-  The ownership decision above should settle where batching happens.
-- `UsageReceiver` and `UsageStore` each repeat the same input validation.
+Tests, builds, process launches, socket probes, installed configuration access and runtime
+qualification were NOT RUN. Original verification-bearing checkboxes are preserved.
+`ClaudeStatusLinePlanner` and `ProviderHookTransaction` now implement separate guarded quota
+setup/removal/restoration, and `ProviderSetupView` exposes quota ownership/helper/receipt state.
+See [Claude setup](../sessions/claude-setup.md). Live terminal preservation remains unverified.
 
 ## My calls
 
 - U2a–U2c3 move here, as the usage area file says. Their wording and checkbox states are unchanged.
 - The usage-source investigation evidence for Claude stays in codex-allowance with the rest of that task. This spec cites it.
-- One new task is proposed: settle the five open decisions before U2c3. It awaits your approval.
-- The five gaps are recorded here because the uncommitted wiring belongs to U2c3. Codex-allowance links to the ownership decision.
+- The five receiver choices were subsequently settled as implementation policy under the approved full MVP goal; their original task remains unticked because runtime acceptance was not run.
+- The original five-gap review and paused-goal evidence remain historical. Current ownership and intake rules are in the linked contract.
 
 ## Tasks
 
@@ -110,7 +102,7 @@ The [paused goal log](../../goals/notch-agent-limits-log.md) adds the following.
 - U2c1: turn 25 added the one-function datagram sender with five tests. Commit `ed07904`.
 - U2c2: turn 26 added the three-method `UsageReceiver` with five isolated tests. Commit `ab773e6`.
 - U2c3: the pause checkpoint records the uncommitted receiver wiring. Its build was interrupted, and the result was not captured.
-- U2b: no wrapper exists yet. Live Claude forwarding is not verified.
+- U2b: no wrapper existed at that checkpoint. The full MVP now adds source only; live Claude forwarding remains unverified.
 
 ## Historical evidence
 

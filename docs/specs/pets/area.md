@@ -1,15 +1,16 @@
 # Pets
 
 Owns pet rendering, detachment and return, safe artwork imports, preferences, and pet desktop behavior.
-Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; the optional shared-session adapter remains future work.
+Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; an app-owned adapter translates shared session snapshots into pet-owned moods.
 
 ## Specs
 
 - `built-in-pet`: [Set up and show a standalone pet](built-in-pet.md) without agent services or configuration.
-- `agent-reactions`: Translate shared session presentation into optional pet reactions and notices. Needs: built-in-pet, notch/session-island.
+- `agent-reactions`: Translate shared session presentation into optional pet reactions and notices. Needs: built-in-pet, sessions/session-state. Requires installed/enabled Agents at runtime; Notch is optional.
 - `detachable-pet`: Drag the pet out, return it, and recover placement across desktop changes. Needs: built-in-pet.
 - `custom-packs`: Validate, import, select, and restore manifest-based pet packs. Needs: built-in-pet.
-- `sprite-sheet-import`: Settle and implement the optional sheet conversion proposal. Needs: custom-packs.
+- `sprite-sheet-import`: [Import seven-row PNG sheets](sprite-sheet-import.md) into the existing pack format. Needs: custom-packs.
+- `local-png-animation`: [Animate an ordinary transparent PNG locally](local-png-animation.md) using transforms. Needs: custom-packs.
 
 ## Shared context
 
@@ -21,9 +22,10 @@ Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; the optional
 - Set up the pet first. Agent setup is optional and skippable. After approved hook setup, observed sessions trigger agent features automatically.
 - Pet-only startup starts no agent or usage services. The standalone pet no longer depends on notch session presentation.
 - The app owns optional services. The pet module imports no agent session types. An optional adapter translates authoritative snapshots.
+- Reaffirmed on 2026-11-02: standalone Pet keeps ordinary behavior; with enabled Agents, an app-owned adapter maps session evidence into pet-owned moods. Working, answer/approval attention and response-ready cues reuse the shared session authority. Trigger completion once per observed finished response, without claiming task success. This belongs to agent-reactions; modular feature management preserves its integration seam without inventing missing animations or making Notch a dependency.
 - Unknown observations and retained requests must not disappear merely because events stop. Paused monitoring is distinct from a confirmed session end.
 - P0's direction is accepted. Its original unchecked line remains in the source spec pending final planning review.
-- [Source specification](../notch-companion.md): P1–P8 remain open. Shared presentation code exists, but does not establish implemented pet rendering.
+- [Source specification](../notch-companion.md): P1–P8 retain original acceptance history. Built-in rendering, reactions, detachment, custom packs and local PNG/sheet conversion now have source paths under the full MVP; native acceptance remains unverified.
 - [Accepted asset-only pack format](../../decisions/0006-import-asset-only-pet-packs.md).
 - P1 belongs to agent-reactions under the approved split. Keep its original line in the source spec until that feature is written.
 - P2 and pet-specific R1–R3 checks belong to detachable-pet. Those checks must also preserve notices when agent reactions are enabled.
@@ -45,6 +47,8 @@ Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; the optional
 - Detachment and return belong to `detachable-pet` and work without an agent connection. Switching surfaces does not start or stop monitoring, change connection settings, or resolve retained notices. This accepts behavior; the feature's task list and implementation plan still require approval.
 - **Use original white lionhead rabbit artwork for the default pet.** Accepted on 2026-10-30: the user chose newly created original artwork over supplying an existing image, then specified a white lionhead rabbit. At this decision point the standalone-rabbit goal was prepared but not activated; its later approved asset step and implementation are summarized below.
 
+- **Local-only custom pets, accepted 2026-11-06:** support ordinary PNG transform animation and ready-made sprite-sheet import. The user explicitly excludes AI generation/workflow, prompts and subscription linking. Normalize both into the existing manifest/frame runtime. Original Swift/CoreGraphics implementation and user-supplied artwork only; no company source/scripts/assets.
+
 ## Implementation status
 
 The original white lionhead idle PNG and manifest are bundled through the independent Pet target.
@@ -52,11 +56,11 @@ Built-in-pet implementation includes pet-first startup, optional agent services,
 playback policy, and BP6b2 visibility/sleep wiring for the panel and preview. It merged into main in 1c5d9cf.
 The implementation-only goal is closed. Full acceptance remains deferred by the user.
 See the [current handoff](built-in-pet.md#implementation-handoff-after-testing-deferral-2026-10-30)
-and [completion log](../../goals/complete-built-in-pet-log.md). Detachment and agent reactions remain unimplemented.
+and [completion log](../../goals/complete-built-in-pet-log.md). Detachment and agent reactions now have source implementation under the full MVP goal; their acceptance remains unverified. Custom manifest/PNG import, selection and rollback also have source paths; all new behavior remains unverified.
 
 ## Open questions
 
 - Setup/slider/menu interactions, actual multi-frame scheduling, Reduce Motion changes, and visual/fallback appearance remain unverified.
 - Later nonvisual harness evidence is recorded in built-in-pet. Do not retry captures or resume tests without a user request.
-- Detailed pause, disconnect, resume, and notice-retention behavior needs planning in sessions/monitoring-controls and agent-reactions.
-- Sprite-sheet conversion versus a second runtime loader remains proposed. The optional importer is not a first-release dependency.
+- Pause, disconnect, resume and notice-retention source contracts are recorded in sessions/monitoring-controls and agent-reactions; runtime acceptance remains unrun.
+- Sprite-sheet import-time conversion is selected by the later local-only customization request and implemented in source. P5/P6 native/visual acceptance remains unrun.

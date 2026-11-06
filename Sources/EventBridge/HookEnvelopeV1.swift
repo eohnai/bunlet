@@ -8,9 +8,9 @@ public enum BridgeError: Error {
 public struct HookEnvelopeV1: Encodable, Sendable {
     public let version: Int
     public let eventID: String
-    public let agent: String
+    public let agent: Agent
     public let sessionID: String
-    public let hookEventName: String
+    public let hookEventName: HookEvent
     public let observedAtMs: Int64
     public let turnID: String?
     public let toolUseID: String?
@@ -36,11 +36,6 @@ public struct HookEnvelopeV1: Encodable, Sendable {
 
     public static let frameLimit = 16_384
     public static let rawHookLimit = 262_144
-    static let hooks: Set<String> = [
-        "SessionStart", "UserPromptSubmit", "PreToolUse", "PermissionRequest",
-        "PostToolUse", "Stop", "SessionEnd"
-    ]
-    static let toolHooks: Set<String> = ["PreToolUse", "PermissionRequest", "PostToolUse"]
 
     public static func decode(frame: Data) throws -> Self {
         guard frame.count <= frameLimit, frame.last == 10,
@@ -59,8 +54,8 @@ public struct HookEnvelopeV1: Encodable, Sendable {
               let eventID = fields["event_id"]?.string,
               UUID(uuidString: eventID)?.uuidString.lowercased() == eventID,
               eventID.utf8.count == 36,
-              let agent = fields["agent"]?.string, ["codex", "claude"].contains(agent),
-              let hook = fields["hook_event_name"]?.string, hooks.contains(hook),
+              let agentName = fields["agent"]?.string, let agent = Agent(rawValue: agentName),
+              let hookName = fields["hook_event_name"]?.string, let hook = HookEvent(rawValue: hookName),
               let timestamp = fields["observed_at_ms"]?.integer,
               (0...9_007_199_254_740_991).contains(timestamp)
         else { throw BridgeError.invalidMessage }
@@ -75,15 +70,17 @@ public struct HookEnvelopeV1: Encodable, Sendable {
             }
             return text
         }
-        let session = try string("session_id", 256, required: true)!
+        guard let session = try string("session_id", 256, required: true) else {
+            throw BridgeError.invalidMessage
+        }
         let turn = try string("turn_id", 256)
         let toolID = try string("tool_use_id", 256)
-        let tool = try string("tool_name", 128, required: toolHooks.contains(hook))
-        guard toolHooks.contains(hook) || (toolID == nil && tool == nil) else {
+        let tool = try string("tool_name", 128, required: hook.requiresToolName)
+        guard hook.requiresToolName || (toolID == nil && tool == nil) else {
             throw BridgeError.invalidMessage
         }
         let cwd = try string("cwd", 4096)
-        guard cwd == nil || cwd!.hasPrefix("/") else { throw BridgeError.invalidMessage }
+        if let cwd, !cwd.hasPrefix("/") { throw BridgeError.invalidMessage }
         var terminal: Terminal?
         if let value = fields["terminal"] {
             guard case .object(let fields) = value,
@@ -108,18 +105,17 @@ public struct HookEnvelopeV1: Encodable, Sendable {
     }
 
     /// Only projects allowlisted fields. Never reads transcripts or invokes an agent.
-    public static func project(rawHook: Data, agent: String, paneSelector: String? = nil) throws -> Self {
+    public static func project(rawHook: Data, agent: Agent, paneSelector: String? = nil) throws -> Self {
         try project(rawHook: rawHook, agent: agent, paneSelector: paneSelector, deadline: nil)
     }
 
-    static func project(rawHook: Data, agent: String, paneSelector: String?, deadline: UInt64?) throws -> Self {
-        if agent == "codex" {
+    static func project(rawHook: Data, agent: Agent, paneSelector: String?, deadline: UInt64?) throws -> Self {
+        switch agent {
+        case .codex:
             return try CodexEventAdapter.project(rawHook: rawHook, paneSelector: paneSelector, deadline: deadline)
-        }
-        if agent == "claude" {
+        case .claude:
             return try ClaudeEventAdapter.project(rawHook: rawHook, paneSelector: paneSelector, deadline: deadline)
         }
-        throw BridgeError.invalidMessage
     }
 
     static func rawFields(_ rawHook: Data, deadline: UInt64?) throws -> [String: JSONValue] {
@@ -129,12 +125,12 @@ public struct HookEnvelopeV1: Encodable, Sendable {
         return source
     }
 
-    static func projected(_ sourceFields: [String: JSONValue], agent: String, observedAtMs: Int64,
+    static func projected(_ sourceFields: [String: JSONValue], agent: Agent, observedAtMs: Int64,
                           paneSelector: String?) throws -> Self {
         var fields = sourceFields
         fields["version"] = .number("1")
         fields["event_id"] = .string(UUID().uuidString.lowercased())
-        fields["agent"] = .string(agent)
+        fields["agent"] = .string(agent.rawValue)
         fields["observed_at_ms"] = .number(String(observedAtMs))
         if let paneSelector {
             fields["terminal"] = .object(["kind": .string("otty"), "pane_selector": .string(paneSelector)])
@@ -163,13 +159,18 @@ struct StrictJSON {
     private let bytes: [UInt8]
     private let maxDepth: Int
     private let deadline: UInt64?
+    private let captureRanges: Bool
     private var offset = 0
+    private var path: [JSONPathComponent] = []
+    private(set) var ranges: [[JSONPathComponent]: Range<Int>] = [:]
+    private(set) var childMembers: [[JSONPathComponent]: [JSONPathComponent]] = [:]
     private let decoder = JSONDecoder()
 
-    init(data: Data, maxDepth: Int, deadline: UInt64? = nil) {
+    init(data: Data, maxDepth: Int, deadline: UInt64? = nil, captureRanges: Bool = false) {
         bytes = Array(data)
         self.maxDepth = maxDepth
         self.deadline = deadline
+        self.captureRanges = captureRanges
     }
 
     mutating func parse() throws -> JSONValue {
@@ -218,39 +219,89 @@ struct StrictJSON {
         try checkDeadline(deadline)
         try whitespace()
         guard offset < bytes.count else { throw BridgeError.invalidMessage }
+        let startOfValue = offset
+        defer {
+            if captureRanges { ranges[path] = startOfValue..<offset }
+        }
         if bytes[offset] == 34 { return .string(try text()) }
         if try consume(123) {
             guard depth < maxDepth else { throw BridgeError.invalidMessage }
+            if captureRanges { childMembers[path] = [] }
             var fields: [String: JSONValue] = [:]
             if try consume(125) { return .object(fields) }
             repeat {
                 let key = try text()
                 guard fields[key] == nil, try consume(58) else { throw BridgeError.invalidMessage }
+                if captureRanges {
+                    childMembers[path, default: []].append(.key(key))
+                    path.append(.key(key))
+                }
                 fields[key] = try value(depth: depth + 1)
+                if captureRanges { path.removeLast() }
                 if try consume(125) { return .object(fields) }
             } while try consume(44)
             throw BridgeError.invalidMessage
         }
         if try consume(91) {
             guard depth < maxDepth else { throw BridgeError.invalidMessage }
+            if captureRanges { childMembers[path] = [] }
             var values: [JSONValue] = []
             if try consume(93) { return .array(values) }
             repeat {
+                if captureRanges {
+                    childMembers[path, default: []].append(.index(values.count))
+                    path.append(.index(values.count))
+                }
                 values.append(try value(depth: depth + 1))
+                if captureRanges { path.removeLast() }
                 if try consume(93) { return .array(values) }
             } while try consume(44)
             throw BridgeError.invalidMessage
         }
         let start = offset
-        while offset < bytes.count && ![9, 10, 13, 32, 44, 93, 125].contains(bytes[offset]) { offset += 1 }
+        while offset < bytes.count && ![9, 10, 13, 32, 44, 93, 125].contains(bytes[offset]) {
+            if offset % 1024 == 0 { try checkDeadline(deadline) }
+            offset += 1
+        }
         let token = String(decoding: bytes[start..<offset], as: UTF8.self)
         if token == "true" || token == "false" { return .bool }
         if token == "null" { return .null }
-        // Foundation checks JSON number syntax; preserve the lexeme to distinguish 1 from 1.0.
+        // Setup scans preserve arbitrary valid numeric lexemes without a floating-point conversion.
+        if captureRanges {
+            guard Self.isJSONNumber(Array(token.utf8)) else { throw BridgeError.invalidMessage }
+            return .number(token)
+        }
+        // Retain the observer's existing finite-number boundary.
         guard !token.isEmpty, let number = Double(token), number.isFinite,
               (try? decoder.decode(Double.self, from: Data(token.utf8))) != nil else {
             throw BridgeError.invalidMessage
         }
         return .number(token)
+    }
+
+    private static func isJSONNumber(_ bytes: [UInt8]) -> Bool {
+        var index = 0
+        if index < bytes.count, bytes[index] == 45 { index += 1 }
+        guard index < bytes.count else { return false }
+        if bytes[index] == 48 {
+            index += 1
+        } else {
+            guard (49...57).contains(bytes[index]) else { return false }
+            repeat { index += 1 } while index < bytes.count && (48...57).contains(bytes[index])
+        }
+        if index < bytes.count, bytes[index] == 46 {
+            index += 1
+            let start = index
+            while index < bytes.count && (48...57).contains(bytes[index]) { index += 1 }
+            guard index > start else { return false }
+        }
+        if index < bytes.count, bytes[index] == 69 || bytes[index] == 101 {
+            index += 1
+            if index < bytes.count, bytes[index] == 43 || bytes[index] == 45 { index += 1 }
+            let start = index
+            while index < bytes.count && (48...57).contains(bytes[index]) { index += 1 }
+            guard index > start else { return false }
+        }
+        return index == bytes.count
     }
 }

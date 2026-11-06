@@ -1,9 +1,10 @@
-import SessionState
+import EventBridge
 import SwiftUI
+import Usage
 
 struct NotchAllowanceStrip: View {
     let store: UsageStore
-    let activeProviders: Set<IntegrationAgent>
+    let activeProviders: Set<Agent>
 
     var body: some View {
         // The parent creates this view only while expanded. With no providers,
@@ -51,10 +52,37 @@ struct NotchAllowanceStrip: View {
                 Image(systemName: "questionmark.circle")
                     .foregroundStyle(.gray)
             }
+            if entry.source?.isStale == true {
+                Text("stale").foregroundStyle(.gray)
+            }
+            if entry.provider == .claude, store.receiverState == .unavailable {
+                Image(systemName: "exclamationmark.triangle").foregroundStyle(.yellow)
+            }
+            if store.intakeLost || store.capacityReached {
+                Image(systemName: "exclamationmark.circle").foregroundStyle(.yellow)
+            }
         }
         .lineLimit(1)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(name), \(spoken)\(entry.accountUnverified ? ", account unverified" : "")")
+        .help(detail(entry))
+        .accessibilityLabel("\(name), \(spoken)\(entry.accountUnverified ? ", account unverified" : "")\(entry.source?.isStale == true ? ", stale" : "")")
+    }
+
+    private func detail(_ entry: NotchAllowanceEntry) -> String {
+        var lines = [entry.provider == .codex ? "Codex allowance" : "Claude Code allowance"]
+        if entry.accountUnverified { lines.append("Account unverified. Anonymous sources stay separate.") }
+        if entry.source?.isStale == true { lines.append("Stale: this reading may no longer apply.") }
+        if entry.provider == .claude {
+            switch store.receiverState {
+            case .listening: lines.append("Quota receiver listening; this does not prove provider delivery.")
+            case .unavailable: lines.append("Quota receiver unavailable. Pause and resume Agents to retry.")
+            case .stopped: lines.append("Quota receiver stopped.")
+            }
+            if store.invalidIntake { lines.append("Invalid quota input was rejected.") }
+        }
+        if store.intakeLost { lines.append("Quota intake overflowed. A later reading is needed.") }
+        if store.capacityReached { lines.append("Quota source capacity reached; new sources were refused.") }
+        return lines.joined(separator: "\n")
     }
 
     private func color(_ color: AllowanceColor) -> Color {

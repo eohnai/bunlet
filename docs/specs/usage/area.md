@@ -26,7 +26,8 @@ Code: usage services in `Sources/SessionState/`, `Sources/NotchPet/AgentUsageCon
 - Implemented: shared usage store, Claude and Codex parsers, bounded read-only Codex protocol/process connection, private usage sender/receiver, and active-provider notch sections.
 - Completed parser/transport tasks: U2a, U2c1, U2c2, U3a, U3b1. Preserve their checked states.
 - U1, U3b2, and U5 have implementation or earlier evidence but remain unchecked in the source spec. Review evidence before changing their states.
-- AgentUsageController now owns Codex reads outside SwiftUI. NotchPanelController still owns the usage store and controller.
+- PetAppController owns the shared usage store. Optional AgentServices owns AgentUsageController and its cancellable Codex reads;
+  the Notch controller receives shared stores and has no provider-I/O lifetime responsibility. Usage is a separate target.
 - UsageReceiver exists, but the current optional app path does not start it. Claude forwarding and app receipt remain unfinished.
 - Claude forwarding and live verification remain incomplete. Installed configuration changes need a reversible plan and explicit approval.
 - Migrate U1, U3a–U3b2, and Codex U5/U6 coverage into codex-allowance. Migrate U2 and Claude U5/U6 coverage into claude-allowance.
@@ -37,5 +38,5 @@ Code: usage services in `Sources/SessionState/`, `Sources/NotchPet/AgentUsageCon
 ## Open questions
 
 - Review U3b2 evidence before ticking it. The usage socket has no crash-stale endpoint recovery.
-- Reconcile stale ownership and build-error descriptions in codex-allowance and claude-allowance during their feature reviews.
-- Settle the five recorded Claude receiver decisions against current code before U2c3. Moving reads out of SwiftUI only partly addresses service ownership.
+- Codex ownership is reconciled in the implementation-only MVP. Reconcile Claude's historical receiver/build-error descriptions during its feature review.
+- Settle the five recorded Claude receiver decisions against current code before U2c3; shared app/store ownership is implemented, while Claude forwarding/receipt is not.

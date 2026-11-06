@@ -18,11 +18,11 @@ struct ClaudeEventAdapterTests {
             let payload = try #require(example["payload"] as? [String: Any])
             let input = try raw(payload)
             let direct = try ClaudeEventAdapter.project(rawHook: input, paneSelector: "fictional-pane")
-            let routed = try HookEnvelopeV1.project(rawHook: input, agent: "claude", paneSelector: "fictional-pane")
+            let routed = try HookEnvelopeV1.project(rawHook: input, agent: .claude, paneSelector: "fictional-pane")
             for envelope in [direct, routed] {
-                #expect(envelope.agent == "claude")
+                #expect(envelope.agent == .claude)
                 #expect(envelope.sessionID == payload["session_id"] as? String)
-                #expect(envelope.hookEventName == payload["hook_event_name"] as? String)
+                #expect(envelope.hookEventName.rawValue == payload["hook_event_name"] as? String)
                 #expect(envelope.turnID == payload["prompt_id"] as? String)
                 #expect(envelope.toolUseID == payload["tool_use_id"] as? String)
                 #expect(envelope.toolName == payload["tool_name"] as? String)
@@ -48,7 +48,7 @@ struct ClaudeEventAdapterTests {
         let before = Int64(Date().timeIntervalSince1970 * 1000)
         let envelope = try ClaudeEventAdapter.project(rawHook: input)
         let after = Int64(Date().timeIntervalSince1970 * 1000)
-        #expect(envelope.version == 1 && envelope.agent == "claude" && envelope.turnID == "prompt")
+        #expect(envelope.version == 1 && envelope.agent == .claude && envelope.turnID == "prompt")
         #expect(envelope.observedAtMs >= before && envelope.observedAtMs <= after)
         #expect(UUID(uuidString: envelope.eventID)?.uuidString.lowercased() == envelope.eventID)
         #expect(envelope.terminal == nil)
@@ -78,7 +78,7 @@ struct ClaudeEventAdapterTests {
     func unverifiedHooksAreRejected(hook: String) throws {
         let input = try raw(["session_id": "fictional", "hook_event_name": hook])
         #expect(throws: BridgeError.invalidMessage) { try ClaudeEventAdapter.project(rawHook: input) }
-        #expect(throws: BridgeError.invalidMessage) { try HookEnvelopeV1.project(rawHook: input, agent: "claude") }
+        #expect(throws: BridgeError.invalidMessage) { try HookEnvelopeV1.project(rawHook: input, agent: .claude) }
     }
 
     @Test func invalidSourceFieldsAreRejectedWithoutGuessing() throws {
@@ -138,7 +138,7 @@ struct ClaudeEventAdapterTests {
             try ClaudeEventAdapter.project(rawHook: input, paneSelector: nil, deadline: 0)
         }
         #expect(throws: BridgeError.timeout) {
-            try HookEnvelopeV1.project(rawHook: input, agent: "claude", paneSelector: nil, deadline: 0)
+            try HookEnvelopeV1.project(rawHook: input, agent: .claude, paneSelector: nil, deadline: 0)
         }
     }
 }

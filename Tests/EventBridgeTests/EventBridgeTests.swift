@@ -34,7 +34,7 @@ struct EventBridgeTests {
         #expect(throws: (any Error).self) { try second.start { _ in Issue.record("second listener") } }
         let envelope = try HookEnvelopeV1.project(
             rawHook: Data("{\"session_id\":\"fictional\",\"hook_event_name\":\"SessionStart\"}".utf8),
-            agent: "codex")
+            agent: .codex)
         try EventBridgeClient(endpoint: endpoint).send(envelope)
         #expect(received.wait(timeout: .now() + 2) == .success)
         server.stop()
