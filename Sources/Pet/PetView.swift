@@ -99,8 +99,8 @@ private enum PetFrameImages {
         let key = (presentation.id.uuidString + ":" + frame) as NSString
         if let cached = cache.object(forKey: key) { return cached }
         let image: NSImage?
-        if let bytes = presentation.data(for: frame) { image = NSImage(data: bytes) }
-        else { image = PetArtwork.url(for: frame).flatMap(NSImage.init(contentsOf:)) }
+        // Decision 0021: every frame comes from the person's imported pack; there is no bundled artwork.
+        image = presentation.data(for: frame).flatMap(NSImage.init(data:))
         guard let image else { return nil }
         let pixels = image.cgImage(forProposedRect: nil, context: nil, hints: nil)
         cache.setObject(image, forKey: key, cost: min(4 * 1024 * 1024, (pixels?.width ?? 1) * (pixels?.height ?? 1) * 4))

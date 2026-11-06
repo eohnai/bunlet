@@ -55,7 +55,8 @@ entries are never selected. Cancellation or a save failure after rename may leav
 copy; the active selection and prior assets remain unchanged. No automatic pack deletion occurs. Selection changes only after successful
 import and preference save. Invalid/cancelled import leaves current selection and assets intact.
 Saved selection stores only generated UUID, never a source path; missing/invalid assets show built-in
-fallback while preserving the saved preference and offering explicit recovery. Small selection, size,
+fallback while preserving the saved preference and offering explicit recovery (replaced 2026-11-06: under [0021](../decisions/0021-use-the-persons-own-pet-image.md),
+missing/invalid assets show no pet and the import controls, and the saved preference is kept). Small selection, size,
 sound and screen-relative placement preferences use UserDefaults. No pack or session data enters Git.
 
 ## Source provenance
@@ -76,7 +77,8 @@ sizes. It validates PNG type, count, alpha and dimensions before bounded decodin
 pack share dimensions. Imported frames are immutable in-memory bytes during playback, with a bounded
 32 MiB/128-entry decoded image cache. Selecting a saved pack revalidates its assets. Failed selection
 retains the active pet. A missing/invalid startup selection temporarily falls back to bundled artwork
-and keeps its saved ID; explicit Use Built-in Pet resets it even if pack storage is unavailable.
+and keeps its saved ID; explicit Use Built-in Pet resets it even if pack storage is unavailable. (replaced 2026-11-06 by [0021](../decisions/0021-use-the-persons-own-pet-image.md):
+no bundled artwork or Use Built-in Pet exists. A missing/invalid startup selection shows no pet and keeps its saved ID.)
 
 
 ## Local-only extension, 2026-11-06

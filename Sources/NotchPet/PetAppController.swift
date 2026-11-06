@@ -57,14 +57,15 @@ final class PetAppController: NSObject, NSApplicationDelegate {
                     self?.islandHiddenForPet = false
                     self?.notch?.setHiddenForPet(false)
                 })
-            panel?.setReaction(self.petReactions.mood, cue: false)
+            panel.setReaction(self.petReactions.mood, cue: false)
             self.pet = panel
             return panel
         },
         .notch: { [weak self] in
             guard let self else { return nil }
             let panel = NotchPanelController(sessionStore: self.sessions, usageStore: self.usage,
-                features: self.features, onOpenFeatures: { [weak self] in self?.showFeatures() }, actions: self.localActions, navigation: self.navigation)
+                features: self.features, onOpenFeatures: { [weak self] in self?.showFeatures() },
+                onOpenSettings: { [weak self] in self?.showSettings() }, actions: self.localActions, navigation: self.navigation)
             self.notch = panel
             return panel
         },

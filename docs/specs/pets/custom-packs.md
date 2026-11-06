@@ -6,7 +6,7 @@ Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-202
 coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
 historical results and unrun acceptance checkboxes retain their original meaning.
 
-Implement decision 0006 manifest/PNG imports, safe private staging, selection rollback and saved preferences. No executable plugins. The later local-only request adds the separate PNG/sheet input features linked below. Settings must expose import, selection and built-in recovery.
+Implement decision 0006 manifest/PNG imports, safe private staging, selection rollback and saved preferences. No executable plugins. The later local-only request adds the separate PNG/sheet input features linked below. Settings must expose import, selection and built-in recovery (replaced 2026-11-06: [0021](../../decisions/0021-use-the-persons-own-pet-image.md) removes the built-in pet, so recovery is choosing or importing another pet).
 
 The [pet workflow contract](../../contracts/pet-workflows.md) fixes the resource limits, fallback and failure rules before coding. Source obligations are P1–P4/P7 and the relevant P8/R1–R4 portions from the source specification. Preserve original checkboxes and historical evidence. No tests/builds/native checks are requested during this run.
 

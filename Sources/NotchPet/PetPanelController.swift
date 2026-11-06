@@ -11,9 +11,10 @@ private final class PetSurfaceState {
     var cue = false
     var dragging = false
     var size: Double
-    var presentation: PetPresentation
+    /// Nil until the person's saved or newly imported image loads (decision 0021).
+    var presentation: PetPresentation?
 
-    init(size: Double, presentation: PetPresentation) {
+    init(size: Double, presentation: PetPresentation?) {
         self.size = size
         self.presentation = presentation
     }
@@ -34,9 +35,13 @@ private struct PetSurfaceView: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            PetView(presentation: state.presentation, pose: state.pose, isVisible: visible,
-                    isSleeping: sleeping, onFrameImage: onFrame)
-                .frame(width: state.size, height: state.size)
+            if let presentation = state.presentation {
+                PetView(presentation: presentation, pose: state.pose, isVisible: visible,
+                        isSleeping: sleeping, onFrameImage: onFrame)
+                    .frame(width: state.size, height: state.size)
+            } else {
+                Color.clear.frame(width: state.size, height: state.size)
+            }
             if state.mood != .idle {
                 Label(state.mood.label, systemImage: state.mood.symbol)
                     .font(.caption2).lineLimit(1).minimumScaleFactor(0.7)
@@ -130,10 +135,9 @@ final class PetPanelController: AppFeatureService {
     private var localMouseMonitor: Any?
     var isDetached: Bool { detached }
 
-    init?(size: Double, defaults: UserDefaults = .standard, presentation selected: PetPresentation? = nil,
-          onDragBegan: @escaping () -> Void = {},
-          returnTarget: @escaping () -> CGRect? = { nil }, onReturn: @escaping () -> Void = {}) {
-        guard let presentation = selected ?? PetArtwork.presentation() else { return nil }
+    init(size: Double, defaults: UserDefaults = .standard, presentation: PetPresentation? = nil,
+         onDragBegan: @escaping () -> Void = {},
+         returnTarget: @escaping () -> CGRect? = { nil }, onReturn: @escaping () -> Void = {}) {
         preferences = PetPreferences(defaults: defaults)
         detached = preferences.placement?.detached ?? false
         self.onDragBegan = onDragBegan
@@ -142,7 +146,7 @@ final class PetPanelController: AppFeatureService {
         state = PetSurfaceState(size: size, presentation: presentation)
         panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: size, height: size + 30),
                         styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        panel.title = presentation.name
+        panel.title = presentation?.name ?? "Pet"
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false
@@ -173,7 +177,8 @@ final class PetPanelController: AppFeatureService {
     }
 
     func show() {
-        if running && !sleeping {
+        // Without artwork there is nothing to show. Settings leads the person to import an image.
+        if running && !sleeping && state.presentation != nil {
             panel.orderFrontRegardless()
             updateMousePassThrough()
         }
@@ -238,6 +243,7 @@ final class PetPanelController: AppFeatureService {
         cancelCue()
         state.presentation = presentation
         panel.title = presentation.name
+        show()
     }
 
     func setReaction(_ mood: PetMood, cue: Bool) {
@@ -353,7 +359,7 @@ final class PetPanelController: AppFeatureService {
             "phase": phase,
             "presentation": "pet",
             "petVisible": panel.isVisible,
-            "artworkLoaded": PetArtwork.url(for: "white-lionhead-idle").flatMap(NSImage.init(contentsOf:)) != nil,
+            "artworkLoaded": state.presentation != nil,
             "size": panel.frame.width,
             "windowNumber": panel.windowNumber,
             "agentServicesEnabled": agentsEnabled,

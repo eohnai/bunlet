@@ -141,23 +141,8 @@ def validate_app(entries: dict, payloads: dict[str, bytes]) -> None:
             and info.get("CFBundleIdentifier") == "local.notchpet.dev", "invalid app plist identity")
     require(info.get("CFBundleDisplayName") == "Bunlet" and info.get("CFBundleName") == "Bunlet",
             "invalid app display name")
-    resource_root = f"{APP}/Contents/Resources/NotchPet_Pet.bundle"
-    manifest = payloads.get(resource_root + "/manifest.json")
-    require(manifest is not None and len(manifest) <= MAX_MANIFEST, "missing Pet manifest")
-    pet = json_object(manifest)
-    animations = pet.get("animations")
-    require(type(pet.get("version")) is int and pet["version"] == 1
-            and type(animations) is dict and "idle" in animations and 1 <= len(animations) <= 64,
-            "invalid Pet manifest")
-    for animation in animations.values():
-        require(type(animation) is dict, "invalid Pet animation")
-        frames = animation.get("frames")
-        require(type(frames) is list and 1 <= len(frames) <= 256, "invalid Pet frames")
-        for frame in frames:
-            require(type(frame) is str and re.fullmatch(r"[A-Za-z0-9_-]{1,128}", frame) is not None,
-                    "invalid Pet resource name")
-            png = payloads.get(f"{resource_root}/{frame}.png", b"")
-            require(png.startswith(b"\x89PNG\r\n\x1a\n") and len(png) >= 24, "missing or invalid Pet artwork")
+    # Decision 0021: the app ships no built-in pet, so no Pet resource bundle is expected.
+    require(f"{APP}/Contents/Resources/NotchPet_Pet.bundle" not in entries, "unexpected built-in Pet bundle")
 
 
 def source_entries(app: Path) -> tuple[dict, dict[str, bytes]]:

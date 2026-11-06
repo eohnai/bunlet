@@ -134,7 +134,13 @@ struct AppSettingsView: View {
                 .foregroundStyle(.secondary)
             featureRows
         case .pet:
-            if features.installed.contains(.pet), let presentation = actions.petLibrary()?.presentation ?? PetArtwork.presentation() {
+            if features.installed.contains(.pet), let library = actions.petLibrary(), library.presentation == nil {
+                // Decision 0021: no built-in pet. The page leads with importing the person's own image.
+                Text("Choose your pet").font(.title2.weight(.semibold))
+                Text("Pick a transparent PNG of your own. Bunlet animates it locally.")
+                    .foregroundStyle(.secondary)
+                PetLibraryView(library: library)
+            } else if features.installed.contains(.pet), let presentation = actions.petLibrary()?.presentation {
                 PetSettingsView(presentation: presentation, size: petSize, firstUse: firstUse,
                     isVisible: isVisible, isSleeping: isSleeping,
                     onSizeChange: {
@@ -156,7 +162,7 @@ struct AppSettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
                 Button("Show Pet", action: actions.showPet)
                 Button("Return Pet", action: actions.returnPet)
-            } else { Text("Pet artwork is unavailable. Your saved pet preferences are unchanged.") }
+            } else { Text("Pet settings are unavailable. Your saved pet preferences are unchanged.") }
         case .notch:
             Text("Inspect sessions and requests in the island without opening a separate app window.")
             Button("Show Notch", action: actions.showNotch)

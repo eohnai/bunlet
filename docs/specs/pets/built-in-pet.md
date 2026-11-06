@@ -1,6 +1,6 @@
 # Built-in pet
 
-Status: implementation merged in PR #16; feature acceptance remains deferred.
+Status: replaced by [0021](../../decisions/0021-use-the-persons-own-pet-image.md) on 2026-11-06. The rabbit artwork and Use Built-in Pet are removed. Earlier tasks and evidence below keep their original meaning. `scripts/check-standalone-pet.py` still expects the built-in pet and needs rework before it runs again.
 
 
 Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
@@ -67,6 +67,7 @@ See the [pets area](area.md) for later detachment, custom artwork, and agent rea
 
 ## Decisions
 
+- [0021: Use the person's own image as the pet, with no built-in pet](../../decisions/0021-use-the-persons-own-pet-image.md). Accepted 2026-11-06. Replaces this spec's built-in artwork.
 - [0013: Use one app with an independent pet module](../../decisions/0013-separate-standalone-pet-scope.md). Accepted on 2026-10-30 for pet-first use and optional session-driven features.
 - [0001: Retain SwiftUI and AppKit](../../decisions/0001-use-swiftui-and-appkit.md).
 - [0002: Keep shared state and service ownership explicit](../../decisions/0002-use-mvvm-with-services.md).

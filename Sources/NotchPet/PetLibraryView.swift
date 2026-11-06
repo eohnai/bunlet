@@ -6,11 +6,14 @@ struct PetLibraryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Picker("Pet artwork", selection: Binding(get: { library.selectedID }, set: { library.select($0) })) {
-                Text("White lionhead rabbit (built-in)").tag("builtin")
-                ForEach(library.choices) { choice in Text(choice.name).tag(choice.id) }
+            if !library.choices.isEmpty {
+                Picker("Pet artwork", selection: Binding(get: { library.selectedID },
+                                                         set: { if let id = $0 { library.select(id) } })) {
+                    if library.selectedID == nil { Text("None").tag(String?.none) }
+                    ForEach(library.choices) { choice in Text(choice.name).tag(Optional(choice.id)) }
+                }
+                .disabled(library.busy)
             }
-            .disabled(library.busy)
             HStack {
                 Button("Animate PNG…", action: library.choosePNG).disabled(library.busy)
                 Button("Import Sprite Sheet…", action: library.chooseSpriteSheet).disabled(library.busy)
@@ -19,7 +22,6 @@ struct PetLibraryView: View {
                 .font(.caption).foregroundStyle(.secondary)
             HStack {
                 Button("Import Pet Pack…", action: library.chooseImport).disabled(library.busy)
-                Button("Use Built-in Pet") { library.select("builtin") }.disabled(library.busy)
                 if library.busy {
                     ProgressView().controlSize(.small)
                     Button("Cancel", action: library.cancel)
