@@ -352,3 +352,13 @@ compiler-generated String/actor function conversion maps to the picker's actor-i
 Hypothesis: spelling Binding's setter as an explicit closure avoids that conversion thunk. This one-line,
 behavior-equivalent workaround is the third scoped correction; no toolchain/CI gate or test is changed.
 Hosted CI is the observation for this hypothesis; no local build/test is authorized or run.
+
+Run 42191575948 (2bef0a9) passes Build, packaged Helper, Contract and Workflow. The setter workaround
+avoids the Swift IRGen crash. Hosted Tests execute 194 functions: 189 pass, five fail (16 assertions).
+Full tests artifact identifies stale fixtures/expectations: pre-start session timestamps fail the new
+intake cutoff, quota fixture IDs fail the documented Claude source prefix/hash shape, receiver failure
+is expected to disable now-independent usage, and the repaired buffer produces an unexpected success
+inside an old withKnownIssue annotation. Existing tests are aligned with the accepted contracts only:
+post-start fictional event clocks, valid fictional source IDs, explicit independent-service teardown,
+and ordinary required oversize-datagram delivery. Negative inputs, old-generation rejection, notice
+retention and callback/receipt assertions are retained. No new tests or local test invocation added.

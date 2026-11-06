@@ -82,7 +82,7 @@ struct FeatureRuntimeTests {
         let service = AgentServices(sessionStore: sessions, usage: usage, startObserving: { handler in
             handlers.append(handler)
             return { receiverStops += 1 }
-        }, wall: { 1_000_100 }, monotonic: { 1_100_000_000 })
+        }, wall: { 1_000_000 }, monotonic: { 1_000_000_000 })
         service.start()
         service.start()
         #expect(handlers.count == 1 && usage.starts == 1)
@@ -109,7 +109,7 @@ struct FeatureRuntimeTests {
         let service = AgentServices(sessionStore: sessions, usage: Service(), startObserving: { handler in
             deliver = handler
             return {}
-        }, wall: { 1_000_100 }, monotonic: { 1_100_000_000 })
+        }, wall: { 1_000_000 }, monotonic: { 1_000_000_000 })
         service.start()
         let handler = try #require(deliver)
         handler([try observation(1), try observation(2, hook: "PermissionRequest", request: true)], false)
@@ -123,13 +123,14 @@ struct FeatureRuntimeTests {
         #expect(sessions.sessions.first?.responseReadyAtMs == nil)
     }
 
-    @Test func receiverFailureDoesNotStartUsage() {
+    @Test func receiverFailureLeavesUsageIndependent() {
         struct Failed: Error {}
         let usage = Service()
         let service = AgentServices(usage: usage, startObserving: { _ in throw Failed() })
         service.start()
-        #expect(usage.starts == 0)
+        #expect(usage.starts == 1)
         service.stop()
+        #expect(usage.stops == 1)
     }
 
     @Test func failedFactoriesAreReportedAndCanRecover() {

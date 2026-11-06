@@ -37,7 +37,7 @@ struct UsageReceiverTests {
         let receiver = UsageReceiver(endpointURL: url)
         defer { receiver.stop(); try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         try receiver.start { value in received.withLock { $0.append(value) } }
-        let value = try ClaudeUsageProvider.parse(Data(#"{"rate_limits":{"five_hour":{"used_percentage":25}}}"#.utf8), sourceID: "fixture", receivedAtMs: 0)
+        let value = try ClaudeUsageProvider.parse(Data(#"{"rate_limits":{"five_hour":{"used_percentage":25}}}"#.utf8), sourceID: UsageValidation.claudeSourcePrefix + String(repeating: "a", count: 64), receivedAtMs: 0)
         #expect(UsageDelivery.send(value, endpointURL: url))
         for _ in 0..<100 where received.withLock({ $0.isEmpty }) { try await Task.sleep(for: .milliseconds(10)) }
         let values = received.withLock { $0 }
@@ -55,18 +55,15 @@ struct UsageReceiverTests {
                      Data(#"{"provider":"claude","sourceID":"a","receivedAtMs":0,"windows":[{"id":"x","usedPercent":101}]}"#.utf8)] {
             #expect(rawSend(data, to: url))
         }
-        // The receiver keeps the 4,096-byte default receive buffer, so the kernel refuses this datagram
-        // before the receiver's 8,192-byte check can run. See the usage datagram limit in docs/STATUS.md.
-        withKnownIssue("the receiver cannot be sent a datagram over its 8,192-byte limit") {
-            #expect(rawSend(Data(repeating: 32, count: 8193), to: url))
-        }
+        // The enlarged receiver buffer lets this reach the receiver's own payload-size check.
+        #expect(rawSend(Data(repeating: 32, count: 8193), to: url))
         // The receiver reads datagrams in order, so this valid one arrives after every rejected one.
         // Waiting for it replaces a fixed sleep that a slow receiver could pass without checking anything.
         let final = try ClaudeUsageProvider.parse(Data(#"{"rate_limits":{"five_hour":{"used_percentage":25}}}"#.utf8),
-                                                  sourceID: "final-fixture", receivedAtMs: 0)
+                                                  sourceID: UsageValidation.claudeSourcePrefix + String(repeating: "b", count: 64), receivedAtMs: 0)
         #expect(UsageDelivery.send(final, endpointURL: url))
         for _ in 0..<200 where received.withLock({ $0.isEmpty }) { try await Task.sleep(for: .milliseconds(10)) }
-        #expect(received.withLock { $0.map(\.sourceID) } == ["final-fixture"])
+        #expect(received.withLock { $0.map(\.sourceID) } == [final.sourceID])
     }
 
     @Test func unsafeDirectoryAndExistingFilesArePreserved() throws {

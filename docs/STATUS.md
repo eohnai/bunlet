@@ -2,19 +2,19 @@
 
 ## Now
 
-PR #16 includes all six commits of PR #15 plus the full MVP. The user authorized merging #16 and closing #15. Darwin interop errors were corrected in 38678ca. Explicit property types in 7168af5 cleared circular inference. Run 42191161959 now crashes Swift 6.3.2 IRGen in PetLibraryView; a one-line explicit Binding setter closure is the narrow workaround awaiting hosted confirmation. Neither PR has been merged or closed yet. The source-only audit remains in `docs/goals/full-mvp-implementation-log.md`.
+PR #16 includes all six commits of PR #15 plus the full MVP. The user authorized merging #16 and closing #15. Darwin interop errors were corrected in 38678ca. Explicit property types in 7168af5 cleared circular inference. Setter workaround 2bef0a9 clears the compiler crash: run 42191575948 passes Build/Helper/Contract/Workflow. Five existing tests retain outdated fixture/contract expectations; compatibility updates preserve their lifecycle/rejection checks and await hosted confirmation. Neither PR has been merged or closed yet. The source-only audit remains in `docs/goals/full-mvp-implementation-log.md`.
 Monitoring, quotas, provider actions and pet reactions require no terminal integration. Any chosen running terminal can be activated; optional exact-pane focus uses explicit user-linked iTerm2 public Apple Events. No Otty prerequisite, AI workflow or company code was added.
 Local tests/builds/type checks/probes/launches/captures/runtime qualification remain NOT RUN. Hosted CI did run after the authorized push and failed compilation; do not call that result unverified or passing. Unrelated FM7/editor/CI drafts are preserved.
 
 ## Next
 
-1. Push the targeted Swift/C compiler corrections and inspect hosted CI before the authorized PR #16 merge.
+1. Push the fixture/expectation compatibility updates and inspect hosted CI before the authorized PR #16 merge.
 2. After #16 merges, close #15 if GitHub has not already marked it merged.
 3. Keep local testing and deferred FM7/CI/telemetry work stopped; all runtime acceptance remains unrun.
 
 ## Blockers
 
-- `gh run view 42189628912 --repo eohnai/notch-pet --job 127798174265 --log-failed` shows `acl_t` versus raw-pointer and ACL enum versus Int32 errors in HookFiles/PetPackDirectory, plus String-to-C-string and missing `_NSGetEnviron` errors in NotchPetStatusLine. Darwin corrections compiled in run 42190555585; the full build artifact instead reports circular inference at PetAppController.swift:23/26 with downstream unresolved members/menu expressions. Those property types cleared compilation diagnostics in 42191161959, which instead crashes swift-frontend in PetLibraryView with signal 6 / SmallVector overflow. Explicit setter-closure workaround awaits hosted confirmation. No merge bypass is authorized.
+- `gh run view 42189628912 --repo eohnai/notch-pet --job 127798174265 --log-failed` shows `acl_t` versus raw-pointer and ACL enum versus Int32 errors in HookFiles/PetPackDirectory, plus String-to-C-string and missing `_NSGetEnviron` errors in NotchPetStatusLine. Darwin corrections compiled in run 42190555585; the full build artifact instead reports circular inference at PetAppController.swift:23/26 with downstream unresolved members/menu expressions. Those property types cleared compilation diagnostics in 42191161959, which instead crashes swift-frontend in PetLibraryView with signal 6 / SmallVector overflow. Run 42191575948 confirms the setter workaround and build/helper checks pass; Tests report 189 passed and five failed from stale clocks/source IDs/receiver-coupling/buffer known-issue expectations. Compatibility updates await hosted confirmation. No merge bypass is authorized.
 
 - Implementation-only MVP is complete; compiler correctness, provider compatibility and native/runtime acceptance remain unverified. Pet reactions, movement, imports and preference recovery now have source paths; native behavior remains unverified. Claude actions now have concrete adapter, transport, controls and guarded installation source paths; no installed/end-to-end integration was exercised. Documented support is unverified; no compiler/live/native acceptance or runtime qualification is established.
 - Reused `633b4d0` refactor and adapted `2925880` planner source around existing drafts. Original spec checkboxes remain open where their checks were not run against this changed checkout. Do not count upstream historical verification as fresh local evidence.
