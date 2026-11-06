@@ -1,6 +1,6 @@
 # 0013: Use one app with an independent pet module
 
-- Status: accepted
+- Status: accepted; pet-first setup superseded by 0020
 - Date: 2026-10-30
 
 ## Context

@@ -31,17 +31,20 @@ enum FeaturePreferences {
     static let monitoringKey = "agentMonitoringEnabled"
     static let maximumBytes = 4_096
 
+    /// Decision 0020: a fresh install starts with the island and its agent controls. Pet is installed from Settings.
+    static let freshDefault: Set<AppFeature> = [.notch, .agents]
+
     static func read(from defaults: UserDefaults) -> FeaturePreferenceRead {
         if let raw = defaults.object(forKey: key) { return decode(raw) }
         guard let legacy = defaults.object(forKey: monitoringKey) else {
-            return .ready([.pet], origin: .freshDefault)
+            return .ready(freshDefault, origin: .freshDefault)
         }
         // NSNumber also bridges integers to Bool; only an actual saved boolean is consent.
         guard let value = legacy as? NSNumber, CFGetTypeID(value) == CFBooleanGetTypeID() else {
             return .recoveryRequired(.invalidLegacyValue)
         }
         return value.boolValue ? .ready(Set(AppFeature.allCases), origin: .legacyOptIn)
-            : .ready([.pet], origin: .freshDefault)
+            : .ready(freshDefault, origin: .freshDefault)
     }
 
     static func save(_ installed: Set<AppFeature>, to defaults: UserDefaults) -> FeaturePreferenceSaveResult {

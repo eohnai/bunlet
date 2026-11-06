@@ -10,7 +10,7 @@ struct FeaturePreferencesTests {
         defer { defaults.removePersistentDomain(forName: suite) }
         let values: [Any?] = [nil, false, true, "true", 1, 0]
         let expected: [FeaturePreferenceRead] = [
-            .ready([.pet], origin: .freshDefault), .ready([.pet], origin: .freshDefault),
+            .ready([.notch, .agents], origin: .freshDefault), .ready([.notch, .agents], origin: .freshDefault),
             .ready(Set(AppFeature.allCases), origin: .legacyOptIn),
             .recoveryRequired(.invalidLegacyValue), .recoveryRequired(.invalidLegacyValue),
             .recoveryRequired(.invalidLegacyValue)

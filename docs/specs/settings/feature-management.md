@@ -17,7 +17,8 @@ FM1–FM7 are linked by the [modular-features goal](../../goals/modular-features
 ## Done when
 
 - Settings has a Features destination with an icon, name, one-line purpose, installation state and Install/Uninstall action for each feature.
-- A fresh installation starts with Pet only. It starts no session/usage receiver, agent process, configuration probe or refresh loop.
+- A fresh installation starts with Pet only. It starts no session/usage receiver, agent process, configuration probe or refresh loop. (replaced 2026-11-06)
+- A fresh installation starts with Notch and Agents under [0020](../../decisions/0020-start-with-notch-and-agents.md). Pet is installed from Features. Agents edits no provider configuration and starts no monitoring until the person turns it on.
 - Existing explicit monitoring preferences migrate without installing hooks, inspecting provider configuration or silently changing the user's opt-in.
 - Pet-only use creates no Notch controller and supports useful desktop placement without a physical notch. Pet preferences survive reinstall.
 - Notch can be added or removed without starting or stopping agent monitoring. Agents can run while either visual surface is absent.
@@ -81,7 +82,7 @@ The catalog contains stable IDs for `pet`, `notch` and `agents`; views render th
 Factories must remain deferred: listing a feature never constructs its controller or starts its services.
 
 When no availability record exists, preserve an explicitly enabled legacy `agentMonitoringEnabled` preference by installing Pet,
-Notch and Agents and retaining that opt-in. Otherwise use Pet only. FM1 only computes and stores choices; it starts no runtime work.
+Notch and Agents and retaining that opt-in. Otherwise use Pet only (replaced 2026-11-06). Under [0020](../../decisions/0020-start-with-notch-and-agents.md), otherwise use Notch and Agents. FM1 only computes and stores choices; it starts no runtime work.
 Malformed/unsupported stored values need a visible recovery state and must never enable Agents by guesswork or destroy the original value.
 Keep feature availability separate from existing runtime monitoring consent. A provider executable on disk is not consent.
 
