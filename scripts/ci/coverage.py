@@ -93,7 +93,13 @@ def normalize_report(report: dict, sources: set[Path]) -> tuple[dict, dict]:
     require(type(report.get("data")) is list and len(report["data"]) == 1, "invalid coverage data set")
     data = report["data"][0]
     require(type(data) is dict and data.keys() == {"files", "totals"}, "unfiltered or malformed coverage data")
-    require(type(data["files"]) is list and len(data["files"]) == len(sources), "missing production file coverage")
+    require(type(data["files"]) is list, "invalid production file coverage")
+    if len(data["files"]) != len(sources):
+        reported = {Path(row["filename"]).resolve() for row in data["files"]
+                    if type(row) is dict and type(row.get("filename")) is str}
+        missing = sorted(path.relative_to(ROOT).as_posix() for path in sources - reported)
+        raise CoverageError("missing production file coverage: " + ", ".join(missing)
+                            + f" (expected {len(sources)}, reported {len(data['files'])})")
     require(type(data["totals"]) is dict, "missing coverage totals")
     seen: set[Path] = set()
     modules: dict = {}

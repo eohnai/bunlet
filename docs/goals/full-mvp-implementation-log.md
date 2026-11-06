@@ -370,3 +370,10 @@ adds NotchPetStatusLine and NotchPetActionHook objects to both LLVM exports and 
 actual binaries. Every-file normalization and all evidence gates remain intact; no minimum percentage
 is introduced or removed. This is package-target alignment, not a CI overhaul. Hosted confirmation
 is pending; no local suite, helper, app or provider was run. PR #16/#15 remain open until merge succeeds.
+
+Run 42192807798 (a806517) again passes 194/194 tests and Build, but coverage still reports missing
+production files. Adding the helper objects was necessary but not sufficient; do not assume another
+binary list change or exclude any source. The saved coverage-tool.log records only a successful LLVM
+export, while its temporary JSON is removed on failure. Add exact missing relative filenames and counts
+to the existing validation error; preserve its failure behavior. This is diagnostic evidence gathering,
+not another speculative coverage fix. No local reproduction/build/test is run.
