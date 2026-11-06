@@ -1,3 +1,4 @@
+import AgentActions
 import AppKit
 import Darwin
 import EventBridge
@@ -18,6 +19,8 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         .flatMap { UserDefaults(suiteName: String(cString: $0)) } ?? .standard
     private let sessions = SessionStore()
     private let usage = UsageStore()
+    private let actionStore = ActionStore()
+    @ObservationIgnored private lazy var localActions = LocalActionController(store: actionStore, sessions: sessions)
     private(set) var codexSetup: ProviderSetupController?
     private(set) var claudeSetup: ProviderSetupController?
     @ObservationIgnored private(set) lazy var providerMonitoring = ProviderMonitoringModel(defaults: defaults) { [weak self] enabled in
@@ -42,13 +45,13 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         .notch: { [weak self] in
             guard let self else { return nil }
             let panel = NotchPanelController(sessionStore: self.sessions, usageStore: self.usage,
-                features: self.features, onOpenFeatures: { [weak self] in self?.showFeatures() })
+                features: self.features, onOpenFeatures: { [weak self] in self?.showFeatures() }, actions: self.localActions)
             self.notch = panel
             return panel
         },
         .agents: { [weak self] in
             guard let self else { return nil }
-            let service = AgentServices(sessionStore: self.sessions, usageStore: self.usage, enabledProviders: self.providerMonitoring.enabledProviders)
+            let service = AgentServices(sessionStore: self.sessions, usageStore: self.usage, enabledProviders: self.providerMonitoring.enabledProviders, actions: self.localActions)
             self.agents = service
             return service
         }

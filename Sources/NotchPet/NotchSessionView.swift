@@ -1,3 +1,4 @@
+import AgentActions
 import SessionState
 import SwiftUI
 import Usage
@@ -10,6 +11,8 @@ struct NotchSessionView: View {
     let headerHeight: CGFloat
     let notchWidth: CGFloat
     let onExpand: (Bool) -> Void
+    var actions: LocalActionController? = nil
+    var beginInput: () -> Void = {}
     @State private var expanded = false
     @State private var selection: SessionKey?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -63,6 +66,13 @@ struct NotchSessionView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Sessions").font(.headline)
+                            if let actions {
+                                Text(actions.status).font(.caption).foregroundStyle(.secondary)
+                                if actions.store.capacityReached {
+                                    Text("Local response history capacity reached. Return to the existing session for new requests.")
+                                        .font(.caption).foregroundStyle(.orange)
+                                }
+                            }
                             if let issue = sessionStore.capacityIssue {
                                 Text(issue == .sessionCapacity
                                      ? "Session capacity reached. New sessions are not being observed. Existing requests are retained."
@@ -128,7 +138,18 @@ struct NotchSessionView: View {
                                      presentation: NotchPresentation.card(for: snapshot, among: sessionStore.sessions),
                                      nowMs: nowMs, selection: $selection)
                     ForEach(snapshot.pendingRequests, id: \.eventID) { request in
-                        NotchRequestCard(request: request)
+                        NotchRequestCard(request: request, hasLocalResponse: actions?.store.snapshots.contains {
+                            $0.observedRequestID == request.eventID &&
+                                SessionKey(agent: $0.offer.provider, sessionID: $0.offer.sessionID) == snapshot.key &&
+                                $0.phase == .available
+                        } == true)
+                    }
+                    if let actions {
+                        ForEach(actions.store.snapshots.filter {
+                            SessionKey(agent: $0.offer.provider, sessionID: $0.offer.sessionID) == snapshot.key
+                        }) { action in
+                            LocalActionView(snapshot: action, controller: actions, beginInput: beginInput)
+                        }
                     }
                 }
             }

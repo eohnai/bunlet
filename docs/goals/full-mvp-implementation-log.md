@@ -3,7 +3,7 @@
 - Goal file: goals/full-mvp-implementation.md
 - Created: 2026-11-06 11:47 +08
 - Turn limit: 60
-- Status: active since 2026-11-06; execution turn 2
+- Status: active since 2026-11-06; execution turn 3
 - Scope: all nine source criteria; four milestones are not separate completion goals
 - Verification: tests, builds, runtime checks and provider qualification NOT RUN by user instruction
 - Branch/base: feat/codex-mvp / 8707bdf; current checkout only
@@ -15,6 +15,7 @@
 |---|---|---|---|
 | 1 | 2026-11-06 12:11 +08 | Source 2 implemented; 1, 3–9 incomplete. Acceptance unverified. | Started the full goal. Added bounded Claude forwarding executable and packaging; session-hashed source projection; per-socket buffers; private receiver lease/refused-socket recovery; Claude-only validation; bounded inbox/app receipt; source expiry and loss/health feedback; Codex retry; session capacity/overflow UI. See source audit below. Coherent local source commit being saved; hash recorded after creation. Tests/builds/runtime/qualification NOT RUN. |
 | 2 | 2026-11-06 13:20 +08 | Sources 1–3 implemented; 4–9 incomplete. Acceptance unverified. | Previous turn classified as progress (`299d021`). Generalized guarded provider setup/recovery; concrete documented release/policy bindings; native controls for both agents; independent consent/cutoffs/cancellation; separate owned Claude status-line wrapping/restoration and cross-scope recovery. Corrected Codex launch arguments against official stdio documentation without executing a probe. Relevant source audit below. Preparing a scoped local milestone commit. Tests/builds/runtime/qualification NOT RUN. |
+| 3 | 2026-11-06 14:43 +08 | Sources 1–3 implemented; 4 partial; 5–9 incomplete. Acceptance unverified. | Previous turn was progress (`32f7b0f`). Added separate Claude permission/question/Stop-feedback adapters, bounded private interactive IPC/helper and inbox, transient action/draft/receipt state, app-owned lifecycle/validation and native composers. Guarded interactive-hook setup/removal is still missing; criterion 4 remains incomplete. All tests/builds/runtime/qualification NOT RUN. |
 
 Preparation is not an execution turn. Continue numbering from the latest execution row after activation.
 Each row must account for all nine criteria and separate missing source implementation from unverified behavior.
@@ -135,6 +136,67 @@ Generic source files replace the old Codex-only setup type/file names. This is a
 same ownership/file transaction, not a copied independent Claude writer. Unrelated FM7/editor/CI drafts
 remain preserved in the working copy and excluded from staging via index-only clean snapshots of the
 three mixed app files and STATUS. The full goal remains active after this milestone.
+
+Saved implementation commit: `32f7b0f` — `feat: implement both provider setups and independent monitoring`.
+Source criteria 1–3 are implemented to the documented contracts; 4–9 remain incomplete. Tests, builds,
+runtime checks and qualification NOT RUN. Next: concrete local action channels and controls.
+
+## Turn 3 source audit
+
+1. **Implemented in source, unverified — provider setup.** `ProviderSetupService.execute` retains the
+   documented-support branch (`.documented(version: version, helperAvailable: true)`) and guarded writer.
+   This turn does not add the new action scope to that writer: installing/removing interactive hooks
+   remains explicitly incomplete, separate from the existing lifecycle/quota scope finding.
+2. **Implemented in source, unverified — sessions.** `SessionStore.suspendMonitoring(agent:)` still
+   filters `key.agent == agent && !record.terminal`, retaining unconfirmed notices and ended records.
+   The new action store reads those snapshots and never changes lifecycle/request truth.
+3. **Implemented in source, unverified — quotas.** `ClaudeStatusLinePlanner` still captures the original
+   field and verifies `document.rawValue(at: field) == owner.installed` before restoration. Existing
+   Codex/Claude quota source paths remain separate from interactive response transport.
+4. **Partial — concrete adapters/service/UI; guarded setup missing.**
+   - `ClaudeHookActionAdapter` selects PermissionRequest, PreToolUse/AskUserQuestion and Stop from
+     bounded input. Actual encoders return behavior allow/deny without permission rules, original
+     question input plus `updated["answers"]`, and `object = ["decision": "block", "reason": text]`.
+     Stop replies continue the same prompt as hook feedback; only a live 60-second window is supported,
+     with stop_hook_active rejected. Codex remains unsupported; no fake existing-session channel.
+   - The packaged `NotchPetActionHook --agent claude` projects an offer, waits on actions-v1.sock,
+     validates a single decision against that offer, writes provider stdout, then acknowledges the write.
+     Silent fallback emits no decision on timeout/cancel/app loss. The observer helper is unchanged.
+   - `ActionSocketIO` reuses the existing private/same-user/bounded stream primitives. The listener
+     owns a separate lock/endpoint and recovers only refused owned sockets. ActionTransport uses
+     DispatchSource events and one-shot deadlines: 32 sockets, no idle user-wait polling. ActionInbox
+     caps queued main-actor events at 128; overflow closes channels rather than losing authority.
+   - `ActionStore.receive/reconcile/prepare/acknowledge` bind offer UUID, provider/session/turn and
+     observed request identity. Ambiguity, competing offers, stale evidence and prior dispatched
+     notices disable submission. Drafts are bounded and offer-owned; oversized drafts are visibly
+     trimmed and need an edit before Send. No uncertain delivery can replay.
+   - `LocalActionController.send` calls `refreshEvidence()` immediately before `store.prepare` and
+     `transport.respond`. Pause/stop/staleness closes capabilities; helper receipts never change
+     SessionStore or claim provider acceptance. App-owned AgentServices starts/stops this controller.
+   - `LocalActionView` provides details plus Approve once/Deny, question options/custom answers, and
+     an explicit Send follow-up composer. NotchSessionView matches these to their exact session.
+     Only explicit Respond invokes native `beginInput`; incoming offers never activate the app.
+   - Missing: guarded install/check/remove of the three interactive groups, Settings/disconnect
+     integration and the complete action audit. These native controls are not counted as full delivery.
+5. **Incomplete — pet reactions.** `PetPanelController` still builds PetView from presentation,
+   visibility and sleep only; no session adapter or action reuse on the pet surface exists.
+6. **Incomplete — pet movement.** `PetPanelController` still sets `panel.ignoresMouseEvents = true`.
+   No dragging, island hide/overlap or menu Return Pet path.
+7. **Incomplete — custom packs/preferences.** `PetPreferences` still persists only `pet.size`.
+   Asset validation/import, selection, sound and screen-relative placement remain absent.
+8. **Partial, incomplete — desktop/navigation.** `NotchPanelController.beginInput` explicitly activates
+   and makes the ActionNotchPanel key only on Respond; this enables native composers without incoming
+   focus theft. Full terminal adapters, keyboard/focus recovery and display/Spaces recovery remain.
+9. **Incomplete — full handoff.** Added action contract and four feature records, architecture/README
+   updates and D10 implementation addendum distinguishing documented from runtime-qualified support.
+   Original A1–A8 and native/live acceptance remain open. No full 9/9 or release claim.
+
+All tests, builds/type checks, app/helper launches, provider probes, event injections, captures, installed
+configuration access and runtime qualification: NOT RUN. Only repository inspection and primary
+Claude documentation were used. No credentials/transcripts were read, and no trust/settings were changed.
+The helper's concrete interface is implemented, but its guarded configuration path is the next source unit.
+Unrelated FM7/editor/CI drafts remain excluded from staging; the mixed app-controller/status snapshots
+are staged without discarding those working-copy edits. The full goal stays active after this save.
 
 ## Final result
 

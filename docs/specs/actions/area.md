@@ -1,7 +1,7 @@
 # Actions
 
 Owns explicit local permission decisions, structured answers, and follow-up replies to verified agent targets.
-Code: future shared action services, provider adapters, and notch/pet action controls.
+Code: `Sources/AgentActions/`, `Sources/NotchPetActionHook/` and native action service/controls. Pet controls remain future work.
 
 ## Specs
 
@@ -29,4 +29,4 @@ Code: future shared action services, provider adapters, and notch/pet action con
 
 ## Open questions
 
-- Supported response channels and attachment to existing local sessions remain unverified. Do not choose a channel before A1–A2 evidence.
+- Initial Claude channels now have primary documentation and source implementation under the full MVP verification waiver. Runtime behavior remains unverified; guarded action setup/removal and complete source audit remain incomplete. Codex response channels remain unsupported.

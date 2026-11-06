@@ -9,8 +9,9 @@ final class NotchPanelController: AppFeatureService {
     private let panel: NSPanel
 
     init(sessionStore: SessionStore, usageStore: UsageStore,
-         features: FeatureSettingsModel, onOpenFeatures: @escaping () -> Void) {
-        panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
+         features: FeatureSettingsModel, onOpenFeatures: @escaping () -> Void,
+         actions: LocalActionController? = nil) {
+        panel = ActionNotchPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                         backing: .buffered, defer: false)
         panel.title = "Notch Pet Sessions"
         panel.isOpaque = false
@@ -19,6 +20,7 @@ final class NotchPanelController: AppFeatureService {
         panel.level = .statusBar
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
+        panel.becomesKeyOnlyIfNeeded = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         let screen = NSScreen.screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? NSScreen.main
         let top = screen?.safeAreaInsets.top ?? 0
@@ -29,7 +31,8 @@ final class NotchPanelController: AppFeatureService {
         panel.contentView = NSHostingView(rootView: NotchSessionView(
             sessionStore: sessionStore, usageStore: usageStore, features: features, onOpenFeatures: onOpenFeatures,
             headerHeight: max(32, top), notchWidth: notch,
-            onExpand: { [weak self] expanded in self?.updatePlacement(expanded: expanded) }))
+            onExpand: { [weak self] expanded in self?.updatePlacement(expanded: expanded) },
+            actions: actions, beginInput: { [weak self] in self?.beginInput() }))
         updatePlacement(expanded: false)
     }
 
@@ -38,6 +41,12 @@ final class NotchPanelController: AppFeatureService {
     }
 
     func start() { show() }
+
+    private func beginInput() {
+        // Only an explicit Respond click calls this; incoming offers never activate the app.
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        panel.makeKeyAndOrderFront(nil)
+    }
 
     func stop() {
         panel.orderOut(nil)
@@ -61,4 +70,9 @@ final class NotchPanelController: AppFeatureService {
             panel.setFrame(frame, display: true)
         }
     }
+}
+
+private final class ActionNotchPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
 }

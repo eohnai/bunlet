@@ -8,7 +8,8 @@ let package = Package(
     products: [
         .executable(name: "NotchPet", targets: ["NotchPet"]),
         .executable(name: "NotchPetHook", targets: ["NotchPetHook"]),
-        .executable(name: "NotchPetStatusLine", targets: ["NotchPetStatusLine"])
+        .executable(name: "NotchPetStatusLine", targets: ["NotchPetStatusLine"]),
+        .executable(name: "NotchPetActionHook", targets: ["NotchPetActionHook"])
     ],
     targets: [
         .target(name: "Pet", resources: [.process("Resources")]),
@@ -16,10 +17,12 @@ let package = Package(
         .target(name: "Integration", dependencies: ["EventBridge"]),
         .target(name: "Usage", dependencies: ["EventBridge"]),
         .target(name: "SessionState", dependencies: ["EventBridge"]),
-        .executableTarget(name: "NotchPet", dependencies: ["Pet", "EventBridge", "SessionState", "Usage", "Integration"],
+        .target(name: "AgentActions", dependencies: ["EventBridge", "SessionState"]),
+        .executableTarget(name: "NotchPet", dependencies: ["Pet", "EventBridge", "SessionState", "Usage", "Integration", "AgentActions"],
                           resources: [.process("Resources")]),
         .executableTarget(name: "NotchPetHook", dependencies: ["EventBridge"]),
         .executableTarget(name: "NotchPetStatusLine", dependencies: ["Usage"]),
+        .executableTarget(name: "NotchPetActionHook", dependencies: ["AgentActions"]),
         .testTarget(name: "EventBridgeTests", dependencies: ["EventBridge"]),
         .testTarget(name: "PetTests", dependencies: ["Pet"]),
         .testTarget(name: "NotchPetTests", dependencies: ["NotchPet", "EventBridge", "SessionState", "Integration"]),

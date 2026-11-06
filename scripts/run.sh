@@ -21,6 +21,7 @@ cp "$project_dir/Resources/Info.plist" "$app_dir/Contents/Info.plist"
 cp "$binary_dir/NotchPet" "$app_dir/Contents/MacOS/NotchPet"
 cp "$binary_dir/NotchPetHook" "$app_dir/Contents/MacOS/NotchPetHook"
 cp "$binary_dir/NotchPetStatusLine" "$app_dir/Contents/MacOS/NotchPetStatusLine"
+cp "$binary_dir/NotchPetActionHook" "$app_dir/Contents/MacOS/NotchPetActionHook"
 cp -R "$binary_dir/NotchPet_Pet.bundle" "$app_dir/Contents/Resources/"
 cp -R "$binary_dir/NotchPet_NotchPet.bundle" "$app_dir/Contents/Resources/"
 /usr/bin/plutil -lint "$app_dir/Contents/Info.plist" >&2

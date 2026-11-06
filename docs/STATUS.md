@@ -2,21 +2,21 @@
 
 ## Now
 
-The full nine-area MVP goal is active on `feat/codex-mvp`. Execution turns 1–2 implement both provider setups, per-provider monitoring, shared sessions and both quota paths in source. No full MVP completion is claimed; actions, pet workflows and desktop/navigation remain.
-Tests/builds/runtime/qualification remain NOT RUN at the user's request. Documented Codex 0.164.0/Claude 2.1.306 bindings permit explicitly unverified setup; runtime qualification stays empty and normal trust/policy is preserved.
-Local milestone commits are authorized. Preserve FM7/editor/CI drafts; no pushes, PRs or new branches/worktrees. The first quota commit is `299d021`; the provider milestone is being saved next.
+The full nine-area MVP goal is active on `feat/codex-mvp`. Sources for provider setup, sessions and quotas are saved as `299d021`/`32f7b0f`. Turn 3 adds documented Claude action adapters, private interactive transport/helper, transient drafts/receipts and native composers; guarded interactive-hook setup/removal remains incomplete.
+Tests/builds/runtime/qualification remain NOT RUN. Action receipt means helper output was written, not provider acceptance. The concrete follow-up path is feedback to a waiting Stop hook in the existing prompt, with a bounded reply window; Codex actions remain unsupported.
+Local milestone commits are authorized. Preserve FM7/editor/CI drafts; no pushes, PRs, extra branches or worktrees. The full MVP is unfinished: finish action setup, then pet workflows and desktop/navigation.
 
 ## Next
 
-1. Implement separate documented local action adapters and request/draft/acknowledgement controls for approvals, structured answers and explicit follow-ups. The full goal requires a concrete supported path per action, not unavailable-only UI.
+1. Finish guarded action-hook setup/check/removal in its own Claude ownership/journal scope; add Settings/disconnect integration and clear opt-in reply-window guidance. Complete the action source audit without claiming runtime qualification.
 2. Implement pet reactions, movement/return, asset-only imports and persisted preferences; then navigation/desktop recovery and full source handoff. All nine criteria remain the finish line.
-3. Keep tests/builds/probes/launches/captures, installed configuration access and runtime qualification deferred. Record source implementation separately from unsupported contracts and unverified behavior.
+3. Keep tests/builds/probes/launches/captures, installed configuration access and runtime qualification deferred. Record unsupported contracts and unverified behavior explicitly.
 4. Commit coherent source milestones on this branch and record hashes. Preserve unrelated drafts and acceptance checkboxes; no pushes, PRs, branches or worktrees.
 5. Keep SSH/cloud, extra agents, statistics/telemetry, branding and CI overhaul outside this local MVP.
 
 ## Blockers
 
-- Full MVP implementation is incomplete: concrete local action adapters/controls, pet reactions/drag/imports and desktop/navigation remain. Both provider setup/quota source paths now exist; documented support is explicitly unverified, and no compiler/live/native acceptance is established. Runtime-qualified support remains empty, distinct from documented setup bindings.
+- Full MVP implementation is incomplete: guarded interactive-action setup/removal, pet reactions/drag/imports and desktop/navigation remain. Concrete Claude action adapters, transport and native controls now have source paths; they are not an installed/end-to-end integration yet. Documented support is unverified; no compiler/live/native acceptance or runtime qualification is established.
 - Reused `633b4d0` refactor and adapted `2925880` planner source around existing drafts. Original spec checkboxes remain open where their checks were not run against this changed checkout. Do not count upstream historical verification as fresh local evidence.
 - Telemetry planning conflict: `origin/docs/local-telemetry` records a history-first decision superseding collector-first D2, but this checkout retains the old order. Its D3 identifier collides with this branch's view-model D3. Reconcile decisions and links without dropping later statistics scope or marking withdrawn tasks complete.
 - A5/C5 user review established cards, fixed/running timers, usage limits and preserved focus. Broader session-island acceptance remains unverified; VoiceOver is excluded by D8. The final provider filter has unit coverage; no later visual pass is claimed.

@@ -112,6 +112,7 @@ final class AgentServices: NSObject, AppAgentService {
     private let integrationHealth = IntegrationHealthController()
     private let bridge: EventBridgeServer
     private let usage: any AppFeatureService
+    private let actions: LocalActionController?
     private let usageReceiver = UsageReceiver()
     private let startObserving: ReceiverStart?
     private let readWall: () -> Int64
@@ -131,6 +132,7 @@ final class AgentServices: NSObject, AppAgentService {
     init(sessionStore: SessionStore? = nil, usageStore: UsageStore? = nil, endpoint: BridgeEndpoint = .standard,
          usage: (any AppFeatureService)? = nil, startObserving: ReceiverStart? = nil,
          enabledProviders: Set<Agent> = Set(Agent.allCases),
+         actions: LocalActionController? = nil,
          wall: @escaping () -> Int64 = { Int64(Date().timeIntervalSince1970 * 1000) },
          monotonic: @escaping () -> UInt64 = { DispatchTime.now().uptimeNanoseconds }) {
         let sessions = sessionStore ?? SessionStore()
@@ -141,6 +143,7 @@ final class AgentServices: NSObject, AppAgentService {
         self.usage = usage ?? AgentUsageController(store: limits, sessions: sessions)
         self.startObserving = startObserving
         self.enabledProviders = enabledProviders
+        self.actions = actions
         readWall = wall
         readMonotonic = monotonic
         super.init()
@@ -159,6 +162,7 @@ final class AgentServices: NSObject, AppAgentService {
             if !providers.contains(agent) { sessionStore.suspendMonitoring(agent: agent) }
         }
         enabledProviders = providers
+        actions?.setEnabledProviders(providers)
         (usage as? AgentUsageController)?.setEnabledProviders(providers)
         guard let current = generation else { return }
         updateReceiverEvidence()
@@ -207,6 +211,8 @@ final class AgentServices: NSObject, AppAgentService {
         (usage as? AgentUsageController)?.setEnabledProviders(enabledProviders)
         if enabledProviders.contains(.claude) { startClaudeQuota(current: current) }
         usage.start()
+        actions?.setEnabledProviders(enabledProviders)
+        actions?.start()
         let workspace = NSWorkspace.shared.notificationCenter
         for (center, name) in [(workspace, NSWorkspace.willSleepNotification),
                                (workspace, NSWorkspace.didWakeNotification),
@@ -228,6 +234,7 @@ final class AgentServices: NSObject, AppAgentService {
         stopReceiver = nil
         inbox = nil
         usage.stop()
+        actions?.stop()
         stopClaudeQuota()
         sessionStore.suspendMonitoring()
         integrationHealth.setReceiver(.stopped)
@@ -242,6 +249,7 @@ final class AgentServices: NSObject, AppAgentService {
         receiptCutoffNs = monotonicNs()
         for agent in Agent.allCases { providerCutoffs[agent] = (receiptCutoffNs, wallMs()) }
         sessionStore.invalidateClocks()
+        actions?.refreshEvidence()
         expiryTimer?.cancel()
         expiryTimer = nil
     }

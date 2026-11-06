@@ -3,6 +3,7 @@ import SwiftUI
 
 struct NotchRequestCard: View {
     let request: SessionRequest
+    var hasLocalResponse = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -16,7 +17,7 @@ struct NotchRequestCard: View {
                 Text("\(request.isConfirmed ? "Pending" : "Unconfirmed") \(request.kind == .questionNeeded ? "question" : "approval")")
                     .font(.caption)
                     .foregroundStyle(request.isConfirmed ? .orange : .secondary)
-                Text("Answer in the terminal")
+                Text(hasLocalResponse ? "Local response available below" : "Answer in the terminal")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

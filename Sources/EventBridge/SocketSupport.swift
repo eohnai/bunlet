@@ -104,9 +104,9 @@ func directoryFD(_ endpoint: BridgeEndpoint, create: Bool) throws -> Int32 {
     return fd
 }
 
-func socketInfo(_ directory: Int32) throws -> stat? {
+func socketInfo(_ directory: Int32, name: String = "events-v1.sock") throws -> stat? {
     var info = stat()
-    if fstatat(directory, "events-v1.sock", &info, AT_SYMLINK_NOFOLLOW) != 0 {
+    if fstatat(directory, name, &info, AT_SYMLINK_NOFOLLOW) != 0 {
         if errno == ENOENT { return nil }
         throw BridgeError.unsafeEndpoint
     }
@@ -119,9 +119,9 @@ func sameFile(_ first: stat, _ second: stat) -> Bool {
     first.st_dev == second.st_dev && first.st_ino == second.st_ino
 }
 
-func removeOwnedSocket(_ directory: Int32, identity: stat) {
-    if let current = try? socketInfo(directory), sameFile(identity, current) {
-        _ = unlinkat(directory, "events-v1.sock", 0)
+func removeOwnedSocket(_ directory: Int32, identity: stat, name: String = "events-v1.sock") {
+    if let current = try? socketInfo(directory, name: name), sameFile(identity, current) {
+        _ = unlinkat(directory, name, 0)
     }
 }
 
@@ -154,10 +154,11 @@ func readBounded(_ fd: Int32, limit: Int, until end: UInt64, framed: Bool,
 
 func writeAll(_ fd: Int32, data: Data, until end: UInt64) throws {
     try data.withUnsafeBytes { bytes in
+        guard let base = bytes.baseAddress else { return }
         var written = 0
         while written < bytes.count {
             try waitFor(fd, Int16(POLLOUT), until: end)
-            let count = write(fd, bytes.baseAddress!.advanced(by: written), bytes.count - written)
+            let count = write(fd, base.advanced(by: written), bytes.count - written)
             if count < 0 && [EINTR, EAGAIN, EWOULDBLOCK].contains(errno) { continue }
             guard count > 0 else { throw BridgeError.unavailable }
             written += count

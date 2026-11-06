@@ -5,7 +5,7 @@ The source implements independently selectable Pet, Notch and Agents features, s
 session cards, provider limits and a silent observation helper. Agents owns optional receiver and quota work.
 Both providers have setup/check/repair/removal controls, independent monitoring and owned transactions. Claude quota forwarding has separate reversible setup. Runtime qualification remains unverified.
 Pet reactions, dragging/return and custom packs remain planned.
-Local approval/deny controls, question answers, and follow-up replies are also planned, subject to verified agent/version support.
+Local action adapters, a separate helper and native controls now have partial source implementation. Guarded interactive-hook setup is still missing; runtime support is unverified.
 SSH and cloud-agent integrations are optional future work.
 
 The working name is `notch-pet`; the user has not chosen a product name.
@@ -123,9 +123,14 @@ shared stores; it owns no provider I/O. Pet-only use starts no provider services
 
 **Tests, builds, app/helper launches, probes, captures, installed configuration access and runtime
 qualification were NOT RUN for this implementation.** Source coverage for setup/sessions/quota is
-present; local actions, pet reactions/movement/imports and desktop/navigation remain unfinished in the
+present; local action setup, pet reactions/movement/imports and desktop/navigation remain unfinished in the
 [full MVP goal](docs/goals/full-mvp-implementation.md). See its [log](docs/goals/full-mvp-implementation-log.md),
 [provider setup contract](docs/contracts/provider-setup.md) and [quota contract](docs/contracts/usage-intake.md).
+
+Local actions currently have concrete documented Claude bindings and native composers, but their guarded
+setup/removal is still being implemented. The follow-up binding continues a waiting Stop callback as
+feedback in the same prompt, with a 60-second window; it does not provide arbitrary-time replies or
+Codex actions. See the [action contract](docs/contracts/local-actions-v1.md). No runtime support is claimed.
 
 ## Verify the bridge
 

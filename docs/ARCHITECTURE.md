@@ -59,10 +59,12 @@ An eventual session-to-pet adapter must consume the same authoritative snapshots
 | `Integration` | Health/probes, path lookup, provider policies/planners, owned transactions and recovery | `EventBridge` |
 | `Usage` | Usage store, providers, connection, sender/receiver and allowance presentation | `EventBridge` |
 | `SessionState` | Session store/inbox, observation mapping and session presentation rules | `EventBridge` |
+| `AgentActions` | Typed transient action state, Claude hook bindings and bounded interactive transport | `EventBridge`, `SessionState` |
 | `Pet` | Artwork, preferences, rendering and playback rules | None |
 | `NotchPet` | App composition, feature management, Settings, windows and optional services | `Pet`, `EventBridge`, `SessionState`, `Usage`, `Integration` |
 | `NotchPetHook` | Silent one-way observation helper | `EventBridge` |
 | `NotchPetStatusLine` | Bounded Claude status-line input forwarding and original-command execution | `Usage` |
+| `NotchPetActionHook` | Separate interactive Claude callback projection and one explicit response | `AgentActions` |
 
 [Codex setup R2a](specs/sessions/codex-setup.md#tasks) separates `Usage` and `Integration` from `SessionState`.
 R3 replaces `IntegrationAgent` directly with `EventBridge.Agent`; no compatibility alias remains.
@@ -129,9 +131,14 @@ only version/configuration/helper fields, preserving live receiver/delivery evid
 Remaining acceptance stays open in the [Sessions area](specs/sessions/area.md).
 Health observations do not start sessions, grant hook trust, or make a successful socket write proof of receipt.
 
-## Planned local-action flow
+## Local-action flow: partial source implementation
 
-The user accepted local approvals, structured answers, and follow-up replies. These are planned features, not implemented capabilities.
+The user accepted local approvals, structured answers and explicit follow-ups, then requested source
+implementation with runtime qualification unrun. Documented Claude callback adapters, native controls,
+transient ActionStore, bounded stream transport/inbox and app-owned LocalActionController now exist.
+Guarded action-hook setup/removal is still missing; the complete action criterion remains incomplete.
+[Local actions v1](contracts/local-actions-v1.md) defines the implemented identity, output and failure contract.
+The action helper is separately packaged; the observer helper keeps its one-way deadline/allowlist.
 A1 first verifies each installed agent/version's supported response mechanisms and ability to target an existing local agent session.
 A2 chooses a dedicated interactive helper/endpoint or a provider control channel for each supported capability and records its contract.
 The one-way version-1 observation helper keeps its existing 250 ms internal deadline and does not become a long-wait approval process.
@@ -147,7 +154,14 @@ Timeout, app loss, or cancellation cannot imply approval; each supported provide
 Keep only bounded request details and draft/reply content necessary for the interaction in memory, outside routine diagnostics.
 Do not widen the lifecycle envelope or read transcripts to obtain action content.
 Explicitly opening a composer may acquire focus; incoming alerts remain nonactivating.
-Only an explicit user Send can submit a follow-up; usage refresh and connection recovery cannot initiate agent turns.
+Only explicit Send can submit a follow-up; usage refresh and recovery cannot initiate turns.
+The concrete initial follow-up path is feedback to a waiting Claude Stop hook in the existing prompt.
+It is limited to a 60-second window and suppressed for stop_hook_active; it is not arbitrary-time new-turn
+submission. PermissionRequest returns allow-once/deny without rules; AskUserQuestion uses original input
+plus the answer map. Runtime/provider acceptance is not implied by helper stdout acknowledgement.
+Unknown/ended/paused or ambiguous requests disable dispatch; prior dispatched notices cannot authorize
+another callback. Drafts are offer-owned and memory-only. The app starts/stops action intake with Agents,
+independently of Notch. Only an explicit Respond click acquires native keyboard focus.
 
 SSH/cloud adapters remain optional future work, with no first-release requirement or promised provider coverage.
 Later plans must define remote identity, connection/authentication ownership, and supported action semantics before adding them.
