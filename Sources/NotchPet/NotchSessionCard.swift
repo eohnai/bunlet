@@ -25,7 +25,7 @@ struct NotchSessionCard: View {
                 selection = selection == snapshot.key ? nil : snapshot.key
             } label: {
                 HStack(spacing: 10) {
-                    Text(snapshot.key.agent == "codex" ? "Codex" : "Claude Code")
+                    Text(snapshot.key.agent == .codex ? "Codex" : "Claude Code")
                         .font(.caption.weight(.semibold))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)

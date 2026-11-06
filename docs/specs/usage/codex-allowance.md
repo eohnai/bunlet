@@ -67,12 +67,16 @@ These are reproduction commands. This retrospective spec ran documentation check
 - [0014: Omit usage-limit tooltips](../../decisions/0014-omit-usage-limit-tooltips.md), accepted 2026-11-02. This supersedes the detailed hover display portion of U5, preserving its data and integration obligations.
 - [0015: Show usage limits only for active providers](../../decisions/0015-show-limits-only-for-active-providers.md), accepted 2026-11-02. This replaces the earlier non-ended-session visibility rule.
 
-## Code that differs from a decision
+## Current service ownership
 
-`NotchUsageView` runs the Codex refresh loop itself. Its `.task` calls `CodexUsageConnection.read` and then sleeps 120 seconds.
-Decision 0002 puts I/O in services, with views that only render snapshots.
-The goal plan also made the app the owner of the usage store, but `NotchPanelController` creates it.
-This spec records the difference and does not choose a fix. It is part of the open "Usage service ownership" decision in [claude-allowance](claude-allowance.md#open-decisions).
+The earlier view-owned-read description is historical. `PetAppController` owns the shared SessionStore and
+UsageStore. Optional `AgentServices` owns AgentUsageController, which observes active Codex sessions and
+performs bounded read-only CodexUsageConnection reads with a 120-second interval. Stopping Agents or
+losing active Codex evidence cancels that work; hiding/removing Notch does not own its lifetime.
+The notch observes snapshots and performs no provider I/O. Usage code now lives in the separate Usage target.
+The 2026-11-06 Codex MVP reuses this production route and explicit successful-Connect monitoring activation;
+it ran no tests, builds, live reads or installed configuration changes. U1/U3b2/U5/U6 acceptance remains open.
+The remaining Claude receiver/forwarding decisions are still owned by [claude-allowance](claude-allowance.md#open-decisions).
 
 ## My calls
 

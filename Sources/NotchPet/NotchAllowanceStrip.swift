@@ -1,9 +1,10 @@
-import SessionState
+import EventBridge
 import SwiftUI
+import Usage
 
 struct NotchAllowanceStrip: View {
     let store: UsageStore
-    let activeProviders: Set<IntegrationAgent>
+    let activeProviders: Set<Agent>
 
     var body: some View {
         // The parent creates this view only while expanded. With no providers,

@@ -31,13 +31,13 @@ public enum HookHelper {
         let total = enteredAt + 250_000_000
         do {
             guard arguments.count == 2, arguments[0] == "--agent",
-                  ["codex", "claude"].contains(arguments[1]) else { return }
+                  let agent = Agent(rawValue: arguments[1]) else { return }
             let flags = fcntl(STDIN_FILENO, F_GETFL)
             guard flags >= 0, fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK) == 0 else { return }
             defer { _ = fcntl(STDIN_FILENO, F_SETFL, flags) }
             let raw = try readBounded(STDIN_FILENO, limit: HookEnvelopeV1.rawHookLimit,
                                       until: deadline(after: 50, total: total), framed: false)
-            let envelope = try HookEnvelopeV1.project(rawHook: raw, agent: arguments[1],
+            let envelope = try HookEnvelopeV1.project(rawHook: raw, agent: agent,
                                                      paneSelector: environment["OTTY_PANE_ID"], deadline: total)
             try EventBridgeClient().send(envelope, until: total)
             try checkDeadline(total)

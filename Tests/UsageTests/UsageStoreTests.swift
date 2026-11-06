@@ -1,5 +1,5 @@
 import Testing
-@testable import SessionState
+@testable import Usage
 
 @MainActor
 struct UsageStoreTests {

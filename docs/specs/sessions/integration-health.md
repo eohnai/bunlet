@@ -4,6 +4,13 @@ Needs: observation-bridge
 
 ## Goal
 
+Implementation update, 2026-11-06: health models/probes now live in `Integration`, with shared `Agent` identity.
+The optional app-owned `AgentServices` retains the observable health controller. Explicit Codex Check actions
+use `CodexSetupService`; their results replace only version/configuration/helper evidence, preserving receiver
+and delivery values. The Agents settings page renders separate evidence and action results.
+New cancellation forwarding stops the bounded probe worker and suppresses cancelled UI results.
+No tests, builds, probes or app launches were run for this implementation-only MVP; existing acceptance stays open.
+
 Show, for each agent, separate evidence about version support, hook configuration, the helper, the receiver, and the last delivery.
 A user can then tell "not set up" apart from "set up but quiet" without the app guessing.
 Later setup controls (I6) use this evidence. See the [sessions area](area.md) for shared context.

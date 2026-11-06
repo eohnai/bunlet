@@ -1,6 +1,7 @@
+import EventBridge
 import Foundation
 import Testing
-@testable import SessionState
+@testable import Usage
 
 struct NotchAllowancePresentationTests {
     private func window(_ id: String = "five_hour", used: Double = 25,
@@ -8,7 +9,7 @@ struct NotchAllowancePresentationTests {
         UsageWindow(id: id, usedPercent: used, durationMinutes: minutes, resetsAtMs: reset)
     }
 
-    private func snapshot(_ provider: IntegrationAgent = .codex, source: String = "fictional-source",
+    private func snapshot(_ provider: Agent = .codex, source: String = "fictional-source",
                           receipt: Int64 = 1_000, stale: Bool = false,
                           account: String? = "fictional-account", windows: [UsageWindow],
                           failure: UsageFailure? = nil, measured: Int64? = nil) -> UsageSnapshot {
@@ -18,7 +19,7 @@ struct NotchAllowancePresentationTests {
             isStale: stale)
     }
 
-    private func entry(_ snapshot: UsageSnapshot, provider: IntegrationAgent = .codex) throws -> NotchAllowanceEntry {
+    private func entry(_ snapshot: UsageSnapshot, provider: Agent = .codex) throws -> NotchAllowanceEntry {
         try #require(NotchAllowancePresentation.entries(
             activeProviders: [provider], snapshots: [snapshot]).first)
     }
@@ -56,8 +57,8 @@ struct NotchAllowancePresentationTests {
         #expect(NotchAllowancePresentation.entries(activeProviders: [], snapshots: snapshots).isEmpty)
     }
 
-    @Test(arguments: [IntegrationAgent.codex, .claude])
-    func activeProviderWithoutObservationsHasAMissingEntry(provider: IntegrationAgent) throws {
+    @Test(arguments: [Agent.codex, .claude])
+    func activeProviderWithoutObservationsHasAMissingEntry(provider: Agent) throws {
         let entries = NotchAllowancePresentation.entries(activeProviders: [provider], snapshots: [])
         #expect(entries.count == 1)
         let entry = try #require(entries.first)
@@ -70,8 +71,8 @@ struct NotchAllowancePresentationTests {
         #expect(!entry.accountUnverified)
     }
 
-    @Test(arguments: [IntegrationAgent.codex, .claude])
-    func fiveHourWindowWinsOverWeeklyAndOtherDurations(provider: IntegrationAgent) throws {
+    @Test(arguments: [Agent.codex, .claude])
+    func fiveHourWindowWinsOverWeeklyAndOtherDurations(provider: Agent) throws {
         let fiveHour = window(used: 25)
         let reading = snapshot(provider, windows: [window("weekly", used: 99, minutes: 10_080),
                                                    window("other", minutes: 15), fiveHour])
@@ -82,8 +83,8 @@ struct NotchAllowancePresentationTests {
         #expect(entry.percentLeft == 75)
     }
 
-    @Test(arguments: [IntegrationAgent.codex, .claude])
-    func weeklyIsTheFallbackOnlyWhenNoFiveHourWindowExists(provider: IntegrationAgent) throws {
+    @Test(arguments: [Agent.codex, .claude])
+    func weeklyIsTheFallbackOnlyWhenNoFiveHourWindowExists(provider: Agent) throws {
         let weekly = window("weekly", used: 45, minutes: 10_080)
         let entry = try entry(snapshot(provider, windows: [window("other", minutes: nil), weekly]),
                               provider: provider)
@@ -128,8 +129,8 @@ struct NotchAllowancePresentationTests {
         #expect(entry.source?.isStale == true)
     }
 
-    @Test(arguments: [IntegrationAgent.codex, .claude])
-    func accountMarkerReflectsOnlyTheSelectedSourcesAccountEvidence(provider: IntegrationAgent) throws {
+    @Test(arguments: [Agent.codex, .claude])
+    func accountMarkerReflectsOnlyTheSelectedSourcesAccountEvidence(provider: Agent) throws {
         for account: String? in [nil, "fictional-account"] {
             let entry = try entry(snapshot(provider, account: account, windows: [window()]), provider: provider)
             #expect(entry.accountUnverified == (account == nil))

@@ -1,8 +1,9 @@
+import EventBridge
 import Testing
 @testable import SessionState
 
 struct NotchCardPresentationTests {
-    private func snapshot(_ id: String = "fictional-abcdef", agent: String = "codex",
+    private func snapshot(_ id: String = "fictional-abcdef", agent: Agent = .codex,
                           status: SessionStatus = .working, path: String? = "/fictional/project",
                           startedAtMs: Int64? = 1_000, stoppedAtMs: Int64? = nil) -> SessionSnapshot {
         SessionSnapshot(key: SessionKey(agent: agent, sessionID: id), status: status,
@@ -27,10 +28,10 @@ struct NotchCardPresentationTests {
         }
     }
 
-    @Test(arguments: ["codex", "claude"])
-    func sharedFoldersShowTheLastSixIDCharacters(agent: String) {
+    @Test(arguments: Agent.allCases)
+    func sharedFoldersShowTheLastSixIDCharacters(agent: Agent) {
         let session = snapshot(agent: agent)
-        let other = snapshot("other-uvwxyz", agent: agent == "codex" ? "claude" : "codex")
+        let other = snapshot("other-uvwxyz", agent: agent == .codex ? .claude : .codex)
         let sessions = [session, other]
         #expect(NotchPresentation.card(for: session, among: sessions).shortSessionID == "abcdef")
         #expect(NotchPresentation.card(for: other, among: sessions).shortSessionID == "uvwxyz")
@@ -107,7 +108,7 @@ struct NotchCardPresentationTests {
         let sessions = [missing, invalid, stopped]
         #expect(!NotchPresentation.shouldTickPromptTimers(expanded: true, sessions: sessions))
 
-        let running = snapshot("running", agent: "claude")
+        let running = snapshot("running", agent: .claude)
         #expect(NotchPresentation.shouldTickPromptTimers(expanded: true, sessions: sessions + [running]))
         #expect(!NotchPresentation.shouldTickPromptTimers(expanded: false, sessions: sessions + [running]))
     }

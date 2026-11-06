@@ -2,20 +2,23 @@
 
 ## Now
 
-FM1–FM6 are saved as scoped, dependent commits on `feat/modular-features`: independent feature preferences/lifetimes, shared Settings and safe install/remove/reinstall behavior.
-The goal is paused. The user deferred FM7 and authorized committing FM1–FM6 only; no push or PR was requested.
-FM7's checker and shared-file instrumentation remain uncommitted, alongside unrelated editor/CI drafts. Do not resume app launches or native verification automatically.
-The latest commit-content verification ran without opening the app; evidence and the commit sequence are recorded in settings/feature-management.md.
+The Codex MVP goal is implementation complete on `feat/codex-mvp`, based on `c760308`: all six source criteria have a file/line audit in `docs/goals/codex-mvp-implementation.md` and its log.
+Reused the module/identity/scanner/planner work and added guarded owned setup/removal/recovery, cancellable menu/Settings controls and explicit optional-service/session/quota wiring. The user authorized a local MVP commit; existing FM7/editor/CI drafts remain outside its scope. No push or PR is authorized.
+The user requested no testing. Tests, builds, live probes, installed configuration changes and native acceptance were not run. The qualified-release registry is empty, so automatic Connect remains unavailable despite the complete production path behind its gate. Older goals remain paused.
 
 ## Next
 
-1. Review the FM1–FM6 commits when requested. Keep FM7's deferred changes and unrelated drafts out of any push/PR unless explicitly included.
-2. Resume FM7 only at the user's request. Start from the recorded native reports and remaining interaction/focus evidence, without repeating earlier automated launch loops.
-3. Keep the original-UI and rabbit-mascot directions in companion-ui-direction.md for later design planning; the new name and final mascot are still open.
-4. Preserve older paused goals and CI/editor drafts. Commit authorization does not authorize a push or PR.
+1. Review the local MVP save and source audit in `docs/goals/codex-mvp-implementation-log.md`; retain existing FM7/editor/CI drafts separately. Push or PR only when explicitly requested.
+2. Keep tests/builds/live qualification and native acceptance deferred. Automatic Connect cannot be enabled until an exact Codex release and supported effective-policy probe are separately qualified; do not turn historical compatibility into qualification.
+3. Preserve FM7, built-in-pet, terminal-matrix and installed-agent acceptance as open. No app launches, captures, global settings or installed configuration changes are authorized by source completion.
+4. Select later Claude/action/pet/statistics work only when requested; this source-only Codex goal does not complete the broader Flux Island roadmap.
+5. Reconcile the history-first telemetry branch and its D3 collision only when telemetry is selected. Keep other goals and original UI/rabbit directions intact; no other branches or worktrees are needed for this work.
 
 ## Blockers
 
+- Automatic Connect is gated: no exact Codex installer release or effective-policy probe is qualified. Source completion under the user's no-testing instruction establishes no compiler correctness, timeout/trust qualification, real session delivery or native acceptance. Check and ownership-based removal have production source paths; their new runtime behavior is unverified.
+- Reused `633b4d0` refactor and adapted `2925880` planner source around existing drafts. Original spec checkboxes remain open where their checks were not run against this changed checkout. Do not count upstream historical verification as fresh local evidence.
+- Telemetry planning conflict: `origin/docs/local-telemetry` records a history-first decision superseding collector-first D2, but this checkout retains the old order. Its D3 identifier collides with this branch's view-model D3. Reconcile decisions and links without dropping later statistics scope or marking withdrawn tasks complete.
 - A5/C5 user review established cards, fixed/running timers, usage limits and preserved focus. Broader session-island acceptance remains unverified; VoiceOver is excluded by D8. The final provider filter has unit coverage; no later visual pass is claimed.
 - Real agent session integration remains unverified: the A5/C5 review used fictional observations and a real Codex allowance read, not a real configured session. No direct supported `NotchPetHook` invocation was found during that earlier bounded structural inspection.
 - Provider-logo structured-bundle lookup is repaired with a regression test. The last native batch verified packaged resources and all eight startup feature sets; this does not complete FM7's interaction acceptance.
@@ -30,7 +33,6 @@ The latest commit-content verification ran without opening the app; evidence and
 - Full built-in-pet acceptance is deferred: setup/slider/menu interaction, actual multi-frame scheduling, Reduce Motion changes and visual appearance remain unverified. Keep BP2/BP3/BP5/BP6b3/BP7 open; agent reactions and detachment remain separate unimplemented features. The implementation-only goal is closed.
 - Capture reproduction command: `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer python3 scripts/check-standalone-pet.py --app "/private/var/folders/t3/6n_zw1rn5nn6vv7ccx9r6s240000gn/T/notch-pet-dev/Notch Pet.app" --artifacts /private/tmp/notch-pet-completion/evidence/standalone` failed with `could not create image from window` / screencapture exit 1. The native preflight returned screenCaptureAuthorized=false; the user explicitly prohibited further captures and later all further testing. Do not request that permission or retry the failing capture.
 - Telemetry C1–C8, H1–H7 and S1–S6 remain proposed implementation tasks. Service lifecycle, IPC, schema/durability and instrumentation coverage require their recorded reviews. Battery targets are provisional and unmeasured.
-- Stale: `docs/specs/usage/codex-allowance.md` describes view-owned reads. AgentUsageController now owns those reads; NotchPanelController still owns the store/controller. Reconcile during feature review.
 - Stale: `docs/specs/usage/claude-allowance.md` describes uncommitted receiver wiring and an `ambiguous use of 'sync(execute:)'` build error. Current app code has no UsageReceiver startup path or that closure. Review its five open decisions against current code before U2c3.
 - I3b1's design is accepted, including the final independent-editor race and indistinguishable identical replacement. Codex 0.164.0 is a qualification candidate, not a qualified installer release. Effective enablement/policy evidence and timeout enforcement still need isolated verification. `integration-health` and `notch/session-island` acceptance remain open before dependent implementation.
 - Migration pending: planned area specs still have no file, including monitoring-controls and the five settings/reference additions. Derive counts from the progress board. Codex setup maps its source obligations without removing shared I5/I6 tasks. Keep the source specification and its original tasks/evidence until every requirement has a destination; confirm its final move/removal before changing it.
@@ -39,7 +41,5 @@ The latest commit-content verification ran without opening the app; evidence and
 - Stale: `docs/specs/usage/codex-allowance.md` leaves U3b2 unchecked despite historical goal-log evidence. Review U3b2, U1 and I2a–I2c evidence before changing those checkboxes.
 - Stale: `scripts/check-event-contract.py` permits a previously conflicting turn ID to restore working state; SessionStore enforces the accepted unseen-turn rule.
 - Usage datagram limit (production bug, not fixed): `UsageDelivery` and `UsageReceiver` keep the default Unix datagram buffers. A probe on this Mac sent nothing over 2,048 bytes (`EMSGSIZE`, `net.local.dgram.maxdgram: 2048`). With a 16 KiB send buffer, nothing over the receiver's 4,096-byte buffer arrived (`ENOBUFS`). The 8,192-byte limit in both types is unreachable, and larger observations are silently dropped. `UsageReceiverTests` records this as a known issue. Choosing the fix needs a decision.
-- Stale: `README.md` still calls implemented session/notch/usage surfaces planned and decision 0013 proposed; `docs/ARCHITECTURE.md` still describes visible session/usage and health services, plus the now-written pet boundary, as planned. It also describes view models for every view; the code has none, and D3 now sets the rule (codex-setup R4). Leave their unrelated edits with their owning work.
-- Stale: `docs/specs/sessions/integration-health.md` describes health supplied through the menu environment. Current `AgentServices` keeps its health controller private and the menu has no health controls; codex-setup I6a owns exposing those actions.
 - Sprite-sheet input choice P5 remains proposed and blocks source P6. Monitoring pause/disconnect/resume and notice retention need planning in sessions/monitoring-controls. No deadlines or owners are recorded.
 - Activity counting and token-counter sources remain unverified. Define coverage, units, deduplication, and time boundaries before statistics implementation. Hook events do not establish chat-message totals, and tokens do not establish remaining allowance.

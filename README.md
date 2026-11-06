@@ -1,9 +1,10 @@
 # Notch Pet
 
 A macOS companion for Codex CLI and Claude Code, under development, with terminal-independent operation as an accepted requirement.
-The current app provides a menu-bar control and Quit action.
-It also runs a local event receiver and bundles a silent hook helper.
-Agent notifications, the notch interface, the detachable pet, and usage limits are planned next.
+The source implements independently selectable Pet, Notch and Agents features, shared native Settings,
+session cards, provider limits and a silent observation helper. Agents owns optional receiver and quota work.
+The Codex MVP includes setup/check/removal controls and owned-hook transactions, with runtime qualification still pending.
+Pet reactions, dragging/return and custom packs remain planned.
 Local approval/deny controls, question answers, and follow-up replies are also planned, subject to verified agent/version support.
 SSH and cloud-agent integrations are optional future work.
 
@@ -29,12 +30,14 @@ From the repository root, run:
 bash scripts/run.sh
 ```
 
-Click the paw icon in the menu bar. The menu says that agent connections are not set up.
+Click the paw icon in the menu bar. Settings manages feature availability; installed surfaces have recovery actions.
+When Agents is installed, the Codex submenu opens Connect, Check and Remove hooks controls.
 Select **Quit Notch Pet** to close the app. Command-Q also quits while its menu is open.
-The app has no Dock icon and opens no window.
+The app has no Dock icon. Pet, Notch and Settings windows follow the selected features and explicit actions.
 
 The script builds a Swift package and creates `Notch Pet.app` under `${TMPDIR:-/private/tmp}/notch-pet-dev`.
-Build products stay there too. The app uses no external package dependencies and changes no agent settings.
+Build products stay there too. The app uses no external package dependencies.
+Starting the app or opening Settings does not install provider hooks.
 Quit the running app before rebuilding. Repeating the launch command reuses the same app bundle.
 Temporary files can be removed by macOS; rerun the command to rebuild them.
 
@@ -49,12 +52,12 @@ This is a development bundle; distribution packaging and signing are a later tas
 
 ## Local event bridge
 
-The app listens at `/private/tmp/notch-pet-<uid>/events-v1.sock` while it runs.
+With Agents installed and monitoring enabled, the app listens at `/private/tmp/notch-pet-<uid>/events-v1.sock`.
 The directory has mode `0700`. The socket has mode `0600`.
 Both endpoints check the connected user's numeric ID.
 The receiver validates [version-1 envelopes](docs/contracts/agent-events-v1.md) before calling its consumer.
 The app retains validated observations in a shared session store with bounded ordering and freshness rules.
-Live session presentation and agent setup are later tasks.
+The notch reads the shared store; setup, configured hooks and observed delivery remain separate evidence.
 
 The bundle includes `Contents/MacOS/NotchPetHook`.
 Run it with `--agent codex` or `--agent claude`, with one raw hook JSON object on stdin.
@@ -65,7 +68,8 @@ There is no acknowledgement, retry, queue, or saved activity.
 
 The helper limits stdin, connection, and writing to 50 ms each.
 It also enforces a shared 250 ms deadline after executable entry.
-Process launch time is additional. Future hook setup must also set the agent's execution timeout.
+Process launch time is additional. The setup planner specifies a three-second synchronous handler timeout;
+agent enforcement remains a release-qualification requirement.
 The receiver allows 100 ms to finish one frame, including fragmented reads.
 A successful write does not prove that an observation reached session state.
 
@@ -91,8 +95,32 @@ They do not establish installed Codex compatibility in interactive Otty sessions
 The earlier controlled hook investigation covered Codex `0.163.0`. The CLI now reports `0.164.0`.
 Partial interactive checks used isolated configuration and a mock provider.
 The remaining Codex interactive checks are deferred to immediately before final workflow verification under decision 0009.
-No hooks are installed by this implementation.
+No hooks were installed during development of this implementation.
 See the [compatibility record](docs/notes/agent-event-compatibility.md) for evidence boundaries and known limits.
+
+## Codex MVP: implementation, not live acceptance
+
+The Codex submenu and Agents settings expose explicit Connect, read-only Check and Remove hooks actions.
+The source includes lossless seven-hook planning, unchanged reinstall, targeted removal, bounded guarded writes
+and install/remove journal recovery. Configuration, ownership and recovery data are bounded to 256 KiB each.
+Existing settings and the normal Codex trust flow are preserved under the accepted concurrent-editor limitation.
+Finish other configuration edits before applying setup changes.
+
+**No Codex installer release is qualified yet. Automatic Connect therefore remains unavailable.**
+The production path behind that gate is implemented; the qualified release registry is intentionally empty.
+Historical compatibility, a candidate version, configured hooks or a delivery receipt cannot qualify installation.
+Check reports the available evidence and removal does not require a working CLI.
+No user preference or environment flag bypasses the qualification gate.
+
+Successful supported setup enables monitoring explicitly. If Notch is absent, the app offers Features rather than
+installing it silently. Real observations use the existing helper, receiver, inbox and shared session store.
+Active Codex sessions drive read-only quota reads into the shared usage store; quota reads cannot start turns.
+Pet-only use starts no agent services.
+
+The user requested implementation without testing: **no tests, builds, app launches, live probes or installed
+configuration changes were performed for this MVP goal**. Compiler correctness, real setup/delivery and native
+interaction acceptance are unverified. See the [source audit and log](docs/goals/codex-mvp-implementation.md)
+and [Codex setup specification](docs/specs/sessions/codex-setup.md).
 
 ## Verify the bridge
 
@@ -153,7 +181,8 @@ Process timings include launch time. They are observations on this Mac, not a re
 
 The original task list and architecture decisions 0001–0009 have recorded approvals; decision 0010 records the subsequently accepted local-interaction scope.
 [Decision 0012](docs/decisions/0012-support-terminal-independent-operation.md) accepts terminal-independent operation; live verification beyond Otty remains open.
-[Standalone pet use and packaging](docs/decisions/0013-separate-standalone-pet-scope.md) remain proposed, including whether to use one app, separate apps, or a service.
+[Standalone pet use and packaging](docs/decisions/0013-separate-standalone-pet-scope.md) are accepted:
+one app with an independent Pet module and optional agent services, extended by D7's feature availability.
 The user requested the 2026-10-28 Flux-informed plan update; its revised remaining tasks are proposed for review.
 See the specification and [reference findings](docs/notes/flux-island-adoption.md) for selected behaviors,
 open choices, and the distinction between planned features and implemented code.

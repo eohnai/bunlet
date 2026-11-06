@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import SessionState
+@testable import Usage
 
 struct CodexUsageProviderTests {
     @Test func fullMapIsAuthoritativeAndCompatibilityIsNotDuplicated() throws {

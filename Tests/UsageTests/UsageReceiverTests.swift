@@ -2,7 +2,7 @@ import Darwin
 import Foundation
 import os
 import Testing
-@testable import SessionState
+@testable import Usage
 
 struct UsageReceiverTests {
     private func endpoint() throws -> URL {

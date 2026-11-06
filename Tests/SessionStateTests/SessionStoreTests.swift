@@ -171,7 +171,7 @@ struct SessionStoreTests {
                 let expected = try #require(step["expect"] as? [[String: Any]])
                 #expect(store.sessions.count == expected.count, "\(context)")
                 for (actual, expected) in zip(store.sessions, expected) {
-                    #expect(actual.key.agent == expected["agent"] as? String, "\(context)")
+                    #expect(actual.key.agent.rawValue == expected["agent"] as? String, "\(context)")
                     #expect(actual.key.sessionID == expected["session_id"] as? String, "\(context)")
                     #expect(actual.status.rawValue == expected["status"] as? String, "\(context)")
                     #expect(actual.pendingRequests.count == expected["pending"] as? Int, "\(context)")
@@ -393,6 +393,7 @@ struct SessionStoreTests {
 
     @Test(arguments: ["codex", "claude"])
     func adaptersPreserveSharedSessionMeanings(agent: String) throws {
+        let typedAgent = try #require(Agent(rawValue: agent))
         // Seed each store just before the adapter's real capture time. No wall-clock sleeps are needed.
         let questionTool = agent == "codex" ? "request_user_input" : "AskUserQuestion"
         let cases: [(String, String?, SessionStatus)] = [
@@ -410,7 +411,7 @@ struct SessionStoreTests {
             // Prose questions are deliberately absent from the wire projection.
             if hook == "Stop" { source["last_assistant_message"] = "Which option should I use?" }
             let input = try JSONSerialization.data(withJSONObject: source)
-            let envelope = try HookEnvelopeV1.project(rawHook: input, agent: agent, paneSelector: "unverified-pane")
+            let envelope = try HookEnvelopeV1.project(rawHook: input, agent: typedAgent, paneSelector: "unverified-pane")
             let now = envelope.observedAtMs
             let store = SessionStore()
             if hook != "SessionStart" && hook != "UserPromptSubmit" {
@@ -427,7 +428,7 @@ struct SessionStoreTests {
             #expect(store.apply(value) == (hook == "SessionEnd" ? .ended : .applied))
             let snapshot = try #require(store.sessions.first)
             #expect(snapshot.status == status, "\(hook), \(tool ?? "no tool")")
-            #expect(snapshot.key == SessionKey(agent: agent, sessionID: "fictional"))
+            #expect(snapshot.key == SessionKey(agent: typedAgent, sessionID: "fictional"))
             #expect(envelope.cwd == "/example" && envelope.terminal?.paneSelector == "unverified-pane")
             if hook == "SessionEnd" {
                 // Terminal handling clears requests without refreshing captured metadata.
@@ -448,13 +449,14 @@ struct SessionStoreTests {
 
     @Test(arguments: ["codex", "claude"])
     func adaptersDoNotInventMissingTurnOrRequestIdentity(agent: String) throws {
+        let typedAgent = try #require(Agent(rawValue: agent))
         let store = SessionStore()
         let source: [String: Any] = [
             "session_id": "fictional", "hook_event_name": "PermissionRequest",
             "tool_name": agent == "codex" ? "request_user_input" : "AskUserQuestion",
             (agent == "codex" ? "prompt_id" : "turn_id"): "not-this-provider-turn", "id": "not-a-tool-call"
         ]
-        let envelope = try HookEnvelopeV1.project(rawHook: JSONSerialization.data(withJSONObject: source), agent: agent)
+        let envelope = try HookEnvelopeV1.project(rawHook: JSONSerialization.data(withJSONObject: source), agent: typedAgent)
         let value = SessionObservationV1(envelope: envelope, receiptWallMs: envelope.observedAtMs,
                                          receiptMonotonicNs: 1_000_000_000)
         #expect(envelope.turnID == nil && envelope.toolUseID == nil)
@@ -470,6 +472,7 @@ struct SessionStoreTests {
 
     @Test(arguments: ["codex", "claude"])
     func actualBridgeCallbackReachesSharedStore(agent: String) async throws {
+        let typedAgent = try #require(Agent(rawValue: agent))
         let directory = "/private/tmp/notch-pet-store-test-\(UUID().uuidString)"
         defer { try? FileManager.default.removeItem(atPath: directory) }
         let endpoint = BridgeEndpoint(directory: directory)
@@ -486,12 +489,12 @@ struct SessionStoreTests {
         defer { server.stop() }
         let source = ["session_id": "fictional-bridge", "hook_event_name": "UserPromptSubmit",
                       (agent == "codex" ? "turn_id" : "prompt_id"): "a", "cwd": "/example"]
-        let envelope = try HookEnvelopeV1.project(rawHook: JSONSerialization.data(withJSONObject: source), agent: agent)
+        let envelope = try HookEnvelopeV1.project(rawHook: JSONSerialization.data(withJSONObject: source), agent: typedAgent)
         try EventBridgeClient(endpoint: endpoint).send(envelope)
         #expect(await delivered.wait())
         #expect(store.sessions.first?.status == .working)
         #expect(store.sessions.first?.key.sessionID == "fictional-bridge")
-        #expect(store.sessions.first?.key.agent == agent)
+        #expect(store.sessions.first?.key.agent.rawValue == agent)
         #expect(store.sessions.first?.projectPath == "/example")
         #expect(store.sessions.first?.receiptWallMs != nil)
     }

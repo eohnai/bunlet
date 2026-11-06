@@ -1,3 +1,4 @@
+import EventBridge
 import Foundation
 
 private extension UsageWindow {
@@ -11,7 +12,7 @@ public enum AllowanceColor: Equatable, Sendable {
 }
 
 public struct NotchAllowanceEntry: Equatable, Sendable {
-    public let provider: IntegrationAgent
+    public let provider: Agent
     public let source: UsageSnapshot?
     public let window: UsageWindow?
 
@@ -48,7 +49,7 @@ public enum NotchAllowancePresentation {
         return "\(hours / 24)d\(hours % 24)h"
     }
 
-    public static func entries(activeProviders: Set<IntegrationAgent>,
+    public static func entries(activeProviders: Set<Agent>,
                                snapshots: [UsageSnapshot]) -> [NotchAllowanceEntry] {
         activeProviders.sorted { $0.rawValue < $1.rawValue }.map { provider in
             let source = snapshots.filter { $0.observation.provider == provider.rawValue }.sorted { left, right in
@@ -63,7 +64,7 @@ public enum NotchAllowancePresentation {
         }
     }
 
-    private static func selectedWindow(_ windows: [UsageWindow], provider: IntegrationAgent) -> UsageWindow? {
+    private static func selectedWindow(_ windows: [UsageWindow], provider: Agent) -> UsageWindow? {
         let fiveHour = windows.filter { $0.durationMinutes == 300 }
         let matches = fiveHour.isEmpty ? windows.filter { $0.durationMinutes == 10_080 } : fiveHour
         if provider == .codex {

@@ -1,3 +1,4 @@
+import EventBridge
 import Foundation
 import Observation
 
@@ -37,7 +38,7 @@ public final class UsageStore {
 
     @discardableResult
     public func apply(_ observation: UsageObservation) -> Bool {
-        guard IntegrationAgent(rawValue: observation.provider) != nil,
+        guard Agent(rawValue: observation.provider) != nil,
               !observation.sourceID.isEmpty, observation.sourceID.utf8.count <= 256,
               observation.accountID.map({ !$0.isEmpty && $0.utf8.count <= 256 }) ?? true,
               observation.receivedAtMs >= 0, observation.measuredAtMs.map({ $0 >= 0 }) ?? true,
@@ -61,9 +62,9 @@ public final class UsageStore {
         return true
     }
 
-    public func snapshots(activeProviders: Set<IntegrationAgent>, nowMs: Int64) -> [UsageSnapshot] {
+    public func snapshots(activeProviders: Set<Agent>, nowMs: Int64) -> [UsageSnapshot] {
         observations.filter { observation in
-            IntegrationAgent(rawValue: observation.provider).map(activeProviders.contains) ?? false
+            Agent(rawValue: observation.provider).map(activeProviders.contains) ?? false
         }.sorted {
             $0.provider == $1.provider ? $0.sourceID < $1.sourceID : $0.provider < $1.provider
         }.map { observation in

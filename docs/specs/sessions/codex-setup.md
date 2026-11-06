@@ -13,6 +13,35 @@ The user approved the eight-task list and accepted I3b1's design choices on 2026
 The [accepted I3b1 review](../../contracts/codex-hook-setup.md#i3b1-review-2026-10-30) records prerequisite evidence and fictional-case results.
 Design acceptance does not close prerequisites, qualify a release, or resume runtime verification.
 
+### Implementation-only MVP, 2026-11-06
+
+The user activated `docs/goals/codex-mvp-implementation.md` and explicitly requested implementation without testing.
+This authorizes source work despite deferred prerequisite acceptance; it does not complete verification requirements.
+All work stays on `feat/codex-mvp` in the original checkout, with no new branches/worktrees, commits, pushes or PRs.
+
+The existing `633b4d0` module/identity/architecture changes were selectively reused around the checkout's FM7 drafts.
+Existing upstream test-file relocations and caller/import/type changes were retained solely for refactor coherence;
+no new test cases were added, no assertions weakened to manufacture completion, and no tests were run.
+The `2925880` scanner/planner was adapted to `Integration`, typed identities and the accepted contract.
+
+Production source now includes:
+
+- Lossless hook JSON scanning, seven-group planning, unchanged reinstall, exact ownership validation and targeted removal.
+- Guarded install/remove with private ownership records, descriptor-relative safe-path/metadata checks, candidate synchronization,
+  journal publication, fresh-state checks, replacement, ownership finalization and known-state recovery.
+- Cancellable Connect/Check/Remove action state and native menu/Agents settings controls. Check is read-only and never grants trust.
+- Explicit successful-Connect monitoring activation and the existing helper/inbox/shared-store/notch/Codex quota route.
+  Missing Notch offers Features recovery; Pet remains independent.
+
+The exact-release registry remains empty. No installer release or effective-policy probe was qualified, so automatic
+Connect remains gated. The full valid-input transaction path is implemented behind that gate; release qualification
+is still required before a normal user can connect automatically. Removal uses content ownership and needs no working CLI.
+
+Source implementation is not compiler correctness, a real installed session, successful provider timeout enforcement,
+or native acceptance. I3b2/I3b3/I3c1/I3c2/I5a/I6a and the older R2/R3/R4 checkboxes remain unchecked here where
+their acceptance requires checks not run on the changed source. I6b and prerequisite/feature acceptance remain open.
+See the goal's six-item source audit for implementation evidence and the log for its NOT RUN verification status.
+
 ## Done when
 
 - Pet-only startup needs no agent setup. Connect is explicit and optional; Check and Remove hooks are available for Codex.

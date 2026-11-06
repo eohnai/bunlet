@@ -1,5 +1,6 @@
+import EventBridge
+import Integration
 import Pet
-import SessionState
 import SwiftUI
 
 enum AppSettingsPage: String, Hashable {
@@ -14,6 +15,7 @@ struct AppSettingsActions {
     var showNotch: () -> Void
     var health: () -> [IntegrationHealthSnapshot]
     var selectPage: (String) -> Void
+    var codex: () -> CodexSetupController? = { nil }
 }
 
 struct AppSettingsView: View {
@@ -186,14 +188,21 @@ struct AppSettingsView: View {
     private var agentControls: some View {
         VStack(alignment: .leading, spacing: 16) {
             LabeledContent("Monitoring") {
-                Toggle("Monitoring", isOn: Binding(get: { features.monitoringEnabled }, set: features.setMonitoring))
+                // Swift 6.3.2 crashes when Binding receives the main-actor method reference directly.
+                Toggle("Monitoring", isOn: Binding(get: { features.monitoringEnabled }, set: { features.setMonitoring($0) }))
                     .toggleStyle(.switch).labelsHidden()
                     .disabled(features.preferenceIssue != nil || features.operationIssue != nil)
 
             }
-            Text("Monitoring uses agent connections you have already configured. Automatic agent setup is not available yet.")
+            Text("Monitoring uses configured agent connections. Setup, trust and observed session delivery are separate.")
                 .font(.callout).foregroundStyle(.secondary)
-            ForEach(IntegrationAgent.allCases, id: \.self) { provider in
+            if let codex = actions.codex() {
+                CodexSetupView(controller: codex, features: features,
+                    health: actions.health().first { $0.agent == .codex },
+                    showFeatures: { page = .features }, showNotch: actions.showNotch)
+                Divider()
+            }
+            ForEach(Agent.allCases.filter { $0 != .codex || actions.codex() == nil }, id: \.self) { provider in
                 let evidence = actions.health().first { $0.agent == provider }
                 VStack(alignment: .leading, spacing: 5) {
                     Text(provider == .codex ? "Codex" : "Claude Code").fontWeight(.medium)

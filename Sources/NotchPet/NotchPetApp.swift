@@ -1,9 +1,11 @@
 import AppKit
 import Darwin
 import EventBridge
+import Integration
 import Observation
 import SessionState
 import SwiftUI
+import Usage
 
 @main
 struct NotchPetApp: App {
@@ -26,44 +28,37 @@ struct NotchPetApp: App {
 @MainActor
 @Observable
 private final class IntegrationHealthController {
-    private(set) var evidence: [IntegrationAgent: IntegrationHealthEvidence] =
-        Dictionary(uniqueKeysWithValues: IntegrationAgent.allCases.map {
+    private(set) var evidence: [Agent: IntegrationHealthEvidence] =
+        Dictionary(uniqueKeysWithValues: Agent.allCases.map {
             ($0, IntegrationHealthEvidence(agent: $0))
         })
-    private var refreshing: Set<IntegrationAgent> = []
+    private var refreshing: Set<Agent> = []
 
     var snapshots: [IntegrationHealthSnapshot] {
-        IntegrationAgent.allCases.compactMap { agent in
+        Agent.allCases.compactMap { agent in
             evidence[agent].map { IntegrationHealth.evaluate($0) }
         }
     }
 
-    func refresh(agent: IntegrationAgent) async {
+    func refresh(agent: Agent) async {
         guard !Task.isCancelled, refreshing.insert(agent).inserted else { return }
         ServiceStartLedger.record(.configurationProbe)
         defer { refreshing.remove(agent) }
         let manager = FileManager.default
         // Access only these path settings; do not inventory the environment or read auth files.
-        let searchPath = getenv("PATH").map { String(cString: $0) } ?? "/usr/bin:/bin:/usr/sbin:/sbin"
+        let searchPath = getenv("PATH").map { String(cString: $0) }
         let executable: URL?
-        if searchPath.utf8.count <= 16_384 {
-            executable = searchPath.split(separator: ":", omittingEmptySubsequences: false).prefix(64)
-                .filter { $0.hasPrefix("/") }
-                .map { URL(fileURLWithPath: String($0)).appendingPathComponent(agent.rawValue) }
-                .first { manager.isExecutableFile(atPath: $0.path) }
-        } else {
+        switch AgentPathLocator.executable(agent: agent, policy: .health, searchPath: searchPath,
+                                          homeDirectory: manager.homeDirectoryForCurrentUser) {
+        case .found(let url):
+            executable = url
+        case .notFound, .invalidSearchPath:
             executable = nil
         }
         let directoryOverride = getenv(agent == .codex ? "CODEX_HOME" : "CLAUDE_CONFIG_DIR")
             .map { String(cString: $0) }
-        let configurationDirectory: URL?
-        if let directoryOverride, !directoryOverride.isEmpty {
-            configurationDirectory = directoryOverride.hasPrefix("/") && directoryOverride.utf8.count <= 4096
-                ? URL(fileURLWithPath: directoryOverride) : nil
-        } else {
-            configurationDirectory = manager.homeDirectoryForCurrentUser
-                .appendingPathComponent(agent == .codex ? ".codex" : ".claude")
-        }
+        let configurationDirectory = AgentPathLocator.configurationDirectory(
+            agent: agent, override: directoryOverride, homeDirectory: manager.homeDirectoryForCurrentUser)
         let configuration = configurationDirectory?
             .appendingPathComponent(agent == .codex ? "hooks.json" : "settings.json")
         let helper = Bundle.main.executableURL?.deletingLastPathComponent()
@@ -80,17 +75,25 @@ private final class IntegrationHealthController {
 
     func setReceiver(_ state: IntegrationReceiverState) {
         var updated = evidence
-        for agent in IntegrationAgent.allCases {
+        for agent in Agent.allCases {
             updated[agent]?.receiver = state
         }
         evidence = updated
+    }
+
+    func recordProbe(_ result: IntegrationHealthEvidence) {
+        guard var current = evidence[result.agent] else { return }
+        current.version = result.version
+        current.configuration = result.configuration
+        current.helper = result.helper
+        evidence[result.agent] = current
     }
 
     func recordDeliveries(_ observations: [SessionObservationV1]) {
         guard !observations.isEmpty else { return }
         var updated = evidence
         for observation in observations {
-            guard let agent = IntegrationAgent(rawValue: observation.envelope.agent) else { continue }
+            let agent = observation.envelope.agent
             updated[agent]?.lastDelivery = IntegrationDeliveryReceipt(
                 wallMs: observation.receiptWallMs, monotonicNs: observation.receiptMonotonicNs)
         }
@@ -136,6 +139,10 @@ final class AgentServices: NSObject, AppAgentService {
     }
 
     var healthSnapshots: [IntegrationHealthSnapshot] { integrationHealth.snapshots }
+
+    func recordInspection(_ evidence: IntegrationHealthEvidence) {
+        integrationHealth.recordProbe(evidence)
+    }
 
     func start() {
         guard generation == nil else { return }
@@ -235,6 +242,14 @@ private struct CompanionMenu: View {
     var body: some View {
         if controller.installed.contains(.pet) { Button("Show Pet", action: controller.showPet) }
         if controller.installed.contains(.notch) { Button("Show Notch", action: controller.showNotch) }
+        if controller.installed.contains(.agents) {
+            Menu("Codex") {
+                Button("Connect Codex…", action: controller.connectCodex)
+                Button("Check Codex", action: controller.checkCodex)
+                    .disabled(controller.codexSetup?.operation != nil)
+                Button("Remove Codex Hooks…", action: controller.removeCodexHooks)
+            }
+        }
         Button("Settings…", action: controller.showSettings)
             .keyboardShortcut(",")
         Divider()

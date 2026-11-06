@@ -1,9 +1,11 @@
 import AppKit
 import Darwin
 import EventBridge
+import Integration
 import Observation
 import Pet
 import SessionState
+import Usage
 
 /// Presentation and optional service lifetime belong to the app, not its views.
 @MainActor
@@ -16,6 +18,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         .flatMap { UserDefaults(suiteName: String(cString: $0)) } ?? .standard
     private let sessions = SessionStore()
     private let usage = UsageStore()
+    private(set) var codexSetup: CodexSetupController?
     @ObservationIgnored private weak var pet: PetPanelController?
     @ObservationIgnored private weak var notch: NotchPanelController?
     @ObservationIgnored private weak var agents: AgentServices?
@@ -54,7 +57,8 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         settings = PetSettingsController(defaults: defaults, features: features, onSizeChange: { [weak self] size in
             self?.pet?.setSize(size)
         }, onShowPet: { [weak self] in self?.showPet() }, onShowNotch: { [weak self] in self?.showNotch() },
-            readHealth: { [weak self] in self?.healthSnapshots ?? [] })
+            readHealth: { [weak self] in self?.healthSnapshots ?? [] },
+            readCodex: { [weak self] in self?.codexSetup })
         if installed.contains(.pet) && !defaults.bool(forKey: "pet.setupComplete") {
             settings?.show(page: .pet, activate: false)
         }
@@ -76,6 +80,19 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     }
 
     private func applyRuntimes(_ installed: Set<AppFeature>, monitoring: Bool) -> Set<AppFeature> {
+        if installed.contains(.agents) {
+            if codexSetup == nil {
+                codexSetup = CodexSetupController(onConnected: { [weak self] in
+                    guard let self, self.installed.contains(.agents) else { return }
+                    self.features.setMonitoring(true)
+                }, onInspection: { [weak self] evidence in
+                    self?.agents?.recordInspection(evidence)
+                })
+            }
+        } else {
+            codexSetup?.cancel()
+            codexSetup = nil
+        }
         var active = installed
         if !monitoring { active.remove(.agents) }
         runtimes.apply(active)
@@ -88,7 +105,28 @@ final class PetAppController: NSObject, NSApplicationDelegate {
 
     func showFeatures() { settings?.show(page: .features) }
 
+    func showCodexSetup() {
+        guard installed.contains(.agents) else { return }
+        settings?.show(page: .agents)
+    }
+
+    func connectCodex() {
+        showCodexSetup()
+        codexSetup?.requestConfirmation(.connect)
+    }
+
+    func checkCodex() {
+        showCodexSetup()
+        codexSetup?.start(.check)
+    }
+
+    func removeCodexHooks() {
+        showCodexSetup()
+        codexSetup?.requestConfirmation(.remove)
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
+        codexSetup?.cancel()
         let pet = self.pet
         runtimes.apply([])
         pet?.writeEvidence(phase: "terminated", agentsEnabled: false, focusBefore: focusBefore)

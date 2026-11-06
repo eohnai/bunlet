@@ -1,3 +1,4 @@
+import EventBridge
 import Darwin
 import Foundation
 import os
@@ -69,7 +70,7 @@ public final class UsageReceiver {
                 if count < 0 { return }
                 guard count > 0, count <= 8192,
                       let value = try? JSONDecoder().decode(UsageObservation.self, from: Data(bytes.prefix(count))),
-                      IntegrationAgent(rawValue: value.provider) != nil,
+                      Agent(rawValue: value.provider) != nil,
                       !value.sourceID.isEmpty, value.sourceID.utf8.count <= 256,
                       value.accountID.map({ !$0.isEmpty && $0.utf8.count <= 256 }) ?? true,
                       value.windows.count <= 64,

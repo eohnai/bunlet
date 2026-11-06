@@ -1,7 +1,7 @@
 import Darwin
 import Foundation
 import Testing
-@testable import SessionState
+@testable import Usage
 
 // These cases exercise separate child-process scenarios, not concurrent provider sessions.
 // Keep their synthetic slow/oversized processes from competing with each other at launch.

@@ -2,6 +2,7 @@ import AppKit
 import QuartzCore
 import SessionState
 import SwiftUI
+import Usage
 
 @MainActor
 final class NotchPanelController: AppFeatureService {

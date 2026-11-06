@@ -1,5 +1,6 @@
 import SessionState
 import SwiftUI
+import Usage
 
 struct NotchSessionView: View {
     let sessionStore: SessionStore

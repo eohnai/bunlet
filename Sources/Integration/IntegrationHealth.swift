@@ -1,9 +1,6 @@
+import EventBridge
 import Darwin
 import Foundation
-
-public enum IntegrationAgent: String, CaseIterable, Hashable, Sendable {
-    case codex, claude
-}
 
 /// Bounded categories only. Raw errors, configuration values and process output are not diagnostics.
 public enum IntegrationHealthFailure: String, Equatable, Sendable {
@@ -57,14 +54,14 @@ public struct IntegrationDeliveryReceipt: Equatable, Sendable {
 }
 
 public struct IntegrationHealthEvidence: Equatable, Sendable {
-    public let agent: IntegrationAgent
+    public let agent: Agent
     public var version: IntegrationVersionEvidence
     public var configuration: IntegrationConfigurationEvidence
     public var helper: IntegrationHelperAvailability
     public var receiver: IntegrationReceiverState
     public var lastDelivery: IntegrationDeliveryReceipt?
 
-    public init(agent: IntegrationAgent, version: IntegrationVersionEvidence = .notChecked,
+    public init(agent: Agent, version: IntegrationVersionEvidence = .notChecked,
                 configuration: IntegrationConfigurationEvidence = .notChecked,
                 helper: IntegrationHelperAvailability = .notChecked,
                 receiver: IntegrationReceiverState = .notStarted,
@@ -80,7 +77,7 @@ public struct IntegrationHealthEvidence: Equatable, Sendable {
 
 /// No aggregate connected/disconnected flag: each observation proves only its own field.
 public struct IntegrationHealthSnapshot: Equatable, Sendable {
-    public let agent: IntegrationAgent
+    public let agent: Agent
     public let version: IntegrationVersionSupport
     public let configuration: IntegrationConfigurationEvidence
     public let helper: IntegrationHelperAvailability
@@ -122,10 +119,12 @@ public enum IntegrationHealthProbe {
     private static let configurationLimit = 262_144
     private static let processTimeoutNs: UInt64 = 2_000_000_000
 
-    public static func inspect(agent: IntegrationAgent, executableURL: URL?,
+    public static func inspect(agent: Agent, executableURL: URL?,
                                configurationURL: URL?, helperURL: URL?) async -> IntegrationHealthEvidence {
-        await Task.detached(priority: .utility) {
+        let worker = Task.detached(priority: .utility) {
+            guard !Task.isCancelled else { return IntegrationHealthEvidence(agent: agent) }
             let version = readVersion(agent: agent, executableURL: executableURL)
+            guard !Task.isCancelled else { return IntegrationHealthEvidence(agent: agent) }
             let configuration = readConfiguration(configurationURL)
             let helper: IntegrationHelperAvailability
             if let helperURL, helperURL.isFileURL {
@@ -142,10 +141,11 @@ public enum IntegrationHealthProbe {
             }
             return IntegrationHealthEvidence(agent: agent, version: version,
                                              configuration: configuration, helper: helper)
-        }.value
+        }
+        return await withTaskCancellationHandler(operation: { await worker.value }, onCancel: { worker.cancel() })
     }
 
-    private static func readVersion(agent: IntegrationAgent, executableURL: URL?) -> IntegrationVersionEvidence {
+    private static func readVersion(agent: Agent, executableURL: URL?) -> IntegrationVersionEvidence {
         guard let executableURL else { return .unavailable(.executableNotFound) }
         guard executableURL.isFileURL else { return .unavailable(.launchFailed) }
         let process = Process()
@@ -170,6 +170,7 @@ public enum IntegrationHealthProbe {
         var data = Data()
         var bytes = [UInt8](repeating: 0, count: 8192)
         while true {
+            guard !Task.isCancelled else { return .unavailable(.timedOut) }
             let now = DispatchTime.now().uptimeNanoseconds
             guard now < deadline else { return .unavailable(.timedOut) }
             let count = bytes.withUnsafeMutableBytes { buffer in
