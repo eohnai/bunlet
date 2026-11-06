@@ -18,7 +18,11 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         .flatMap { UserDefaults(suiteName: String(cString: $0)) } ?? .standard
     private let sessions = SessionStore()
     private let usage = UsageStore()
-    private(set) var codexSetup: CodexSetupController?
+    private(set) var codexSetup: ProviderSetupController?
+    private(set) var claudeSetup: ProviderSetupController?
+    @ObservationIgnored private(set) lazy var providerMonitoring = ProviderMonitoringModel(defaults: defaults) { [weak self] enabled in
+        self?.agents?.setEnabledProviders(enabled)
+    }
     @ObservationIgnored private weak var pet: PetPanelController?
     @ObservationIgnored private weak var notch: NotchPanelController?
     @ObservationIgnored private weak var agents: AgentServices?
@@ -44,11 +48,12 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         },
         .agents: { [weak self] in
             guard let self else { return nil }
-            let service = AgentServices(sessionStore: self.sessions, usageStore: self.usage)
+            let service = AgentServices(sessionStore: self.sessions, usageStore: self.usage, enabledProviders: self.providerMonitoring.enabledProviders)
             self.agents = service
             return service
         }
     ])
+    @ObservationIgnored private var runtimeMonitoring = false
     private var focusBefore: pid_t = -1
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -58,7 +63,10 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             self?.pet?.setSize(size)
         }, onShowPet: { [weak self] in self?.showPet() }, onShowNotch: { [weak self] in self?.showNotch() },
             readHealth: { [weak self] in self?.healthSnapshots ?? [] },
-            readCodex: { [weak self] in self?.codexSetup })
+            readCodex: { [weak self] in self?.codexSetup },
+            readClaude: { [weak self] in self?.claudeSetup },
+            readMonitoring: { [weak self] in self?.providerMonitoring },
+            readQuota: { [weak self] in self?.usage })
         if installed.contains(.pet) && !defaults.bool(forKey: "pet.setupComplete") {
             settings?.show(page: .pet, activate: false)
         }
@@ -80,23 +88,52 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     }
 
     private func applyRuntimes(_ installed: Set<AppFeature>, monitoring: Bool) -> Set<AppFeature> {
+        if runtimeMonitoring && !monitoring {
+            codexSetup?.cancel()
+            claudeSetup?.cancel()
+        }
+        runtimeMonitoring = monitoring && installed.contains(.agents)
         if installed.contains(.agents) {
-            if codexSetup == nil {
-                codexSetup = CodexSetupController(onConnected: { [weak self] in
-                    guard let self, self.installed.contains(.agents) else { return }
-                    self.features.setMonitoring(true)
-                }, onInspection: { [weak self] evidence in
-                    self?.agents?.recordInspection(evidence)
-                })
-            }
+            if codexSetup == nil { codexSetup = makeProviderSetup(.codex) }
+            if claudeSetup == nil { claudeSetup = makeProviderSetup(.claude) }
         } else {
             codexSetup?.cancel()
+            claudeSetup?.cancel()
             codexSetup = nil
+            claudeSetup = nil
         }
         var active = installed
         if !monitoring { active.remove(.agents) }
         runtimes.apply(active)
         return runtimes.unavailableFeatures
+    }
+
+    private func makeProviderSetup(_ agent: Agent) -> ProviderSetupController {
+        ProviderSetupController(agent: agent, onConnected: { [weak self] in
+            guard let self, self.installed.contains(.agents) else { return }
+            self.providerMonitoring.setEnabled(true, for: agent)
+            if self.providerMonitoring.isEnabled(agent) { self.features.setMonitoring(true) }
+        }, onPaused: { [weak self] in
+            self?.providerMonitoring.setEnabled(false, for: agent)
+        }, onInspection: { [weak self] evidence in
+            self?.agents?.recordInspection(evidence)
+        })
+    }
+
+    func requestSetup(_ action: ProviderSetupAction, agent: Agent) {
+        guard installed.contains(.agents) else { return }
+        settings?.show(page: .agents)
+        let setup = agent == .codex ? codexSetup : claudeSetup
+        if action.isCheck { setup?.start(action) }
+        else { setup?.requestConfirmation(action) }
+    }
+
+    func toggleProviderMonitoring(_ agent: Agent) {
+        guard installed.contains(.agents) else { return }
+        let resume = !(monitoringEnabled && providerMonitoring.isEnabled(agent))
+        if !resume { (agent == .codex ? codexSetup : claudeSetup)?.cancel() }
+        providerMonitoring.setEnabled(resume, for: agent)
+        if resume, providerMonitoring.isEnabled(agent) { features.setMonitoring(true) }
     }
 
     func showSettings() {
@@ -105,28 +142,9 @@ final class PetAppController: NSObject, NSApplicationDelegate {
 
     func showFeatures() { settings?.show(page: .features) }
 
-    func showCodexSetup() {
-        guard installed.contains(.agents) else { return }
-        settings?.show(page: .agents)
-    }
-
-    func connectCodex() {
-        showCodexSetup()
-        codexSetup?.requestConfirmation(.connect)
-    }
-
-    func checkCodex() {
-        showCodexSetup()
-        codexSetup?.start(.check)
-    }
-
-    func removeCodexHooks() {
-        showCodexSetup()
-        codexSetup?.requestConfirmation(.remove)
-    }
-
     func applicationWillTerminate(_ notification: Notification) {
         codexSetup?.cancel()
+        claudeSetup?.cancel()
         let pet = self.pet
         runtimes.apply([])
         pet?.writeEvidence(phase: "terminated", agentsEnabled: false, focusBefore: focusBefore)

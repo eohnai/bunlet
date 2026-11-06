@@ -1,4 +1,5 @@
 import CryptoKit
+import EventBridge
 import Foundation
 
 public enum UsageProviderError: Error, Equatable {
@@ -9,7 +10,7 @@ public enum ClaudeUsageProvider {
     /// No raw session ID or unrelated status-line data leaves this projection.
     public static func forward(_ input: Data, receivedAtMs: Int64,
                                endpointURL: URL = UsageDelivery.standardEndpoint) -> Bool {
-        guard input.count <= 262_144 else { return false }
+        guard input.count <= 262_144, (try? HookConfigurationJSON(data: input)) != nil else { return false }
         struct Identity: Decodable { let session_id: String }
         guard let identity = try? JSONDecoder().decode(Identity.self, from: input),
               !identity.session_id.isEmpty, identity.session_id.utf8.count <= 256 else { return false }

@@ -2,6 +2,7 @@ import EventBridge
 import Integration
 import Pet
 import SwiftUI
+import Usage
 
 enum AppSettingsPage: String, Hashable {
     case general, features, pet, notch, agents
@@ -15,7 +16,10 @@ struct AppSettingsActions {
     var showNotch: () -> Void
     var health: () -> [IntegrationHealthSnapshot]
     var selectPage: (String) -> Void
-    var codex: () -> CodexSetupController? = { nil }
+    var codex: () -> ProviderSetupController? = { nil }
+    var claude: () -> ProviderSetupController? = { nil }
+    var monitoring: () -> ProviderMonitoringModel? = { nil }
+    var quota: () -> UsageStore? = { nil }
 }
 
 struct AppSettingsView: View {
@@ -196,33 +200,22 @@ struct AppSettingsView: View {
             }
             Text("Monitoring uses configured agent connections. Setup, trust and observed session delivery are separate.")
                 .font(.callout).foregroundStyle(.secondary)
-            if let codex = actions.codex() {
-                CodexSetupView(controller: codex, features: features,
-                    health: actions.health().first { $0.agent == .codex },
-                    showFeatures: { page = .features }, showNotch: actions.showNotch)
-                Divider()
-            }
-            ForEach(Agent.allCases.filter { $0 != .codex || actions.codex() == nil }, id: \.self) { provider in
-                let evidence = actions.health().first { $0.agent == provider }
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(provider == .codex ? "Codex" : "Claude Code").fontWeight(.medium)
-                    Text(receiverSummary(evidence?.receiver))
-                    Text(evidence?.lastDelivery == nil ? "Session delivery not observed" : "Session delivery observed")
-                        .font(.callout).foregroundStyle(.secondary)
-                    Text("Setup and version checks have not run.").font(.caption).foregroundStyle(.secondary)
+            ForEach(Agent.allCases, id: \.self) { provider in
+                let setup = provider == .codex ? actions.codex() : actions.claude()
+                if let setup, let monitoring = actions.monitoring() {
+                    ProviderSetupView(controller: setup, features: features,
+                        health: actions.health().first { $0.agent == provider },
+                        monitoring: monitoring, quota: actions.quota(),
+                        showFeatures: { page = .features }, showNotch: actions.showNotch)
+                } else {
+                    Text(provider == .codex ? "Codex setup unavailable" : "Claude Code setup unavailable")
+                        .foregroundStyle(.secondary)
                 }
+                if provider != Agent.allCases.last { Divider() }
             }
             Text("Disabling monitoring keeps unresolved requests unconfirmed. Existing agent configuration is unchanged.")
                 .font(.callout).foregroundStyle(.secondary)
         }
     }
 
-    private func receiverSummary(_ state: IntegrationReceiverState?) -> String {
-        guard features.monitoringEnabled else { return "Monitoring is off" }
-        switch state {
-        case .listening: return "Receiver ready for events"
-        case .failed: return "Receiver unavailable. Turn monitoring off and on to retry."
-        case .stopped, .notStarted, nil: return "Receiver has not started"
-        }
-    }
 }

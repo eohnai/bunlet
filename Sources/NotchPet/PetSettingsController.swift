@@ -2,6 +2,7 @@ import AppKit
 import Integration
 import Pet
 import SwiftUI
+import Usage
 
 @MainActor
 final class PetSettingsController {
@@ -12,12 +13,18 @@ final class PetSettingsController {
     private let onShowPet: () -> Void
     private let onShowNotch: () -> Void
     private let readHealth: () -> [IntegrationHealthSnapshot]
-    private let readCodex: () -> CodexSetupController?
+    private let readCodex: () -> ProviderSetupController?
+    private let readClaude: () -> ProviderSetupController?
+    private let readMonitoring: () -> ProviderMonitoringModel?
+    private let readQuota: () -> UsageStore?
 
     init(defaults: UserDefaults, features: FeatureSettingsModel, onSizeChange: @escaping (Double) -> Void,
          onShowPet: @escaping () -> Void, onShowNotch: @escaping () -> Void,
          readHealth: @escaping () -> [IntegrationHealthSnapshot],
-         readCodex: @escaping () -> CodexSetupController? = { nil }) {
+         readCodex: @escaping () -> ProviderSetupController? = { nil },
+         readClaude: @escaping () -> ProviderSetupController? = { nil },
+         readMonitoring: @escaping () -> ProviderMonitoringModel? = { nil },
+         readQuota: @escaping () -> UsageStore? = { nil }) {
         self.defaults = defaults
         self.features = features
         self.onSizeChange = onSizeChange
@@ -25,6 +32,9 @@ final class PetSettingsController {
         self.onShowNotch = onShowNotch
         self.readHealth = readHealth
         self.readCodex = readCodex
+        self.readClaude = readClaude
+        self.readMonitoring = readMonitoring
+        self.readQuota = readQuota
         window = PetSettingsWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 520),
                                    styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         window.contentMinSize = NSSize(width: 660, height: 480)
@@ -50,7 +60,7 @@ final class PetSettingsController {
                     guard let self else { return }
                     self.defaults.set(raw, forKey: "settings.selectedPane")
                     self.window.title = AppFeature(rawValue: raw)?.title ?? raw.capitalized
-                }, codex: readCodex)
+                }, codex: readCodex, claude: readClaude, monitoring: readMonitoring, quota: readQuota)
             window.contentView = NSHostingView(rootView: PetWindowPlayback(window: window) { [features, defaults] visible, sleeping in
                 AppSettingsView(features: features, defaults: defaults, actions: actions, page: page,
                                 isVisible: visible, isSleeping: sleeping)

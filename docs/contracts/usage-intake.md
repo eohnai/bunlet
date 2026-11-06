@@ -35,4 +35,10 @@ shell exit status. Only the first 256 KiB is retained for parsing; oversized inp
 original command but yields no quota. A command that exits early adds at most 250 ms to drain the
 available input; cancellation escalates to group kill after 250 ms. Input, command and output are
 never logged or spooled. No-argument mode forwards metadata silently without an original command.
-Packaging includes the executable. Owned status-line setup remains subsequent implementation work.
+Packaging includes the executable. `ClaudeStatusLinePlanner` and the scoped `ProviderHookTransaction`
+now implement optional Connect/Check/Remove forwarding controls, exact original-value restoration and
+guarded recovery, separately from Claude lifecycle setup. See [provider setup](provider-setup.md).
+Codex uses complete read responses only; sparse notifications cannot refresh or merge a partial reading.
+A changed reported account replaces the whole managed-source snapshot, including absent windows. If
+no account identity is supplied it remains unverified. The next bounded read observes account changes;
+this implementation does not promise immediate notification-driven account detection.

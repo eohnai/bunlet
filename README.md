@@ -3,7 +3,7 @@
 A macOS companion for Codex CLI and Claude Code, under development, with terminal-independent operation as an accepted requirement.
 The source implements independently selectable Pet, Notch and Agents features, shared native Settings,
 session cards, provider limits and a silent observation helper. Agents owns optional receiver and quota work.
-The Codex MVP includes setup/check/removal controls and owned-hook transactions, with runtime qualification still pending.
+Both providers have setup/check/repair/removal controls, independent monitoring and owned transactions. Claude quota forwarding has separate reversible setup. Runtime qualification remains unverified.
 Pet reactions, dragging/return and custom packs remain planned.
 Local approval/deny controls, question answers, and follow-up replies are also planned, subject to verified agent/version support.
 SSH and cloud-agent integrations are optional future work.
@@ -31,7 +31,8 @@ bash scripts/run.sh
 ```
 
 Click the paw icon in the menu bar. Settings manages feature availability; installed surfaces have recovery actions.
-When Agents is installed, the Codex submenu opens Connect, Check and Remove hooks controls.
+When Agents is installed, Codex and Claude Code submenus offer setup, Check, Repair, Pause/Resume and Disconnect.
+Claude quota forwarding is configured separately on the Agents settings page.
 Select **Quit Notch Pet** to close the app. Command-Q also quits while its menu is open.
 The app has no Dock icon. Pet, Notch and Settings windows follow the selected features and explicit actions.
 
@@ -98,29 +99,33 @@ The remaining Codex interactive checks are deferred to immediately before final 
 No hooks were installed during development of this implementation.
 See the [compatibility record](docs/notes/agent-event-compatibility.md) for evidence boundaries and known limits.
 
-## Codex MVP: implementation, not live acceptance
+## Provider implementation, unverified
 
-The Codex submenu and Agents settings expose explicit Connect, read-only Check and Remove hooks actions.
-The source includes lossless seven-hook planning, unchanged reinstall, targeted removal, bounded guarded writes
-and install/remove journal recovery. Configuration, ownership and recovery data are bounded to 256 KiB each.
-Existing settings and the normal Codex trust flow are preserved under the accepted concurrent-editor limitation.
-Finish other configuration edits before applying setup changes.
+Both submenus and Agents settings expose optional Connect, read-only Check, Repair, Remove hooks,
+Pause/Resume and Disconnect. Codex 0.164.0 and Claude Code 2.1.306 have documented setup bindings.
+Other versions need a supported binding. **No release is runtime-qualified.** Known disabled or
+managed-only policy blocks setup; unknown policy is clearly unverified. Setup never enables hook
+features, grants trust or changes permissions. Complete the provider's normal trust/workspace review.
 
-**No Codex installer release is qualified yet. Automatic Connect therefore remains unavailable.**
-The production path behind that gate is implemented; the qualified release registry is intentionally empty.
-Historical compatibility, a candidate version, configured hooks or a delivery receipt cannot qualify installation.
-Check reports the available evidence and removal does not require a working CLI.
-No user preference or environment flag bypasses the qualification gate.
+Owned writes preserve unrelated settings/Otty hooks, reject ownership conflicts and recover only
+known saved transaction states. Finish other configuration edits before changing setup. If the app
+moved, remove old owned entries, then Connect at its new location. Removal needs no CLI or old helper.
+A separate Claude **Connect quota** action wraps the existing status line, keeps its original command
+and fields, and saves the exact original value privately for restoration. **Remove forwarding** restores
+it only while the owned field is unchanged. Lifecycle removal preserves the status line; **Disconnect**
+pauses first, removes owned forwarding, then hooks. Partial failure remains paused and is reported.
 
-Successful supported setup enables monitoring explicitly. If Notch is absent, the app offers Features rather than
-installing it silently. Real observations use the existing helper, receiver, inbox and shared session store.
-Active Codex sessions drive read-only quota reads into the shared usage store; quota reads cannot start turns.
-Pet-only use starts no agent services.
+The master Agents switch and separate provider controls stop monitoring without removing hooks.
+Pending requests remain unconfirmed; resume waits for fresh evidence. Active Codex sessions drive
+bounded read-only quota reads/retries; Claude forwards status-line fields over private bounded IPC.
+Sources/accounts stay separate and unknown account/measurement identity stays unverified. Notch reads
+shared stores; it owns no provider I/O. Pet-only use starts no provider services.
 
-The user requested implementation without testing: **no tests, builds, app launches, live probes or installed
-configuration changes were performed for this MVP goal**. Compiler correctness, real setup/delivery and native
-interaction acceptance are unverified. See the [source audit and log](docs/goals/codex-mvp-implementation.md)
-and [Codex setup specification](docs/specs/sessions/codex-setup.md).
+**Tests, builds, app/helper launches, probes, captures, installed configuration access and runtime
+qualification were NOT RUN for this implementation.** Source coverage for setup/sessions/quota is
+present; local actions, pet reactions/movement/imports and desktop/navigation remain unfinished in the
+[full MVP goal](docs/goals/full-mvp-implementation.md). See its [log](docs/goals/full-mvp-implementation-log.md),
+[provider setup contract](docs/contracts/provider-setup.md) and [quota contract](docs/contracts/usage-intake.md).
 
 ## Verify the bridge
 

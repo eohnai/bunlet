@@ -1,5 +1,12 @@
 # Codex lifecycle hook setup contract
 
+2026-11-06 implementation addendum: the user explicitly requested the full code implementation with
+runtime qualification left unverified. [Provider setup](provider-setup.md) replaces the historical
+qualification-before-installation gate with separate documented and runtime-qualified support.
+Known disabled/managed-only policy still blocks setup; unknown policy is labelled unverified. No
+trust or permissions are granted. The ownership/recovery and concurrent-editor guarantees below
+remain in force. Earlier acceptance history and checkboxes are unchanged.
+
 Status: design accepted, 2026-10-30. The user accepted the separate ownership file and the I3b1 design choices.
 The [accepted I3b1 review](#i3b1-review-2026-10-30) governs where it refines the historical proposals below.
 Task-level implementation plans, prerequisite closure, and runtime qualification remain separate gates.

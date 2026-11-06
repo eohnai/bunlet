@@ -9,7 +9,7 @@ The forwarding must keep the user's status-line output and cancellation behavior
 It reuses the shared usage store and notch sections from [codex-allowance](codex-allowance.md). See the [usage area](area.md) for shared context.
 
 This is a retrospective spec. It moves U2a, U2b, U2c1, U2c2, and U2c3 out of the [source specification](../notch-companion.md).
-The parser, sender, receiver, forwarding executable and app wiring now have source implementations. Owned status-line installation and live acceptance remain incomplete.
+The parser, sender, receiver, forwarding executable and app wiring now have source implementations. Owned status-line installation/restoration and Settings health also have source paths. Live acceptance remains incomplete.
 
 ## Done when
 
@@ -73,8 +73,10 @@ The notch exposes stale readings, receiver failure and intake/capacity loss. The
 receiver and ambiguous `sync(execute:)` build finding below are historical, not this code path.
 
 Tests, builds, process launches, socket probes, installed configuration access and runtime
-qualification were NOT RUN. Original verification-bearing checkboxes are preserved. Owned setup,
-settings health presentation and live terminal preservation remain outstanding.
+qualification were NOT RUN. Original verification-bearing checkboxes are preserved.
+`ClaudeStatusLinePlanner` and `ProviderHookTransaction` now implement separate guarded quota
+setup/removal/restoration, and `ProviderSetupView` exposes quota ownership/helper/receipt state.
+See [Claude setup](../sessions/claude-setup.md). Live terminal preservation remains unverified.
 
 ## My calls
 

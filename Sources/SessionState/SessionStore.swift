@@ -67,8 +67,12 @@ public final class SessionStore {
     }
 
     /// Retain request identities while withdrawing confirmation when monitoring stops.
-    public func suspendMonitoring() {
-        invalidate(reason: .monitoringStopped)
+    public func suspendMonitoring(agent: Agent? = nil) {
+        if let agent {
+            for (key, record) in records where key.agent == agent && !record.terminal { record.unknown(.monitoringStopped) }
+        } else {
+            invalidate(reason: .monitoringStopped)
+        }
         publish()
     }
 

@@ -73,9 +73,9 @@ private final class IntegrationHealthController {
         evidence[agent] = current
     }
 
-    func setReceiver(_ state: IntegrationReceiverState) {
+    func setReceiver(_ state: IntegrationReceiverState, agents: Set<Agent> = Set(Agent.allCases)) {
         var updated = evidence
-        for agent in Agent.allCases {
+        for agent in agents {
             updated[agent]?.receiver = state
         }
         evidence = updated
@@ -121,11 +121,16 @@ final class AgentServices: NSObject, AppAgentService {
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var inbox: SessionEventInbox?
     private var usageInbox: UsageInbox?
+    private var quotaGeneration: UUID?
+    private var enabledProviders: Set<Agent>
+    private var providerCutoffs: [Agent: (monotonic: UInt64, wall: Int64)] = [:]
+    private var eventReceiverState: IntegrationReceiverState = .notStarted
     private var expiryTimer: DispatchSourceTimer?
     private var receiptCutoffNs: UInt64 = 0
 
     init(sessionStore: SessionStore? = nil, usageStore: UsageStore? = nil, endpoint: BridgeEndpoint = .standard,
          usage: (any AppFeatureService)? = nil, startObserving: ReceiverStart? = nil,
+         enabledProviders: Set<Agent> = Set(Agent.allCases),
          wall: @escaping () -> Int64 = { Int64(Date().timeIntervalSince1970 * 1000) },
          monotonic: @escaping () -> UInt64 = { DispatchTime.now().uptimeNanoseconds }) {
         let sessions = sessionStore ?? SessionStore()
@@ -135,6 +140,7 @@ final class AgentServices: NSObject, AppAgentService {
         self.usageStore = limits
         self.usage = usage ?? AgentUsageController(store: limits, sessions: sessions)
         self.startObserving = startObserving
+        self.enabledProviders = enabledProviders
         readWall = wall
         readMonotonic = monotonic
         super.init()
@@ -146,16 +152,37 @@ final class AgentServices: NSObject, AppAgentService {
         integrationHealth.recordProbe(evidence)
     }
 
+    func setEnabledProviders(_ providers: Set<Agent>) {
+        let changed = enabledProviders.symmetricDifference(providers)
+        for agent in changed {
+            providerCutoffs[agent] = (monotonicNs(), wallMs())
+            if !providers.contains(agent) { sessionStore.suspendMonitoring(agent: agent) }
+        }
+        enabledProviders = providers
+        (usage as? AgentUsageController)?.setEnabledProviders(providers)
+        guard let current = generation else { return }
+        updateReceiverEvidence()
+        if providers.contains(.claude) { startClaudeQuota(current: current) }
+        else { stopClaudeQuota() }
+        scheduleExpiry()
+    }
+
     func start() {
         guard generation == nil else { return }
         let current = UUID()
         generation = current
+        for agent in Agent.allCases { providerCutoffs[agent] = (monotonicNs(), wallMs()) }
         let deliver: BatchHandler = { [weak self] batch, lost in
             guard let self, self.generation == current else { return }
+            let monitored = batch.filter { self.enabledProviders.contains($0.envelope.agent) }
             // Delivery happened even when a clock cutoff prevents it from restoring session freshness.
-            self.integrationHealth.recordDeliveries(batch)
+            self.integrationHealth.recordDeliveries(monitored)
             // Evidence queued before sleep or a clock change cannot establish a fresh baseline.
-            let eligible = batch.filter { $0.receiptMonotonicNs >= self.receiptCutoffNs }
+            let eligible = monitored.filter {
+                let cutoff = self.providerCutoffs[$0.envelope.agent]
+                return $0.receiptMonotonicNs >= max(self.receiptCutoffNs, cutoff?.monotonic ?? 0) &&
+                    $0.envelope.observedAtMs >= (cutoff?.wall ?? 0)
+            }
             self.sessionStore.applyBatch(eligible, observationsLost: lost,
                                          wallMs: self.wallMs(), monotonicNs: self.monotonicNs())
             self.scheduleExpiry()
@@ -170,24 +197,15 @@ final class AgentServices: NSObject, AppAgentService {
                 try bridge.start { inbox.receive($0) }
                 stopReceiver = { [weak self] in self?.bridge.stop() }
             }
-            integrationHealth.setReceiver(.listening)
+            eventReceiverState = .listening
         } catch BridgeError.unsafeEndpoint {
-            integrationHealth.setReceiver(.failed(.unsafeEndpoint))
+            eventReceiverState = .failed(.unsafeEndpoint)
         } catch {
-            integrationHealth.setReceiver(.failed(.receiverUnavailable))
+            eventReceiverState = .failed(.receiverUnavailable)
         }
-        // Quota intake and Codex refresh have independent failure/lifetime paths from lifecycle IPC.
-        let quotaInbox = UsageInbox { [weak self] batch, lost, rejected in
-            guard let self, self.generation == current else { return }
-            self.usageStore.receiveClaudeBatch(batch, lost: lost, rejected: rejected)
-        }
-        usageInbox = quotaInbox
-        do {
-            try usageReceiver.start(onRejected: { quotaInbox.reject() }) { quotaInbox.receive($0) }
-            usageStore.setReceiverState(.listening)
-        } catch {
-            usageStore.setReceiverState(.unavailable)
-        }
+        updateReceiverEvidence()
+        (usage as? AgentUsageController)?.setEnabledProviders(enabledProviders)
+        if enabledProviders.contains(.claude) { startClaudeQuota(current: current) }
         usage.start()
         let workspace = NSWorkspace.shared.notificationCenter
         for (center, name) in [(workspace, NSWorkspace.willSleepNotification),
@@ -210,11 +228,10 @@ final class AgentServices: NSObject, AppAgentService {
         stopReceiver = nil
         inbox = nil
         usage.stop()
-        usageReceiver.stop()
-        usageInbox = nil
-        usageStore.setReceiverState(.stopped)
+        stopClaudeQuota()
         sessionStore.suspendMonitoring()
         integrationHealth.setReceiver(.stopped)
+        eventReceiverState = .stopped
         expiryTimer?.cancel()
         expiryTimer = nil
         for (center, observer) in observers { center.removeObserver(observer) }
@@ -223,9 +240,41 @@ final class AgentServices: NSObject, AppAgentService {
 
     private func invalidateObservations() {
         receiptCutoffNs = monotonicNs()
+        for agent in Agent.allCases { providerCutoffs[agent] = (receiptCutoffNs, wallMs()) }
         sessionStore.invalidateClocks()
         expiryTimer?.cancel()
         expiryTimer = nil
+    }
+
+    private func updateReceiverEvidence() {
+        for agent in Agent.allCases {
+            integrationHealth.setReceiver(enabledProviders.contains(agent) ? eventReceiverState : .stopped, agents: [agent])
+        }
+    }
+
+    private func startClaudeQuota(current: UUID) {
+        guard quotaGeneration == nil else { return }
+        let quotaID = UUID()
+        quotaGeneration = quotaID
+        let quotaInbox = UsageInbox { [weak self] batch, lost, rejected in
+            guard let self, self.generation == current, self.quotaGeneration == quotaID,
+                  self.enabledProviders.contains(.claude) else { return }
+            self.usageStore.receiveClaudeBatch(batch, lost: lost, rejected: rejected)
+        }
+        usageInbox = quotaInbox
+        do {
+            try usageReceiver.start(onRejected: { quotaInbox.reject() }) { quotaInbox.receive($0) }
+            usageStore.setReceiverState(.listening)
+        } catch {
+            usageStore.setReceiverState(.unavailable)
+        }
+    }
+
+    private func stopClaudeQuota() {
+        quotaGeneration = nil
+        usageReceiver.stop()
+        usageInbox = nil
+        usageStore.setReceiverState(.stopped)
     }
 
     private func scheduleExpiry() {
@@ -260,11 +309,17 @@ private struct CompanionMenu: View {
         if controller.installed.contains(.pet) { Button("Show Pet", action: controller.showPet) }
         if controller.installed.contains(.notch) { Button("Show Notch", action: controller.showNotch) }
         if controller.installed.contains(.agents) {
-            Menu("Codex") {
-                Button("Connect Codex…", action: controller.connectCodex)
-                Button("Check Codex", action: controller.checkCodex)
-                    .disabled(controller.codexSetup?.operation != nil)
-                Button("Remove Codex Hooks…", action: controller.removeCodexHooks)
+            ForEach(Agent.allCases, id: \.self) { agent in
+                Menu(agent == .codex ? "Codex" : "Claude Code") {
+                    Button("Connect…") { controller.requestSetup(.connect, agent: agent) }
+                    Button("Check") { controller.requestSetup(.check, agent: agent) }
+                    Button("Repair…") { controller.requestSetup(.repair, agent: agent) }
+                    Button("Remove owned hooks…") { controller.requestSetup(.remove, agent: agent) }
+                    Button(controller.monitoringEnabled && controller.providerMonitoring.isEnabled(agent) ? "Pause" : "Resume") {
+                        controller.toggleProviderMonitoring(agent)
+                    }
+                    Button("Disconnect…") { controller.requestSetup(.disconnect, agent: agent) }
+                }
             }
         }
         Button("Settings…", action: controller.showSettings)

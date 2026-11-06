@@ -18,6 +18,8 @@ public struct HookSetupTarget: Codable, Equatable, Sendable {
 /// Explicit producer evidence. A pure planner cannot establish any of these facts itself.
 public enum HookSetupSupport: Equatable, Sendable {
     case unverified
+    /// A documented release binding; this does not assert runtime qualification or effective enablement.
+    case documented(version: String, helperAvailable: Bool)
     case verified(version: String, hooksEnabled: Bool, helperAvailable: Bool)
 }
 
@@ -49,6 +51,10 @@ public struct HookSetupOwnership: Codable, Equatable, Sendable {
     public let createdConfiguration: Bool
     public let createdHooksContainer: Bool
     public let createdEvents: [String]
+}
+
+struct HookOwnershipHeader: Decodable {
+    let target: HookSetupTarget
 }
 
 public enum HookSetupPlan: Equatable, Sendable {

@@ -1,7 +1,7 @@
 # Sessions
 
 Owns terminal-independent agent observation, session state, integration setup and health, monitoring controls, and optional terminal navigation.
-Code: `Sources/EventBridge/`, session and integration-health services in `Sources/SessionState/`, and app integration controls.
+Code: `Sources/EventBridge/`, `Sources/SessionState/`, `Sources/Integration/` and app integration controls.
 
 ## Specs
 
@@ -43,8 +43,16 @@ Code: `Sources/EventBridge/`, session and integration-health services in `Source
 - Review features against approved behavior and accepted decisions, then check code for support and gaps. Existing code alone does not define scope.
 - Keep agent configuration intact and captured session data outside the repository.
 
+## Full MVP source update, 2026-11-06
+
+Both provider setup services/controls, independent monitoring, scoped Claude quota setup and bounded
+quota delivery have source implementations. See the detailed Claude/monitoring specs and
+[provider contract](../../contracts/provider-setup.md). The user waived tests/builds/runtime qualification;
+no source update closes the original live acceptance or changes their historical checkbox evidence.
+Earlier ordering/gate proposals above remain historical where superseded by that explicit full goal.
+
 ## Open questions
 
-- Specify how monitoring controls stop intake and refresh, preserve unconfirmed notices, and require fresh evidence after resume.
-- Codex setup interruption recovery remains proposed. See the [setup contract](../../contracts/codex-hook-setup.md).
+- Monitoring controls now specify and implement intake/refresh gates, retained unconfirmed notices and fresh-evidence cutoffs. Native/live acceptance remains open.
+- Owned interruption recovery has source implementation for both providers and Claude quota. The accepted contract and deferred runtime acceptance remain separate.
 - During feature migration, divide shared acceptance checks without losing any original requirement or checkbox state.

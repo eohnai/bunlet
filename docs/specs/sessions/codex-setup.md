@@ -1,5 +1,19 @@
 # Connect Codex through owned lifecycle hooks
 
+## Current source implementation, 2026-11-06
+
+The full MVP goal authorizes documented integration with tests/builds/runtime qualification left
+unverified. [Provider setup](../../contracts/provider-setup.md) supersedes the earlier qualification
+gate only; trust, permission policy and the guarded ownership/recovery design are preserved.
+`ProviderHookPolicy` binds Codex 0.164.0, with a bounded initialized app-server policy inspector.
+Known disabled/managed-only policy blocks installation; unknown policy is labelled unverified.
+`ProviderSetupService`/`ProviderHookTransaction` and the generic setup controller/view now implement
+Connect, Check, Repair, Remove, Pause/Resume and Disconnect. The runtime-qualified registry stays empty.
+Reinstall is idempotent; edited/missing owned entries conflict. A moved helper needs Remove then Connect.
+Both providers now share these mechanics; see [Claude setup](claude-setup.md) and
+[monitoring controls](monitoring-controls.md). Earlier source-state descriptions below are historical;
+the original verification-bearing task checkboxes are unchanged because no acceptance checks ran.
+
 Needs: integration-health, notch/session-island
 
 ## Goal
@@ -145,7 +159,8 @@ These are future verification requirements. No runtime verification ran while wr
 - R1–R6 come from the [2026-10-30 review](../../reports/2026-10-30-session-state-and-architecture-review.md), which the user accepted in full on 2026-10-30.
   R1–R3 come before I3b2, because the scanner and planner need the new `Integration` module and typed hook names. R4–R6 can run in any order.
 - The user added R7 and R8 on 2026-10-31, after the R1 review of two external Swift skills. Both skills assume `@Observable`, which needs macOS 14.
-  No record explains the original macOS 13 target. R8 follows R7. The user authorized builds and tests for R7 and R8.- Preserve the source checklist until shared Codex/Claude checks have complete destinations. This spec's tasks refine that work; they are not extra source requirements.
+  No record explains the original macOS 13 target. R8 follows R7. The user authorized builds and tests for R7 and R8.
+- Preserve the source checklist until shared Codex/Claude checks have complete destinations. This spec's tasks refine that work; they are not extra source requirements.
   Do not add source and refinement counts as independent work estimates.
 
 ## Tasks

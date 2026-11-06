@@ -9,18 +9,18 @@ public enum HookPlanningFailure: String, Error, Equatable, Sendable {
 /// Provider setup policy plus pure planning; file validation/application belongs to the installer.
 public enum HookSetupPlanner {
     /// Removal depends on content ownership, never on the installed CLI or its current policy.
-    public static func remove(configuration: Data?, ownership: Data?, target: HookSetupTarget) -> HookSetupPlan {
+    public static func remove(configuration: Data?, ownership: Data?, target: HookSetupTarget, agent: Agent = .codex) -> HookSetupPlan {
         do {
             try validateTarget(target)
             guard let ownership else {
-                _ = try HookGroupEdits.initialConfiguration(configuration, events: events, group: managedGroup(target.helperPath),
+                _ = try HookGroupEdits.initialConfiguration(configuration, events: events, group: managedGroup(target.helperPath, agent: agent),
                     helperName: URL(fileURLWithPath: target.helperPath).lastPathComponent)
                 return .unchanged
             }
             guard let configuration else { return .conflict(.ownershipConflict) }
-            let owner = try validatedOwnership(ownership, target: target)
+            let owner = try validatedOwnership(ownership, target: target, agent: agent)
             var candidate = configuration
-            let group = try JSONDecoder().decode(HookManagedGroup.self, from: managedGroup(target.helperPath))
+            let group = try JSONDecoder().decode(HookManagedGroup.self, from: managedGroup(target.helperPath, agent: agent))
             let document = try HookConfigurationJSON(data: configuration)
             try HookGroupEdits.verifyOwnedConfiguration(document, events: events, group: group,
                 helperName: URL(fileURLWithPath: target.helperPath).lastPathComponent)
@@ -50,23 +50,23 @@ public enum HookSetupPlanner {
 
     static var events: [String] { HookEvent.allCases.map(\.rawValue).sorted() }
 
-    static func managedGroup(_ helper: String) throws -> Data {
-        let command = "'" + helper.replacingOccurrences(of: "'", with: "'\"'\"'") + "' --agent codex"
+    static func managedGroup(_ helper: String, agent: Agent = .codex) throws -> Data {
+        let command = "'" + helper.replacingOccurrences(of: "'", with: "'\"'\"'") + "' --agent " + agent.rawValue
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         return try encoder.encode(HookManagedGroup(hooks: [HookManagedCommand(type: "command", command: command, timeout: 3)]))
     }
 
-    static func validatedOwnership(_ data: Data, target: HookSetupTarget) throws -> HookSetupOwnership {
+    static func validatedOwnership(_ data: Data, target: HookSetupTarget, agent: Agent = .codex) throws -> HookSetupOwnership {
         try validateTarget(target)
         let document = try HookConfigurationJSON(data: data)
         let owner = try JSONDecoder().decode(HookSetupOwnership.self, from: data)
-        let expectedGroup = try managedGroup(target.helperPath)
+        let expectedGroup = try managedGroup(target.helperPath, agent: agent)
         let keys = ["version", "agent", "installationID", "target", "groups", "createdConfiguration", "createdHooksContainer", "createdEvents"]
         guard Set(document.members(at: []) ?? []) == Set(keys.map(JSONPathComponent.key)),
               Set(document.members(at: [.key("target")]) ?? []) == Set(["configurationPath", "parentDevice", "parentInode", "helperPath"].map(JSONPathComponent.key)),
               document.rawValue(at: [.key("version")]) == Data("1".utf8),
-              owner.version == 1, owner.agent == .codex, owner.target == target,
+              owner.version == 1, owner.agent == agent, owner.target == target,
               Set(owner.groups.keys) == Set(events),
               owner.groups.values.allSatisfy({ $0 == expectedGroup }),
               owner.createdEvents.count == Set(owner.createdEvents).count,
@@ -89,25 +89,17 @@ public enum HookSetupPlanner {
         guard target.parentDevice > 0, target.parentInode > 0 else { throw HookPlanningFailure.unsafeTarget }
     }
 
-    static func verifyInstalled(_ configuration: Data, ownership: Data, target: HookSetupTarget) throws {
-        _ = try validatedOwnership(ownership, target: target)
-        let group = try JSONDecoder().decode(HookManagedGroup.self, from: managedGroup(target.helperPath))
+    static func verifyInstalled(_ configuration: Data, ownership: Data, target: HookSetupTarget, agent: Agent = .codex) throws {
+        _ = try validatedOwnership(ownership, target: target, agent: agent)
+        let group = try JSONDecoder().decode(HookManagedGroup.self, from: managedGroup(target.helperPath, agent: agent))
         try HookGroupEdits.verifyOwnedConfiguration(HookConfigurationJSON(data: configuration), events: events,
             group: group, helperName: URL(fileURLWithPath: target.helperPath).lastPathComponent)
     }
 
     public static func plan(_ input: HookSetupInput) -> HookSetupPlan {
-        guard input.agent == .codex else { return .unavailable(.unsupportedProvider) }
-        guard case .verified(let version, let enabled, let helperAvailable) = input.support else {
-            return .unavailable(.unverifiedVersion)
+        if let failure = ProviderHookPolicy.installationFailure(input.support, agent: input.agent) {
+            return .unavailable(failure)
         }
-        let versionParts = version.split(separator: ".", omittingEmptySubsequences: false)
-        guard version.utf8.count <= 32, versionParts.count == 3,
-              versionParts.allSatisfy({ !$0.isEmpty && $0.utf8.allSatisfy { (48...57).contains($0) } }) else {
-            return .unavailable(.unsupportedVersion)
-        }
-        guard enabled else { return .unavailable(.hooksDisabled) }
-        guard helperAvailable else { return .unavailable(.helperUnavailable) }
         do { try validateTarget(input.target) }
         catch { return .unavailable(.unsafeTarget) }
         guard (input.configuration?.count ?? 0) <= HookEnvelopeV1.rawHookLimit,
@@ -124,7 +116,7 @@ public enum HookSetupPlanner {
             let document = try HookConfigurationJSON(data: input.configuration ?? Data("{}".utf8))
             if let record = input.ownership {
                 do {
-                    let owner = try validatedOwnership(record, target: input.target)
+                    let owner = try validatedOwnership(record, target: input.target, agent: input.agent)
                     guard owner.installationID == input.installationID else {
                         return .conflict(.ownershipConflict)
                     }
@@ -157,6 +149,25 @@ public enum HookSetupPlanner {
 
 /// Pure byte edits shared by provider planners. No settings are read, written or executed here.
 enum HookGroupEdits {
+    static func setting(_ member: JSONPathComponent, value: Data, in document: HookConfigurationJSON) throws -> Data {
+        guard case .key(let key) = member, let root = document.range(at: []),
+              let members = document.members(at: []), document.rawValue(at: [])?.first == 123 else {
+            throw HookPlanningFailure.malformedConfiguration
+        }
+        var result = document.data
+        if let range = document.range(at: [member]) { result.replaceSubrange(range, with: value) }
+        else {
+            var insertion = Data((members.isEmpty ? "" : ",").utf8)
+            insertion.append(try JSONEncoder().encode(key))
+            insertion.append(58)
+            insertion.append(value)
+            result.insert(contentsOf: insertion, at: root.upperBound - 1)
+        }
+        guard result.count <= HookEnvelopeV1.rawHookLimit else { throw HookPlanningFailure.resourceLimit }
+        _ = try HookConfigurationJSON(data: result)
+        return result
+    }
+
     /// Remove collection members using original byte slices, including original object key spelling.
     static func removing(_ removed: Set<JSONPathComponent>, at path: [JSONPathComponent],
                          in document: HookConfigurationJSON) throws -> Data {

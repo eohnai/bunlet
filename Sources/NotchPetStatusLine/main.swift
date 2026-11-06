@@ -64,7 +64,9 @@ enum StatusLineForwarder {
             if let killAt, DispatchTime.now().uptimeNanoseconds >= killAt, child > 0 {
                 _ = kill(-child, SIGKILL)
             }
-            if child > 0 {
+            // Keep the leader unreaped until cancellation escalation, reserving its process-group ID
+            // while terminating descendants that might ignore the first signal.
+            if child > 0, (killAt.map { DispatchTime.now().uptimeNanoseconds >= $0 } ?? true) {
                 let result = waitpid(child, &status, WNOHANG)
                 if result == child {
                     child = 0

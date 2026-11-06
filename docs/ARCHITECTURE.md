@@ -56,7 +56,7 @@ An eventual session-to-pet adapter must consume the same authoritative snapshots
 | Target | Current responsibility | Dependencies |
 |---|---|---|
 | `EventBridge` | Shared agent/hook identities, bounded envelopes, adapters, lossless JSON scanning and Unix-socket delivery | None |
-| `Integration` | Health/probes, path lookup, Codex policy/planner, owned transactions and recovery | `EventBridge` |
+| `Integration` | Health/probes, path lookup, provider policies/planners, owned transactions and recovery | `EventBridge` |
 | `Usage` | Usage store, providers, connection, sender/receiver and allowance presentation | `EventBridge` |
 | `SessionState` | Session store/inbox, observation mapping and session presentation rules | `EventBridge` |
 | `Pet` | Artwork, preferences, rendering and playback rules | None |
@@ -118,12 +118,12 @@ receiver state, receipt and intake/capacity loss separate from lifecycle health.
 refused-endpoint recovery and enlarged socket buffers implement the [quota intake contract](contracts/usage-intake.md).
 `NotchPetStatusLine` retains bounded parse input while streaming original stdin to the original shell
 command with inherited output/cwd/environment. Cancellation targets its process group; quota forwarding
-is nonblocking and has no terminal output. Owned wrapper installation remains incomplete. No new
+is nonblocking and has no terminal output. Owned wrapper setup/restoration is implemented by the separate Claude quota scope. No new
 source behavior is compiler- or runtime-verified.
 
 The receiver, adapters, inbox, stores and visible session/allowance surfaces are implemented.
-The Codex MVP adds explicit Check/setup/removal controls and owned transaction source, with installation gated
-on exact-version qualification. No release is qualified yet; new code is not compiler- or runtime-verified.
+Both providers expose explicit Check/setup/repair/removal and independent monitoring controls.
+Documented release bindings allow explicitly unverified installation; no release is runtime-qualified.
 The Agents page reads snapshots without starting probes. Check explicitly calls the bounded service and updates
 only version/configuration/helper fields, preserving live receiver/delivery evidence.
 Remaining acceptance stays open in the [Sessions area](specs/sessions/area.md).
@@ -155,34 +155,47 @@ Later plans must define remote identity, connection/authentication ownership, an
 ## Setup and presentation
 
 Adapt Flux's reversible setup and visible session workflow through native services and views.
-Codex setup source owns only this app's entries, records ownership for removal, preserves unrelated settings and user edits,
-and reports conflicts instead of overwriting unsupported configuration. Implementation is distinct from qualification and acceptance.
+Provider setup owns only this app's entries, records ownership for removal, preserves unrelated settings
+and user edits, and reports conflicts instead of overwriting unsupported configuration.
 
-CodexSetupController owns action/progress/confirmation state and one cancellable task. Menu commands open the
-Agents settings page, where CodexSetupView renders separate version, configuration, helper, ownership, receiver
-and delivery evidence. Merely opening that view performs no setup or probe.
-PetAppController creates this controller only for installed Agents and cancels it when Agents is removed.
-Successful supported Connect explicitly enables monitoring; it does not silently install Notch.
+`ProviderSetupController` owns action/progress/confirmation state and one cancellable task per provider.
+Menu commands open Agents settings; `ProviderSetupView` renders separate version, shape, helper, ownership,
+policy, receiver, delivery and Claude quota evidence. Opening a view does not probe or install anything.
+`PetAppController` owns both controllers only while Agents is installed and cancels them on removal.
 
-CodexSetupService gates installation on a registered exact release and its bounded supported effective-policy
-probe. The registry is empty pending qualification. Removal instead relies on current file safety and exact ownership,
-so it does not require a working CLI. There is no runtime setting that fabricates qualification or bypasses trust.
+`ProviderSetupService` distinguishes documented bindings from runtime qualification. Codex 0.164.0 and
+Claude Code 2.1.306 have documented bindings under the user's explicit verification waiver. The qualified
+registry remains empty. `CodexHookPolicyProbe` uses bounded initialize/config/read/configRequirements/read;
+Claude user settings expose known disabled flags but cannot establish project/managed enablement.
+Unknown policy stays unverified; known disabled/managed-only policy blocks installation. No policy,
+permissions or trust are changed. Removal needs exact content ownership and file safety, without a CLI.
+See [provider setup](contracts/provider-setup.md) for the contract and limitations.
+
+`ProviderMonitoringModel` persists per-provider consent separately from the master Agents switch.
+Pause filters queued lifecycle events and cancels the provider's quota work, preserving unconfirmed
+requests and ended sessions. Resume installs new receipt/capture cutoffs. Claude quota callbacks have a
+separate generation. `AgentServices` owns these gates independently of Notch visibility.
+Disconnect pauses first and removes owned configuration; a failed/partial removal stays paused.
 
 HookSetupPlanner consumes explicit evidence and bounded bytes. HookConfigurationJSON preserves source ranges,
 duplicate-key rejection and numeric lexemes; the observer retains its separate finite-number and deadline boundary.
 The planner adds seven independent groups, quotes the helper path, leaves unchanged reinstalls byte-identical and removes
 only uniquely matching owned groups. Existing unrelated numbers, values, group ordering and later edits survive.
 
-CodexHookTransaction owns descriptor-relative no-follow file operations, cooperative locking, rechecks and the
+ProviderHookTransaction owns descriptor-relative no-follow file operations, cooperative locking, rechecks and the
 install/remove journal. HookFileDirectory bounds reads, checks identities/permissions and synchronizes candidates,
 hooks, records and directories. Existing safe mode/group/ACL metadata is preserved; unsupported extended metadata is rejected.
-New private records/directories have restrictive modes and no inherited ACL. The journal holds only digests and app-owned
-records, never full configuration backups. Known previous/candidate states can recover; other states require manual reconciliation.
+New private records/directories have restrictive modes and no inherited ACL. Journals hold digests and
+scoped ownership records, never full configuration backups. Claude quota ownership also retains the
+exact original statusLine value privately for restoration. Its planner changes only that field and
+preserves the original command/field members. Lifecycle and quota use different ownership/journal names
+under one writer lock; either known pending journal is recovered before further settings changes.
+Known previous/candidate states can recover; other states require manual reconciliation.
 Before journal publication cancellation may abandon the change. After publication the worker completes durable
 finalization or retains recovery evidence, while cancelled UI observation drops late results.
 The accepted independent-editor compare/replace window remains; locking and atomic rename do not eliminate it.
 
-Records live under Application Support/NotchPet/Integrations/Codex/<configuration-path hash>, outside the repository.
+Records live under Application Support/NotchPet/Integrations/{Codex,Claude}/<configuration-path hash>, outside the repository.
 Inactive unpublished temporary candidates are never adopted; unproven crash orphans are left inert.
 No test, build, app launch, live probe or installed configuration mutation was performed for this source-only MVP.
 The temporary menu session interface established partial delivery evidence. The current menu contains feature-dependent Show Pet/Show Notch, Settings and Quit.
@@ -242,7 +255,7 @@ Existing app-owned collection remains the implemented foundation until the propo
 | Data | Storage | Reason |
 |---|---|---|
 | Active sessions and alerts | Memory | They describe live processes |
-| Feature availability, monitoring consent, pet size/setup and selected Settings page | `UserDefaults` | Implemented small preference values with separate meanings |
+| Feature availability, master/per-provider monitoring consent, pet size/setup and selected Settings page | `UserDefaults` | Implemented small preference values with separate meanings |
 | Planned selected pet, sounds and saved placement | `UserDefaults` | Future small preference values |
 | Planned imported pets and manifests | Application Support files | Keep asset data outside the repository |
 | Optional later usage cache | Small JSON file in Application Support | Must retain receipt time, source measurement time if supplied, and a stale label |

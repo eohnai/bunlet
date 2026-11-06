@@ -1,4 +1,5 @@
 import Darwin
+import EventBridge
 import Foundation
 import Integration
 import Observation
@@ -14,6 +15,8 @@ final class AgentUsageController: AppFeatureService {
     private let sessions: SessionStore
     private var observation: ObservationLoop<Bool>?
     private var task: Task<Void, Never>?
+    private var enabledProviders = Set(Agent.allCases)
+    private var codexActive = false
 
     init(store: UsageStore, sessions: SessionStore) {
         self.store = store
@@ -22,8 +25,9 @@ final class AgentUsageController: AppFeatureService {
 
     func start() {
         guard observation == nil else { return }
-        observation = ObservationLoop({ [sessions] in
-            NotchPresentation.activeProviders(sessions.sessions).contains(.codex)
+        observation = ObservationLoop({ [sessions, weak self] in
+            self?.enabledProviders.contains(.codex) == true &&
+                NotchPresentation.activeProviders(sessions.sessions).contains(.codex)
         }) { [weak self] active in
             self?.setCodexActive(active)
         }
@@ -34,9 +38,17 @@ final class AgentUsageController: AppFeatureService {
         observation = nil
         task?.cancel()
         task = nil
+        codexActive = false
+    }
+
+    func setEnabledProviders(_ providers: Set<Agent>) {
+        enabledProviders = providers
+        if !providers.contains(.codex) { setCodexActive(false) }
     }
 
     private func setCodexActive(_ active: Bool) {
+        guard codexActive != active else { return }
+        codexActive = active
         task?.cancel()
         task = nil
         guard active else { return }

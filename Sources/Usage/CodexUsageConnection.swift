@@ -31,7 +31,7 @@ public enum CodexUsageConnection {
                   fcntl(writeFD, F_SETFL, O_NONBLOCK) == 0,
                   fcntl(writeFD, F_SETNOSIGPIPE, 1) == 0 else { throw UsageProviderError.malformed }
             process.executableURL = executableURL
-            process.arguments = ["app-server", "--stdio", "-c", "analytics.enabled=false", "-c", "feedback.enabled=false"]
+            process.arguments = ["app-server", "-c", "analytics.enabled=false", "-c", "feedback.enabled=false"]
             process.standardInput = input
             process.standardOutput = output
             process.standardError = FileHandle.nullDevice
