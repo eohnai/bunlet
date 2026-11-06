@@ -124,7 +124,7 @@ jobs:
       run: |
         ci_root="$RUNNER_TEMP/notch-pet-ci"
         python3 scripts/ci/bundle.py \
-          --app "$ci_root/package/notch-pet-dev/Notch Pet.app" \
+          --app "$ci_root/package/notch-pet-dev/Bunlet.app" \
           --output "$ci_root/bundle" --identity "$ci_root/identity.json" \
           > "$ci_root/reports/archive.log" 2>&1
         python3 scripts/ci/bundle.py --verify "$ci_root/bundle" --identity "$ci_root/identity.json" \

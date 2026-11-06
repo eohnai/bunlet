@@ -23,6 +23,10 @@ It is not a live visual/accessibility acceptance report or an approved UI implem
   [Palm Pals' pet collection](https://palmpals.com/collections/pets). These links identify the references, not a chosen final rabbit variant.
 - [D7](../DECISIONS.md#d7-install-and-uninstall-features-from-settings): one app, with Pet, Notch and Agents installed/uninstalled
   in Settings. Pet requires neither of the other features. Preserve preferences for reinstall.
+- **Name selected (2026-11-06):** use Bunlet to emphasize the pet, including desktop use.
+  This replaces the earlier open-name direction. [Decision 0016](../decisions/0016-use-bunlet-name.md)
+  and the [product-name spec](../specs/settings/product-name.md) define the visible rename.
+  The final mascot artwork and icon remain separate choices.
 - [0013](../decisions/0013-separate-standalone-pet-scope.md): independent pet module and pet-first use with optional agent services.
 - [0010](../decisions/0010-add-local-agent-actions.md): local approval, structured answers and explicit follow-ups are in scope,
   conditional on verified provider channels. Lifecycle observation alone does not establish action support.

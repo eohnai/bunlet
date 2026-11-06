@@ -12,7 +12,7 @@ struct NotchPetApp: App {
     @NSApplicationDelegateAdaptor(PetAppController.self) private var delegate
 
     var body: some Scene {
-        MenuBarExtra("Notch Pet", systemImage: "pawprint.fill") {
+        MenuBarExtra("Bunlet", systemImage: "pawprint.fill") {
             CompanionMenu(controller: delegate)
         }
         .menuBarExtraStyle(.menu)
@@ -339,7 +339,7 @@ private struct CompanionMenu: View {
         Button("Settings…", action: controller.showSettings)
             .keyboardShortcut(",")
         Divider()
-        Button("Quit Notch Pet") {
+        Button("Quit Bunlet") {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q")

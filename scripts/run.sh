@@ -9,7 +9,7 @@ fi
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 dev_dir="${TMPDIR:-/private/tmp}/notch-pet-dev"
 build_dir="$dev_dir/build"
-app_dir="$dev_dir/Notch Pet.app"
+app_dir="$dev_dir/Bunlet.app"
 
 # Keep compiler output on stderr so stdout contains only the app bundle path.
 swift build --package-path "$project_dir" --scratch-path "$build_dir" >&2

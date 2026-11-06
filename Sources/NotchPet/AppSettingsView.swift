@@ -82,7 +82,7 @@ struct AppSettingsView: View {
                     if page != .pet { Text(title).font(.title2.weight(.semibold)) }
                     if let issue = features.preferenceIssue {
                         Text(issue == .unsupportedVersion
-                             ? "Your feature choices were saved by a newer version. Update Notch Pet, then retry."
+                             ? "Your feature choices were saved by a newer version. Update Bunlet, then retry."
                              : "Your saved feature choices need recovery. They have been left unchanged.")
                         Button("Retry Reading Choices") { features.start(allowStoredMonitoring: false) }
                     } else if let issue = features.operationIssue {
@@ -124,7 +124,7 @@ struct AppSettingsView: View {
     @ViewBuilder private var content: some View {
         switch page {
         case .general:
-            Text("Keep the parts of Notch Pet you use. Pet, Notch and Agents can be managed independently.")
+            Text("Keep the parts of Bunlet you use. Pet, Notch and Agents can be managed independently.")
             Button("Manage Features") { page = .features }
             if let navigation = actions.navigation() { TerminalNavigationView(controller: navigation) }
             Text("Settings stays available even when every optional feature is uninstalled.")

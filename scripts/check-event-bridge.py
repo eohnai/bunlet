@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Exercise the real hook executable using fictional input and a local test listener.
 
-Quit Notch Pet first. Never removes an existing socket, settings, or captured data.
+Quit Bunlet first. Never removes an existing socket, settings, or captured data.
 """
 
 from __future__ import annotations
