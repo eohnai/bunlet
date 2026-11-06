@@ -283,9 +283,13 @@ def export_coverage(build_root: Path, output: Path) -> None:
     debug = profile.parent.parent
     require(binary.parents[3] == debug, "test runner and profile build mismatch")
     helper = debug / "NotchPetHook"
+    status_line_helper = debug / "NotchPetStatusLine"
+    action_hook_helper = debug / "NotchPetActionHook"
     fingerprints = {"profile_sha256": hashlib.sha256(read_regular(profile, MAX_FILE)).hexdigest(),
                     "test_runner_sha256": hashlib.sha256(read_regular(binary, MAX_FILE)).hexdigest(),
-                    "helper_sha256": hashlib.sha256(read_regular(helper, MAX_FILE)).hexdigest()}
+                    "helper_sha256": hashlib.sha256(read_regular(helper, MAX_FILE)).hexdigest(),
+                    "status_line_helper_sha256": hashlib.sha256(read_regular(status_line_helper, MAX_FILE)).hexdigest(),
+                    "action_hook_helper_sha256": hashlib.sha256(read_regular(action_hook_helper, MAX_FILE)).hexdigest()}
     sources = production_sources()
     output = output.resolve()
     require(not output.is_relative_to(ROOT), "coverage output must be outside the checkout")
@@ -299,7 +303,9 @@ def export_coverage(build_root: Path, output: Path) -> None:
         temporary = Path(temporary)
         staged = temporary / "coverage"
         staged.mkdir()
-        arguments = [str(binary), "--object", str(helper), "--instr-profile", str(profile), "--debuginfod=false"]
+        arguments = [str(binary), "--object", str(helper),
+                     "--object", str(status_line_helper), "--object", str(action_hook_helper),
+                     "--instr-profile", str(profile), "--debuginfod=false"]
         source_arguments = ["--sources", *map(str, sorted(sources))]
         exported = temporary / "llvm-export.json"
         run_native(["export", *arguments, "--skip-functions", "--skip-expansions", *source_arguments], exported, log)

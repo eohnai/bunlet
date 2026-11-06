@@ -362,3 +362,11 @@ inside an old withKnownIssue annotation. Existing tests are aligned with the acc
 post-start fictional event clocks, valid fictional source IDs, explicit independent-service teardown,
 and ordinary required oversize-datagram delivery. Negative inputs, old-generation rejection, notice
 retention and callback/receipt assertions are retained. No new tests or local test invocation added.
+
+Run 42192147776 (b64427b) confirms all 194 test functions pass with zero skipped/failed. The Tests job
+then fails in coverage.py: missing production file coverage. Its source exporter includes only the
+old NotchPetHook object, omitting the two new helper executables. The narrow integration correction
+adds NotchPetStatusLine and NotchPetActionHook objects to both LLVM exports and fingerprints their
+actual binaries. Every-file normalization and all evidence gates remain intact; no minimum percentage
+is introduced or removed. This is package-target alignment, not a CI overhaul. Hosted confirmation
+is pending; no local suite, helper, app or provider was run. PR #16/#15 remain open until merge succeeds.
