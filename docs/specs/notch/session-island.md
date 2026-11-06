@@ -67,6 +67,7 @@ These are reproduction commands. This retrospective spec ran documentation check
 - [0002: Use services and shared stores](../../decisions/0002-use-mvvm-with-services.md).
 - [0011: Organize records by area and feature](../../decisions/0011-organize-records-by-feature.md).
 - [0012: Support terminal-independent operation](../../decisions/0012-support-terminal-independent-operation.md).
+- **Open-island header and closing, 2026-11-06.** The user asked for these changes. The left of the header shows the usage limits when a provider is active. Otherwise it shows a rabbit head, the system `hare.fill` symbol for now, which replaced the paw. The right shows a gear that closes the island and opens Settings, so Settings is not reachable only from the menu bar. A click anywhere outside the open island closes it, and the click picks the next focused app. Escape still closes the island when it has keyboard focus. The user did not ask for global Escape, which would need the Accessibility permission.
 
 ## My calls
 

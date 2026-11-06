@@ -8,6 +8,7 @@ struct NotchSessionView: View {
     let usageStore: UsageStore
     let features: FeatureSettingsModel
     let onOpenFeatures: () -> Void
+    var onOpenSettings: () -> Void = {}
     let windowState: NotchWindowState
     var headerHeight: CGFloat { windowState.headerHeight }
     var notchWidth: CGFloat { windowState.notchWidth }
@@ -36,22 +37,33 @@ struct NotchSessionView: View {
                 // individual tooltips and accessibility labels.
                 HStack(spacing: 0) {
                     Color.clear
-                        .overlay {
-                            if expanded && isVisible && !isSleeping {
-                                NotchAllowanceStrip(
-                                    store: usageStore,
-                                    activeProviders: NotchPresentation.activeProviders(sessionStore.sessions))
+                        .overlay(alignment: expanded ? .leading : .center) {
+                            let active = NotchPresentation.activeProviders(sessionStore.sessions)
+                            // Limits appear only for active providers, so the rabbit fills the space otherwise.
+                            if expanded && isVisible && !isSleeping && !active.isEmpty {
+                                NotchAllowanceStrip(store: usageStore, activeProviders: active)
                                     .padding(.horizontal, 6)
                             } else {
-                                Image(systemName: "pawprint.fill")
-                                    .padding(.leading, 6)
+                                Image(systemName: "hare.fill")
+                                    .padding(.leading, expanded ? 14 : 6)
+                                    .accessibilityLabel("Bunlet")
                             }
                         }
                         .clipped()
                     Color.clear.frame(width: notchWidth)
                     Color.clear
-                        .overlay {
-                            if !expanded {
+                        .overlay(alignment: expanded ? .trailing : .center) {
+                            if expanded {
+                                Button(action: onOpenSettings) {
+                                    Image(systemName: "gearshape.fill")
+                                        .frame(width: 28, height: 28)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.trailing, 8)
+                                .help("Settings")
+                                .accessibilityLabel("Settings")
+                            } else {
                                 Text("\(sessionStore.sessions.count)")
                                     .font(.system(.caption, design: .rounded).weight(.semibold))
                                     .monospacedDigit()

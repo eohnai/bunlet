@@ -21,6 +21,7 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
 
     init(sessionStore: SessionStore, usageStore: UsageStore,
          features: FeatureSettingsModel, onOpenFeatures: @escaping () -> Void,
+         onOpenSettings: @escaping () -> Void = {},
          actions: LocalActionController? = nil, navigation: TerminalNavigation? = nil) {
         panel = ActionNotchPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                                 backing: .buffered, defer: false)
@@ -38,7 +39,13 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         panel.delegate = self
         panel.contentView = NSHostingView(rootView: PetWindowPlayback(window: panel) { [state, weak self] visible, asleep in
             NotchSessionView(sessionStore: sessionStore, usageStore: usageStore, features: features,
-                onOpenFeatures: onOpenFeatures, windowState: state,
+                onOpenFeatures: onOpenFeatures,
+                onOpenSettings: { [weak self] in
+                    // Close first so Settings, not the previous app, ends up focused.
+                    self?.collapseWithoutRestoringFocus()
+                    onOpenSettings()
+                },
+                windowState: state,
                 onExpand: { [weak self] expanded in self?.updatePlacement(expanded: expanded) },
                 isVisible: visible, isSleeping: asleep, navigation: navigation, actions: actions,
                 beginInput: { [weak self] in self?.beginInput() }, endInput: { [weak self] in self?.endInput() })
@@ -71,16 +78,23 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
                     }
                 }
             }.store(in: &subscriptions)
-        globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseUp]) { [weak self] event in
-            MainActor.assumeIsolated {
-                if event.type == .leftMouseUp { self?.pointerDown = false }
-                self?.updateMousePassThrough()
-            }
-        }
-        localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDown, .leftMouseUp]) { [weak self] event in
+        // Mouse monitors need no Accessibility permission. Key monitors would, so Escape is not watched globally.
+        globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.mouseMoved, .leftMouseUp, .leftMouseDown, .rightMouseDown]) { [weak self] event in
             MainActor.assumeIsolated {
                 guard let self else { return }
+                if event.type == .leftMouseUp { self.pointerDown = false }
+                if event.type == .leftMouseDown || event.type == .rightMouseDown { self.collapseWithoutRestoringFocus() }
+                self.updateMousePassThrough()
+            }
+        }
+        localMouseMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.mouseMoved, .leftMouseDown, .leftMouseUp, .rightMouseDown]) { [weak self] event in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                let isDown = event.type == .leftMouseDown || event.type == .rightMouseDown
                 if event.type == .leftMouseDown, event.window === self.panel { self.pointerDown = true }
+                if isDown, event.window !== self.panel { self.collapseWithoutRestoringFocus() }
                 if event.type == .leftMouseUp { self.pointerDown = false }
                 self.updateMousePassThrough()
             }
@@ -144,6 +158,14 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         if restore, ownedFocus, let previous, !previous.isTerminated {
             _ = previous.activate(options: [])
         }
+    }
+
+    /// Used for outside clicks and the Settings button. The click itself chooses the next focused app or window,
+    /// so focus is not restored. Reply drafts live in ActionStore and survive the collapse.
+    private func collapseWithoutRestoringFocus() {
+        guard state.expanded else { return }
+        endInput(restore: false)
+        updatePlacement(expanded: false)
     }
 
     func windowDidBecomeKey(_ notification: Notification) { state.hasKeyboardFocus = true }
