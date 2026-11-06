@@ -377,3 +377,13 @@ binary list change or exclude any source. The saved coverage-tool.log records on
 export, while its temporary JSON is removed on failure. Add exact missing relative filenames and counts
 to the existing validation error; preserve its failure behavior. This is diagnostic evidence gathering,
 not another speculative coverage fix. No local reproduction/build/test is run.
+
+Diagnostic run 42193476222 attempt 2 passes 194/194 tests and identifies the sole absent coverage row:
+Sources/EventBridge/Agent.swift (89 production files, 88 LLVM rows). The file is only a raw-value enum
+with cases, no executable body; LLVM provides no mapping. The report now explicitly classifies that
+exact declaration as not applicable, pins its complete source bytes so adding/changing code requires
+review, lists it in JSON/Markdown inventories, and still requires all executable-source rows/HTML and
+matching totals. No synthetic zero/100 percent record, percentage threshold change, dropped test or
+app behavior workaround. Known failed attempts and one retry remain recorded; hosted confirmation
+of this narrow report-model correction is pending. User considered Bunlet/Notchbun; no rename chosen
+or branding change implemented in this merge task.
