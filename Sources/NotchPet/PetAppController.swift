@@ -28,6 +28,10 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         self.agents?.setEnabledProviders(enabled)
         self.localActions.setConsent(self.providerMonitoring.actionsEnabled)
     }
+    @ObservationIgnored private var islandHiddenForPet = false
+    @ObservationIgnored private lazy var petReactions = PetSessionAdapter(sessions: sessions) { [weak self] mood, cue in
+        self?.pet?.setReaction(mood, cue: cue)
+    }
     @ObservationIgnored private weak var pet: PetPanelController?
     @ObservationIgnored private weak var notch: NotchPanelController?
     @ObservationIgnored private weak var agents: AgentServices?
@@ -40,7 +44,16 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     @ObservationIgnored private lazy var runtimes = FeatureRuntimeOwner(factories: [
         .pet: { [weak self] in
             guard let self else { return nil }
-            let panel = PetPanelController(size: PetPreferences(defaults: self.defaults).size)
+            let panel = PetPanelController(size: PetPreferences(defaults: self.defaults).size, defaults: self.defaults,
+                onDragBegan: { [weak self] in
+                    self?.islandHiddenForPet = true
+                    self?.notch?.setHiddenForPet(true)
+                }, returnTarget: { [weak self] in self?.notch?.returnTarget },
+                onReturn: { [weak self] in
+                    self?.islandHiddenForPet = false
+                    self?.notch?.setHiddenForPet(false)
+                })
+            panel?.setReaction(self.petReactions.mood, cue: false)
             self.pet = panel
             return panel
         },
@@ -63,6 +76,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         focusBefore = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? -1
+        petReactions.start()
         features.start()
         settings = PetSettingsController(defaults: defaults, features: features, onSizeChange: { [weak self] size in
             self?.pet?.setSize(size)
@@ -72,7 +86,8 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             readClaude: { [weak self] in self?.claudeSetup },
             readMonitoring: { [weak self] in self?.providerMonitoring },
             readQuota: { [weak self] in self?.usage },
-            readLocalActions: { [weak self] in self?.localActions })
+            readLocalActions: { [weak self] in self?.localActions },
+            onReturnPet: { [weak self] in self?.returnPet() })
         if installed.contains(.pet) && !defaults.bool(forKey: "pet.setupComplete") {
             settings?.show(page: .pet, activate: false)
         }
@@ -88,8 +103,14 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         pet?.show()
     }
 
+    func returnPet() {
+        guard installed.contains(.pet) else { return }
+        pet?.returnPet()
+    }
+
     func showNotch() {
         guard installed.contains(.notch) else { return }
+        islandHiddenForPet = false
         notch?.show()
     }
 
@@ -111,6 +132,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         var active = installed
         if !monitoring { active.remove(.agents) }
         runtimes.apply(active)
+        notch?.setHiddenForPet(islandHiddenForPet)
         return runtimes.unavailableFeatures
     }
 
@@ -154,6 +176,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         codexSetup?.cancel()
         claudeSetup?.cancel()
         let pet = self.pet
+        petReactions.stop()
         runtimes.apply([])
         pet?.writeEvidence(phase: "terminated", agentsEnabled: false, focusBefore: focusBefore)
     }

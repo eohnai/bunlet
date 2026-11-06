@@ -6,6 +6,7 @@ public struct PetView: View {
     private let pose: PetPose
     private let isVisible: Bool
     private let isSleeping: Bool
+    private let onFrameImage: ((NSImage?) -> Void)?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var elapsedSeconds = 0.0
 
@@ -18,11 +19,13 @@ public struct PetView: View {
     }
 
     public init(presentation: PetPresentation, pose: PetPose = .idle,
-                isVisible: Bool = true, isSleeping: Bool = false) {
+                isVisible: Bool = true, isSleeping: Bool = false,
+                onFrameImage: ((NSImage?) -> Void)? = nil) {
         self.presentation = presentation
         self.pose = pose
         self.isVisible = isVisible
         self.isSleeping = isSleeping
+        self.onFrameImage = onFrameImage
     }
 
     func frame(at elapsedSeconds: Double, reduceMotion: Bool) -> String {
@@ -69,6 +72,8 @@ public struct PetView: View {
                     .accessibilityLabel("Pet artwork unavailable")
             }
         }
+        .onAppear { onFrameImage?(image) }
+        .onChange(of: frame(at: elapsedSeconds, reduceMotion: reduceMotion)) { _, _ in onFrameImage?(image) }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(image == nil ? "Pet artwork unavailable" : "White lionhead rabbit")
         .task(id: PlaybackID(frames: animation.frames, frameDurationMs: animation.frameDurationMs,

@@ -1,7 +1,7 @@
 # Pets
 
 Owns pet rendering, detachment and return, safe artwork imports, preferences, and pet desktop behavior.
-Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; the optional shared-session adapter remains future work.
+Code: `Sources/Pet/` and AppKit controllers in `Sources/NotchPet/`; an app-owned adapter translates shared session snapshots into pet-owned moods.
 
 ## Specs
 
@@ -53,7 +53,7 @@ Built-in-pet implementation includes pet-first startup, optional agent services,
 playback policy, and BP6b2 visibility/sleep wiring for the panel and preview. It merged into main in 1c5d9cf.
 The implementation-only goal is closed. Full acceptance remains deferred by the user.
 See the [current handoff](built-in-pet.md#implementation-handoff-after-testing-deferral-2026-10-30)
-and [completion log](../../goals/complete-built-in-pet-log.md). Detachment and agent reactions remain unimplemented.
+and [completion log](../../goals/complete-built-in-pet-log.md). Detachment and agent reactions now have source implementation under the full MVP goal; their acceptance remains unverified. Custom pack import is the next source unit.
 
 ## Open questions
 

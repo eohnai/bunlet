@@ -229,7 +229,7 @@ The version-1 wire contract retains its optional Otty-only navigation object. Ad
 
 AppKit controllers own window geometry, focus and native behavior. Full dragging and display/Spaces recovery acceptance remains separate work.
 Use supported native APIs to reproduce desired behavior rather than transplanting Electron helpers.
-The planned pet returns through notch overlap or a menu-bar action without losing shared attention state.
+Pet returns through notch overlap or a menu-bar action without losing shared attention state. Native dragging hides the retained Notch window; return restores it without rebuilding session selection or drafts. Pet-only use restores a clamped desktop position.
 Animation is presentation only: unknown state must not appear as confirmed working or response ready.
 
 ## Standalone pet boundary
@@ -239,7 +239,7 @@ The independent `Pet` target owns artwork, rendering, preferences and playback r
 The app's `PetPanelController` owns native placement, currently near the lower-right of the main display's visible frame.
 `PetWindowPlayback` supplies visibility and sleep inputs. `PetView` schedules frames only when its playback policy permits animation.
 The app owns optional service lifecycle. Pet-only startup starts no agent or usage services and needs no hook configuration.
-Session-to-pet reactions, dragging and return-to-notch behavior remain planned. They require an adapter from shared snapshots to pet presentation.
+PetSessionAdapter translates shared snapshots into PetMood, with visible text for working, attention, response ready, unknown and ended. A bounded app-lifetime identity set deduplicates response cues; existing, hidden and asleep states never replay a cue. PetPanelController owns native alpha hit testing, mouse-motion pass-through, dragging, overlap return and screen-relative preference restoration. The Pet target imports no agent module. Native interaction remains unverified.
 Missing events will not prove that a session ended. Unknown state and unresolved notices will retain their existing meanings.
 The [built-in pet](specs/pets/built-in-pet.md) is implemented in part, with native acceptance still open. Agent reactions remain a separate feature.
 The independent pet remains accepted. [D2](DECISIONS.md#d2-collect-and-inspect-telemetry-locally-with-an-optional-background-process) now adds an optional collector and history; no second app or repository split is planned.
@@ -273,7 +273,7 @@ Existing app-owned collection remains the implemented foundation until the propo
 |---|---|---|
 | Active sessions and alerts | Memory | They describe live processes |
 | Feature availability, master/per-provider monitoring consent, pet size/setup and selected Settings page | `UserDefaults` | Implemented small preference values with separate meanings |
-| Planned selected pet, sounds and saved placement | `UserDefaults` | Future small preference values |
+| Pet sound and screen-relative placement; selected pack pending | `UserDefaults` | Sound defaults off; invalid/missing displays use clamped fallback |
 | Planned imported pets and manifests | Application Support files | Keep asset data outside the repository |
 | Optional later usage cache | Small JSON file in Application Support | Must retain receipt time, source measurement time if supplied, and a stale label |
 | Credentials | Existing provider-managed authentication | The app does not copy tokens |

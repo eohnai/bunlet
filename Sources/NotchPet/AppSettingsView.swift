@@ -21,6 +21,7 @@ struct AppSettingsActions {
     var monitoring: () -> ProviderMonitoringModel? = { nil }
     var quota: () -> UsageStore? = { nil }
     var localActions: () -> LocalActionController? = { nil }
+    var returnPet: () -> Void = {}
 }
 
 struct AppSettingsView: View {
@@ -30,17 +31,21 @@ struct AppSettingsView: View {
     let isSleeping: Bool
     @State private var page: AppSettingsPage
     @State private var petSize: Double
+    @State private var soundEnabled: Bool
+    private let defaults: UserDefaults
     @State private var firstUse: Bool
     @State private var showRemoval = false
 
     init(features: FeatureSettingsModel, defaults: UserDefaults, actions: AppSettingsActions,
          page: AppSettingsPage, isVisible: Bool, isSleeping: Bool) {
+        self.defaults = defaults
         self.features = features
         self.actions = actions
         self.isVisible = isVisible
         self.isSleeping = isSleeping
         let requestedFeature = AppFeature(rawValue: page.rawValue)
         _page = State(initialValue: requestedFeature.map { features.installed.contains($0) } == false ? .features : page)
+        _soundEnabled = State(initialValue: PetPreferences(defaults: defaults).soundEnabled)
         _petSize = State(initialValue: PetPreferences(defaults: defaults).size)
         _firstUse = State(initialValue: !defaults.bool(forKey: "pet.setupComplete"))
     }
@@ -137,7 +142,15 @@ struct AppSettingsView: View {
                         actions.finishPetSetup()
                     }, onClose: actions.close)
                     .frame(maxWidth: .infinity)
+                Toggle("Sound for a newly observed response", isOn: $soundEnabled)
+                    .onChange(of: soundEnabled) { _, value in
+                        var preferences = PetPreferences(defaults: defaults)
+                        preferences.soundEnabled = value
+                    }
+                Text("A response cue does not mean the task succeeded. Sounds are off by default.")
+                    .font(.caption).foregroundStyle(.secondary)
                 Button("Show Pet", action: actions.showPet)
+                Button("Return Pet", action: actions.returnPet)
             } else { Text("Pet artwork is unavailable. Your saved pet preferences are unchanged.") }
         case .notch:
             Text("Inspect sessions and requests in the island without opening a separate app window.")

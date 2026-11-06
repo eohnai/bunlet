@@ -20,4 +20,22 @@ public struct PetPreferences {
             defaults.set(safe, forKey: "pet.size")
         }
     }
+
+    public var soundEnabled: Bool {
+        get { defaults.object(forKey: "pet.soundEnabled") as? Bool ?? false }
+        set { defaults.set(newValue, forKey: "pet.soundEnabled") }
+    }
+
+    public var placement: PetSavedPlacement? {
+        get {
+            guard let data = defaults.data(forKey: "pet.placement.v1"), data.count <= 1024,
+                  let saved = try? JSONDecoder().decode(PetSavedPlacement.self, from: data), saved.isValid else { return nil }
+            return saved
+        }
+        set {
+            guard let newValue, newValue.isValid, let data = try? JSONEncoder().encode(newValue) else { return }
+            defaults.set(data, forKey: "pet.placement.v1")
+        }
+    }
+
 }

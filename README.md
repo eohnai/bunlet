@@ -4,7 +4,7 @@ A macOS companion for Codex CLI and Claude Code, under development, with termina
 The source implements independently selectable Pet, Notch and Agents features, shared native Settings,
 session cards, provider limits and a silent observation helper. Agents owns optional receiver and quota work.
 Both providers have setup/check/repair/removal controls, independent monitoring and owned transactions. Claude quota forwarding has separate reversible setup. Runtime qualification remains unverified.
-Pet reactions, dragging/return and custom packs remain planned.
+Pet reactions, desktop dragging, island overlap/menu return and saved placement/sound are implemented in source. Custom pack import remains unfinished.
 Local action adapters, a separate helper, native composers and guarded opt-in setup/removal are implemented in source. Runtime support is unverified.
 SSH and cloud-agent integrations are optional future work.
 
@@ -123,7 +123,7 @@ shared stores; it owns no provider I/O. Pet-only use starts no provider services
 
 **Tests, builds, app/helper launches, probes, captures, installed configuration access and runtime
 qualification were NOT RUN for this implementation.** Source coverage for setup/sessions/quota is
-present, together with Claude local actions; pet reactions/movement/imports and desktop/navigation remain unfinished in the
+present, together with Claude local actions; custom pet imports and desktop/navigation remain unfinished in the
 [full MVP goal](docs/goals/full-mvp-implementation.md). See its [log](docs/goals/full-mvp-implementation-log.md),
 [provider setup contract](docs/contracts/provider-setup.md) and [quota contract](docs/contracts/usage-intake.md).
 

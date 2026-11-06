@@ -3,7 +3,7 @@
 - Goal file: goals/full-mvp-implementation.md
 - Created: 2026-11-06 11:47 +08
 - Turn limit: 60
-- Status: active since 2026-11-06; execution turn 4
+- Status: active since 2026-11-06; execution turn 5
 - Scope: all nine source criteria; four milestones are not separate completion goals
 - Verification: tests, builds, runtime checks and provider qualification NOT RUN by user instruction
 - Branch/base: feat/codex-mvp / 8707bdf; current checkout only
@@ -17,6 +17,7 @@
 | 2 | 2026-11-06 13:20 +08 | Sources 1–3 implemented; 4–9 incomplete. Acceptance unverified. | Previous turn classified as progress (`299d021`). Generalized guarded provider setup/recovery; concrete documented release/policy bindings; native controls for both agents; independent consent/cutoffs/cancellation; separate owned Claude status-line wrapping/restoration and cross-scope recovery. Corrected Codex launch arguments against official stdio documentation without executing a probe. Relevant source audit below. Preparing a scoped local milestone commit. Tests/builds/runtime/qualification NOT RUN. |
 | 3 | 2026-11-06 14:43 +08 | Sources 1–3 implemented; 4 partial; 5–9 incomplete. Acceptance unverified. | Previous turn was progress (`32f7b0f`). Added separate Claude permission/question/Stop-feedback adapters, bounded private interactive IPC/helper and inbox, transient action/draft/receipt state, app-owned lifecycle/validation and native composers. Guarded interactive-hook setup/removal is still missing; criterion 4 remains incomplete. All tests/builds/runtime/qualification NOT RUN. |
 | 4 | 2026-11-06 14:58 +08 | Sources 1–4 implemented; 5–7 incomplete; 8 partial; 9 incomplete. All acceptance unverified. | Finished separate guarded Claude action scope, shared recovery/lock, explicit response consent, Settings composers, disconnect partial-removal reporting and bounded transient-history cleanup. Removed ambiguous shared composer shortcut. Preserved unrelated drafts. Tests/builds/runtime/qualification NOT RUN. |
+| 5 | 2026-11-06 15:07 +08 | Sources 1–6 implemented; 7 partial; 8 partial; 9 incomplete. Acceptance unverified. | Saved action milestone `521440b`. Added pet-owned moods, app-owned snapshot adapter, bounded deduplicated response cues, native alpha drag/pass-through, island hide/overlap/menu return and saved screen-relative placement/sound. Recorded missing Pets feature contracts before implementation. User excludes company code; original/repository code and public documentation only. Tests/builds/runtime/qualification NOT RUN. |
 
 Preparation is not an execution turn. Continue numbering from the latest execution row after activation.
 Each row must account for all nine criteria and separate missing source implementation from unverified behavior.
@@ -216,6 +217,22 @@ Guarded interactive-hook setup/removal is next. Tests/builds/runtime/qualificati
 9. **Incomplete — full handoff.** Action/provider contracts, area specs, README, architecture and STATUS now reflect setup and consent, but pet/desktop paths and final 9/9 audit remain. No original acceptance boxes changed.
 
 Source inspection only: git status/diff and diff whitespace check, targeted rg/nl excerpts. One inspection used the nonexistent `Sources/NotchPet/AgentServices.swift`; locating the real declaration corrected that lookup. No tests, builds, probes, app/helper launches, captures, installed configuration or credentials were accessed.
+
+## Turn 5 source audit
+
+1. **Implemented in source, unverified — setup.** The prior `ProviderSetupController.start` path, shared guarded transaction and three Claude scopes remain unchanged. `521440b` saves actions setup/consent alongside provider monitoring without changing policy or trust.
+2. **Implemented in source, unverified — sessions.** Pet observes the same SessionStore snapshots as Notch. No surface switch mutates session status, request notices, selected card or drafts. Existing event/turn bounds, duplicate handling and capacity feedback remain.
+3. **Implemented in source, unverified — quotas.** The two concrete quota adapters, private bounded intake, separate store/strip and owned forwarding/removal remain unchanged. Pet imports no quota or provider module.
+4. **Implemented in source, unverified — actions.** Shared ActionStore/native composers, exact revalidation, single dispatch, stdout receipt and uncertain/cancelled paths remain. Notch hide keeps the same hosting view and drafts. Settings remains an independent response surface.
+5. **Implemented in source, unverified — reactions.** `PetSessionAdapter.update` consumes authoritative snapshots, maps confirmed notices/unknown/working/ready/ended, and deduplicates response identities (agent/session/turn/first Stop). Startup-ready records are baselined. Its 4096-entry saturation suppresses new cues. `PetPanelController.setReaction` supplies pet-owned mood/pose and text badge even for idle-only artwork, with a bounded two-second cue and optional system sound. Hidden/asleep/absent Pet never replays cues; no lifecycle event or claim of task success is invented.
+6. **Implemented in source, unverified — movement.** `PetDragView.hitTest/accepts` samples rendered-image alpha; mouse-motion monitors update native pass-through without polling or global keys. Native drag hides the retained Notch view. Drop overlap and menu/Settings Return Pet restore it and clamp Pet; absent Notch uses desktop recovery. `PetPreferences.placement` saves display identity and normalized origin. Screen, wake and Space events restore/clamp; sleep stops animation/cues. All native interaction is NOT RUN.
+7. **Partial — preferences, no imports yet.** Size, sound and placement are saved; custom pack importer/selection/rollback remain missing. Versioned bounded asset-only contract and feature spec are now written; optional sheets stay outside MVP.
+8. **Partial — desktop/navigation.** Pet has real native recovery and pass-through paths. Notch display recovery and validated terminal/application/manual navigation still remain.
+9. **Incomplete — full handoff.** Pet feature contracts, current README/architecture/STATUS and provenance constraint reflect source changes. Final 9/9 audit waits for imports and desktop/navigation. Historical acceptance boxes remain open.
+
+Saved action commit: `521440b` — `feat: finish guarded Claude action setup and consent`.
+No tests, builds, probes, launches, captures, installed configuration or credentials were accessed.
+No company source, internal library or proprietary snippet was imported.
 
 ## Final result
 

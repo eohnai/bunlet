@@ -314,7 +314,10 @@ private struct CompanionMenu: View {
     let controller: PetAppController
 
     var body: some View {
-        if controller.installed.contains(.pet) { Button("Show Pet", action: controller.showPet) }
+        if controller.installed.contains(.pet) {
+            Button("Show Pet", action: controller.showPet)
+            Button("Return Pet", action: controller.returnPet)
+        }
         if controller.installed.contains(.notch) { Button("Show Notch", action: controller.showNotch) }
         if controller.installed.contains(.agents) {
             ForEach(Agent.allCases, id: \.self) { agent in
