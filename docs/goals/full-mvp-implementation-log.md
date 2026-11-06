@@ -338,3 +338,9 @@ constants import as a C enum. Explicit pointer/raw-value conversions correct bot
 The status-line helper needs scoped withCString conversions for strdup and the explicit Darwin.crt_externs
 module for _NSGetEnviron. No ACL policy, input stream, child environment or test assertion is changed.
 The changes await hosted CI; PRs remain open until merge is permitted. Unrelated drafts are excluded.
+
+Hosted run 42190555585 confirms the Darwin interop errors cleared (NotchPetStatusLine linked).
+Its full build artifact identifies circular type inference at PetAppController.localActions and
+providerMonitoring; downstream member-resolution/menu type-check errors follow those declarations.
+Explicit concrete property annotations break inference recursion without changing lazy runtime ownership.
+The changed declarations alone are staged from HEAD so existing FM7 additions remain local.

@@ -20,10 +20,10 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     private let sessions = SessionStore()
     private let usage = UsageStore()
     private let actionStore = ActionStore()
-    @ObservationIgnored private lazy var localActions = LocalActionController(store: actionStore, sessions: sessions, consentEnabled: providerMonitoring.actionsEnabled)
+    @ObservationIgnored private lazy var localActions: LocalActionController = LocalActionController(store: actionStore, sessions: sessions, consentEnabled: providerMonitoring.actionsEnabled)
     private(set) var codexSetup: ProviderSetupController?
     private(set) var claudeSetup: ProviderSetupController?
-    @ObservationIgnored private(set) lazy var providerMonitoring = ProviderMonitoringModel(defaults: defaults) { [weak self] enabled in
+    @ObservationIgnored private(set) lazy var providerMonitoring: ProviderMonitoringModel = ProviderMonitoringModel(defaults: defaults) { [weak self] enabled in
         guard let self else { return }
         self.agents?.setEnabledProviders(enabled)
         self.localActions.setConsent(self.providerMonitoring.actionsEnabled)
