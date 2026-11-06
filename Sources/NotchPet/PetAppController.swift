@@ -28,6 +28,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         self.agents?.setEnabledProviders(enabled)
         self.localActions.setConsent(self.providerMonitoring.actionsEnabled)
     }
+    @ObservationIgnored private lazy var navigation = TerminalNavigation(defaults: defaults, sessions: sessions)
     @ObservationIgnored private lazy var petLibrary = PetLibraryModel(defaults: defaults) { [weak self] presentation in
         self?.pet?.setArtwork(presentation)
     }
@@ -63,7 +64,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         .notch: { [weak self] in
             guard let self else { return nil }
             let panel = NotchPanelController(sessionStore: self.sessions, usageStore: self.usage,
-                features: self.features, onOpenFeatures: { [weak self] in self?.showFeatures() }, actions: self.localActions)
+                features: self.features, onOpenFeatures: { [weak self] in self?.showFeatures() }, actions: self.localActions, navigation: self.navigation)
             self.notch = panel
             return panel
         },
@@ -79,6 +80,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         focusBefore = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? -1
+        navigation.start()
         petLibrary.start()
         petReactions.start()
         features.start()
@@ -92,7 +94,9 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             readQuota: { [weak self] in self?.usage },
             readLocalActions: { [weak self] in self?.localActions },
             onReturnPet: { [weak self] in self?.returnPet() },
-            readPetLibrary: { [weak self] in self?.petLibrary })
+            readPetLibrary: { [weak self] in self?.petLibrary },
+            onOpenSessions: { [weak self] in self?.openSessions() },
+            readNavigation: { [weak self] in self?.navigation })
         if installed.contains(.pet) && !defaults.bool(forKey: "pet.setupComplete") {
             settings?.show(page: .pet, activate: false)
         }
@@ -117,6 +121,12 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         guard installed.contains(.notch) else { return }
         islandHiddenForPet = false
         notch?.show()
+    }
+
+    func openSessions() {
+        guard installed.contains(.notch) else { return }
+        islandHiddenForPet = false
+        notch?.openSessions()
     }
 
     private func applyRuntimes(_ installed: Set<AppFeature>, monitoring: Bool) -> Set<AppFeature> {
@@ -181,6 +191,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         codexSetup?.cancel()
         claudeSetup?.cancel()
         let pet = self.pet
+        navigation.stop()
         petLibrary.cancel()
         petReactions.stop()
         runtimes.apply([])

@@ -108,8 +108,8 @@ The helper's agent adapter projects allowlisted metadata into the shared wire en
 The helper sends one bounded message to the app through the Unix-domain socket.
 The receiver validates the envelope. `SessionEventInbox` queues normalized observations for main-actor delivery.
 The session store applies the event once and publishes updated presentation state.
-The notch reflects that state through pure presentation rules. Session-driven pet reactions remain planned.
-Planned navigation clicks must use a terminal adapter's verified capability.
+The notch reflects that state through pure presentation rules. PetSessionAdapter projects snapshots into optional pet moods and deduplicated response-ready cues.
+Navigation uses an app-owned TerminalNavigation capability independently of provider services.
 Missing terminal identity or navigation support does not block event receipt or session presentation.
 
 Usage providers send source snapshots to a separate usage store.
@@ -220,10 +220,12 @@ Session content is in the notch. Remaining [session-island acceptance](specs/not
 
 `NotchPresentation` derives default selection and attention priority from session snapshots.
 `NotchSessionView` retains its selected key across updates while that session exists. There is no shared cross-surface selection store yet.
-Later pet reactions must preserve authoritative session meaning. A shared selection adapter remains future work.
+Pet reactions preserve authoritative session meaning. A shared selection adapter remains future work.
 Views do not maintain independent copies of lifecycle truth, and hiding or dismissing a visual notice cannot resolve a pending request.
-Terminal navigation validates live target identity before an exact-pane jump.
-Otty is one optional adapter. Application activation requires an identified application; otherwise explain manual return.
+TerminalNavigation saves a user-selected application identity/path and activates only one matching running instance.
+The optional ITermPaneAdapter records an explicit user-linked ID/tty with terminal PID/launch date, revalidates unique live objects and confirms focus through process-addressed public Apple Events. It never launches a terminal or creates a pane.
+Other terminals retain application activation/manual return; legacy Otty wire hints remain untrusted and do not authorize automatic focus.
+See [pane navigation](specs/sessions/pane-navigation.md) for bounds, uncertainty and unrun compatibility.
 Do not require Otty's executable or pane metadata for monitoring, pet reactions, or supported allowance reads.
 The version-1 wire contract retains its optional Otty-only navigation object. Additional terminal metadata needs a separate contract review.
 
@@ -316,7 +318,7 @@ This is a local development launch path; distribution packaging remains a later 
 
 - Identify sessions by agent and source session identifier, rather than project folder alone.
 - Keep pane identity separate from session identity.
-- Validate terminal targets against live state. For Otty, validate inherited pane selectors. Ambiguous matches make pane navigation unavailable.
+- Validate terminal targets against live state. The optional explicit iTerm2 binding requires unique ID/tty and the same process lifetime. Legacy Otty hints alone never authorize navigation; ambiguous targets remain unavailable.
 - Include event identity, source ordering where available, and observation time in the event contract.
 - Define rules for duplicate events, delayed events, and restarted sessions before integrating the UI.
 - Distinguish working, approval needed, response ready, failed, interrupted, ended, and unknown states.
@@ -410,11 +412,11 @@ Other providers are deferred. Account grouping requires supported identity, and 
 - Keep cancellation and reconnect behavior inside each usage provider; failed refreshes cannot leave an allowance labeled fresh indefinitely.
 - Adapt independent refresh and status-line preservation patterns without adding transcript fallback or fixed daily/weekly buckets.
 
-## Planned desktop behavior
+## Desktop implementation and deferred acceptance
 
-- Start with the built-in MacBook display. Test an external display and display removal before release.
+- NotchWindowState retains geometry separately from view identity; NotchPanelController recovers on display/Space/sleep changes. Pet and Settings clamp placement on connected displays. Actual external-display recovery remains unrun.
 - Define fullscreen and Space behavior through supported AppKit window behavior.
-- Provide a menu-bar control when the overlay is hidden or inaccessible.
+- Menu/Settings Open Sessions explicitly acquires keyboard focus; Escape/Done Editing restores the previous app only while focus is still owned. Automatic recovery never activates an app.
 - Keep inactive transparent regions from intercepting normal clicks.
 - Pause unnecessary animation when hidden or asleep, and support Reduce Motion.
 - Clamp saved placement to a connected display after resolution changes.

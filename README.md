@@ -1,11 +1,13 @@
 # Notch Pet
 
-A macOS companion for Codex CLI and Claude Code, under development, with terminal-independent operation as an accepted requirement.
+A macOS companion for Codex CLI and Claude Code, under development, with terminal-independent monitoring and optional terminal navigation.
 The source implements independently selectable Pet, Notch and Agents features, shared native Settings,
 session cards, provider limits and a silent observation helper. Agents owns optional receiver and quota work.
 Both providers have setup/check/repair/removal controls, independent monitoring and owned transactions. Claude quota forwarding has separate reversible setup. Runtime qualification remains unverified.
 Pet reactions, desktop dragging, island overlap/menu return and saved placement/sound are implemented in source. Custom manifest/PNG pack import, selection and rollback are also implemented in source; native behavior remains unverified.
 Local action adapters, a separate helper, native composers and guarded opt-in setup/removal are implemented in source. Runtime support is unverified.
+Choose any terminal application for activation/manual return. Optional exact-pane focus uses an explicit user link through the iTerm2 adapter; Otty is not required. Open Sessions provides keyboard access, and native display/Space/sleep recovery is implemented in source.
+The full MVP remains unverified: no new tests, builds, launches or runtime qualification were run for this implementation.
 SSH and cloud-agent integrations are optional future work.
 
 The working name is `notch-pet`; the user has not chosen a product name.
@@ -123,7 +125,7 @@ shared stores; it owns no provider I/O. Pet-only use starts no provider services
 
 **Tests, builds, app/helper launches, probes, captures, installed configuration access and runtime
 qualification were NOT RUN for this implementation.** Source coverage for setup/sessions/quota is
-present, together with Claude local actions; desktop/navigation and the final source handoff remain unfinished in the
+present, together with Claude local actions and terminal-independent navigation/native recovery. The final source audit remains in the
 [full MVP goal](docs/goals/full-mvp-implementation.md). See its [log](docs/goals/full-mvp-implementation-log.md),
 [provider setup contract](docs/contracts/provider-setup.md) and [quota contract](docs/contracts/usage-intake.md).
 

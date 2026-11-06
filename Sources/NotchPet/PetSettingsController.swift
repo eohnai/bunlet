@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import Integration
 import Pet
 import SwiftUI
@@ -17,6 +18,9 @@ final class PetSettingsController {
     private let readClaude: () -> ProviderSetupController?
     private let readMonitoring: () -> ProviderMonitoringModel?
     private let readQuota: () -> UsageStore?
+    private var subscriptions: Set<AnyCancellable> = []
+    private let readNavigation: () -> TerminalNavigation?
+    private let onOpenSessions: () -> Void
     private let readPetLibrary: () -> PetLibraryModel?
     private let onReturnPet: () -> Void
     private let readLocalActions: () -> LocalActionController?
@@ -30,7 +34,9 @@ final class PetSettingsController {
          readQuota: @escaping () -> UsageStore? = { nil },
          readLocalActions: @escaping () -> LocalActionController? = { nil },
          onReturnPet: @escaping () -> Void = {},
-         readPetLibrary: @escaping () -> PetLibraryModel? = { nil }) {
+         readPetLibrary: @escaping () -> PetLibraryModel? = { nil },
+         onOpenSessions: @escaping () -> Void = {},
+         readNavigation: @escaping () -> TerminalNavigation? = { nil }) {
         self.defaults = defaults
         self.features = features
         self.onSizeChange = onSizeChange
@@ -44,12 +50,22 @@ final class PetSettingsController {
         self.readLocalActions = readLocalActions
         self.onReturnPet = onReturnPet
         self.readPetLibrary = readPetLibrary
+        self.onOpenSessions = onOpenSessions
+        self.readNavigation = readNavigation
         window = PetSettingsWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 520),
                                    styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         window.contentMinSize = NSSize(width: 660, height: 480)
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
         window.appearance = NSAppearance(named: .darkAqua)
+        Publishers.Merge(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification),
+                         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification))
+            .receive(on: DispatchQueue.main).sink { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self, self.window.isVisible else { return }
+                    self.clampPlacement()
+                }
+            }.store(in: &subscriptions)
     }
 
     func show(page requested: AppSettingsPage? = nil, activate: Bool = true) {
@@ -69,18 +85,26 @@ final class PetSettingsController {
                     guard let self else { return }
                     self.defaults.set(raw, forKey: "settings.selectedPane")
                     self.window.title = AppFeature(rawValue: raw)?.title ?? raw.capitalized
-                }, codex: readCodex, claude: readClaude, monitoring: readMonitoring, quota: readQuota, localActions: readLocalActions, returnPet: onReturnPet, petLibrary: readPetLibrary)
+                }, codex: readCodex, claude: readClaude, monitoring: readMonitoring, quota: readQuota, localActions: readLocalActions, returnPet: onReturnPet, petLibrary: readPetLibrary, openSessions: onOpenSessions, navigation: readNavigation)
             window.contentView = NSHostingView(rootView: PetWindowPlayback(window: window) { [features, defaults] visible, sleeping in
                 AppSettingsView(features: features, defaults: defaults, actions: actions, page: page,
                                 isVisible: visible, isSleeping: sleeping)
             })
         }
         if !window.isVisible { window.center() }
+        clampPlacement()
         window.orderFrontRegardless()
         if activate {
             NSApplication.shared.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
         }
+    }
+
+    private func clampPlacement() {
+        let screens = NSScreen.screens
+        let visible = window.screen.flatMap { old in screens.first(where: { $0 === old }) } ?? NSScreen.main
+        guard let visible else { return }
+        window.setFrame(PetPlacement.clamped(window.frame, in: visible.visibleFrame), display: true)
     }
 
     func close() {

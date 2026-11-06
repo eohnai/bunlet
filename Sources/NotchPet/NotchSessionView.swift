@@ -8,12 +8,17 @@ struct NotchSessionView: View {
     let usageStore: UsageStore
     let features: FeatureSettingsModel
     let onOpenFeatures: () -> Void
-    let headerHeight: CGFloat
-    let notchWidth: CGFloat
+    let windowState: NotchWindowState
+    var headerHeight: CGFloat { windowState.headerHeight }
+    var notchWidth: CGFloat { windowState.notchWidth }
+    var expanded: Bool { windowState.expanded }
     let onExpand: (Bool) -> Void
+    let isVisible: Bool
+    let isSleeping: Bool
+    var navigation: TerminalNavigation? = nil
     var actions: LocalActionController? = nil
     var beginInput: () -> Void = {}
-    @State private var expanded = false
+    var endInput: () -> Void = {}
     @State private var selection: SessionKey?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -32,7 +37,7 @@ struct NotchSessionView: View {
                 HStack(spacing: 0) {
                     Color.clear
                         .overlay {
-                            if expanded {
+                            if expanded && isVisible && !isSleeping {
                                 NotchAllowanceStrip(
                                     store: usageStore,
                                     activeProviders: NotchPresentation.activeProviders(sessionStore.sessions))
@@ -65,7 +70,11 @@ struct NotchSessionView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Sessions").font(.headline)
+                            HStack {
+                                Text("Sessions").font(.headline)
+                                Spacer()
+                                if windowState.hasKeyboardFocus { Button("Done Editing", action: endInput) }
+                            }
                             if let actions {
                                 Text(actions.status).font(.caption).foregroundStyle(.secondary)
                                 if actions.store.capacityReached {
@@ -92,7 +101,7 @@ struct NotchSessionView: View {
                             } else if sessionStore.sessions.isEmpty {
                                 Text("No sessions observed yet.").foregroundStyle(.secondary)
                             }
-                            if NotchPresentation.shouldTickPromptTimers(expanded: expanded,
+                            if NotchPresentation.shouldTickPromptTimers(expanded: expanded && isVisible && !isSleeping,
                                                                       sessions: sessionStore.sessions) {
                                 TimelineView(.periodic(from: .now, by: 1)) { context in
                                     sessionCards(at: Int64(context.date.timeIntervalSince1970 * 1000))
@@ -117,6 +126,11 @@ struct NotchSessionView: View {
         }
         .preferredColorScheme(.dark)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.24), value: expanded)
+        .onExitCommand {
+            windowState.expanded = false
+            onExpand(false)
+            endInput()
+        }
         .onAppear {
             selection = NotchPresentation.selection(selection, sessions: sessionStore.sessions)
         }
@@ -126,7 +140,7 @@ struct NotchSessionView: View {
     }
 
     private func toggleExpansion() {
-        expanded.toggle()
+        windowState.expanded.toggle()
         onExpand(expanded)
     }
 
@@ -137,6 +151,9 @@ struct NotchSessionView: View {
                     NotchSessionCard(snapshot: snapshot,
                                      presentation: NotchPresentation.card(for: snapshot, among: sessionStore.sessions),
                                      nowMs: nowMs, selection: $selection)
+                    if selection == snapshot.key, let navigation {
+                        TerminalNavigationView(controller: navigation, session: snapshot.key)
+                    }
                     ForEach(snapshot.pendingRequests, id: \.eventID) { request in
                         NotchRequestCard(request: request, hasLocalResponse: actions?.store.snapshots.contains {
                             $0.observedRequestID == request.eventID &&

@@ -318,7 +318,10 @@ private struct CompanionMenu: View {
             Button("Show Pet", action: controller.showPet)
             Button("Return Pet", action: controller.returnPet)
         }
-        if controller.installed.contains(.notch) { Button("Show Notch", action: controller.showNotch) }
+        if controller.installed.contains(.notch) {
+            Button("Show Notch", action: controller.showNotch)
+            Button("Open Sessions", action: controller.openSessions).keyboardShortcut("n", modifiers: [.command, .shift])
+        }
         if controller.installed.contains(.agents) {
             ForEach(Agent.allCases, id: \.self) { agent in
                 Menu(agent == .codex ? "Codex" : "Claude Code") {

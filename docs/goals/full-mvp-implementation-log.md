@@ -3,7 +3,7 @@
 - Goal file: goals/full-mvp-implementation.md
 - Created: 2026-11-06 11:47 +08
 - Turn limit: 60
-- Status: active since 2026-11-06; execution turn 7
+- Status: active since 2026-11-06; execution turn 8
 - Scope: all nine source criteria; four milestones are not separate completion goals
 - Verification: tests, builds, runtime checks and provider qualification NOT RUN by user instruction
 - Branch/base: feat/codex-mvp / 8707bdf; current checkout only
@@ -20,6 +20,7 @@
 | 5 | 2026-11-06 15:07 +08 | Sources 1–6 implemented; 7 partial; 8 partial; 9 incomplete. Acceptance unverified. | Saved action milestone `521440b`. Added pet-owned moods, app-owned snapshot adapter, bounded deduplicated response cues, native alpha drag/pass-through, island hide/overlap/menu return and saved screen-relative placement/sound. Recorded missing Pets feature contracts before implementation. User excludes company code; original/repository code and public documentation only. Tests/builds/runtime/qualification NOT RUN. |
 | 6 | 2026-11-06 15:16 +08 | Sources 1–7 implemented; 8 partial; 9 incomplete. Acceptance unverified. | Saved pet reactions/movement as `474188a`. Added bounded manifest/PNG loader, descriptor-relative asset reads, private staged persistence, revalidation/exclusive rename, immutable playback data/cache, import/selection UI and cancellation/rollback/built-in recovery. Company code excluded. Tests/builds/runtime/qualification NOT RUN. |
 | 7 | 2026-11-06 15:39 +08 | Sources 1–7 implemented; 8 partial; 9 incomplete. Acceptance unverified. | User requested local PNG transforms and compatible sheet import, excluded AI workflow and company code, then resumed the full goal. Added shared bounded RGBA codec, affine frame generation, exhaustive alpha slicing, Settings input choices and reuse of existing private pack transaction/rollback. No tests/builds/runtime/qualification. |
+| 8 | 2026-11-06 16:38 +08 | Sources 1–8 implemented; 9 incomplete. Acceptance unverified. | Added optional terminal-independent app activation/manual return, explicit iTerm2 pane adapter with process-addressed public events, retained Notch geometry/display/Space/sleep/focus/corner recovery and Settings clamping. No Otty prerequisite, replacement session, AI or company code. Tests/builds/runtime/qualification NOT RUN. |
 
 Preparation is not an execution turn. Continue numbering from the latest execution row after activation.
 Each row must account for all nine criteria and separate missing source implementation from unverified behavior.
@@ -271,6 +272,23 @@ All behavior remains unverified. The full goal remains active; criterion 8 and f
 Verification: source reads/rg/nl and git diff whitespace inspection only. Tests, builds, type checks,
 app/helper launches, probes, captures, installed configuration and credential/transcript access NOT RUN.
 No company code, scripts or assets were copied; no image-generation tool or external model was invoked.
+
+Saved local-only customization commit: `d2cb963` — `feat: add offline PNG animation and sprite-sheet import`.
+The full goal remains active; navigation and final handoff remain incomplete. All runtime acceptance is unverified.
+
+## Turn 8 source audit
+
+1. **Implemented in source, unverified — providers.** ProviderSetupService.check/execute binds documented support; ProviderHookTransaction.run locks shared ownership, recovers all Claude scopes and writes only planned fields. ProviderMonitoringModel retains independent provider/action consent. No terminal dependency was added.
+2. **Implemented in source, unverified — sessions.** SessionStore.reduce preserves typed provider/session/turn identity, 30-second delivery bounds, duplicate/conflict/ended rules and unknown expiry. AgentServices generation/cutoff checks reject stale queued observations. NotchSessionView retains selection while geometry changes through NotchWindowState.
+3. **Implemented in source, unverified — quotas.** AgentServices starts Claude UsageReceiver/UsageInbox independently of windows; AgentUsageController owns Codex reads/retry. Existing forwarding helper and UsageStore retain source/account/freshness handling. Navigation cannot start quota or provider work.
+4. **Implemented in source, unverified — actions.** ClaudeHookActionAdapter.providerOutput has concrete permission, structured-answer and Stop-feedback encodings. LocalActionController.send refreshes session evidence before ActionStore.prepare and one transport dispatch. Existing guarded setup, consent, drafts and uncertain receipts remain. Codex action channels are unsupported; Claude follow-up is the bounded existing Stop hook, not arbitrary later input.
+5. **Implemented in source, unverified — reactions.** PetSessionAdapter.update derives moods from authoritative snapshots and bounds once-per-response identity to 4096 entries. Pet contains no agent dependency; hidden/asleep response cues do not replay.
+6. **Implemented in source, unverified — movement.** PetPanelController retains alpha hit/drag, suppression/overlap/menu return and screen-relative recovery. The retained Notch host preserves selection and drafts while hidden or moved.
+7. **Implemented in source, unverified — customization.** PetPackLibrary installs validated data through staged private writes, exact revalidation and exclusive rename. Existing PNG transforms/sheet import, cancellation/rollback, image bounds and own preferences remain unchanged; no AI or company code.
+8. **Implemented in source, unverified — navigation/desktop.** TerminalNavigation chooses a bounded application identity/path and activates only one matching running instance. Optional ITermPaneAdapter uses only public get/select Apple Events addressed to a validated PID, bounded by 3 seconds/64 KiB reply/512 panes. Explicit user linking records exact session key, pane ID/tty and process lifetime, rejects duplicates and confirms resulting focus; it is not inferred agent mapping. No launch/create/write event or terminal-input injection. Other terminals retain application/manual return. NotchPanelController subscribes to screen/Space/sleep changes, updates shared geometry without replacing the hosting view, gates visibility, restores explicit keyboard focus and implements corner pass-through/Reduce Motion. PetSettingsController clamps visible Settings after screen/wake changes; Open Sessions is available from menu and Settings. All native/Automation behavior is unrun.
+9. **Incomplete — final handoff.** Feature specs, terminal-independence decision, README, architecture and STATUS reflect this milestone; final consolidated nine-area audit remains next. Original acceptance stays unrun/unticked.
+
+Source inspection only: rg/nl/file reads and git diff whitespace inspection. Two initial lookups used obsolete/nonexistent filenames and were corrected using the source file list. Public Apple SDK declarations and iTerm2 documentation/scripting dictionary establish interface identifiers only; no vendor implementation or company code was copied. Tests/builds/type checks, probes, launches, Apple Events, captures and installed configuration/credential/transcript access NOT RUN.
 
 ## Final result
 

@@ -11,7 +11,7 @@ Code: `Sources/EventBridge/`, `Sources/SessionState/`, `Sources/Integration/` an
 - `codex-setup`: Connect, check, and remove owned Codex integration through explicit controls without overwriting user changes. Needs: integration-health, notch/session-island.
 - `claude-setup`: Connect, check, and remove owned Claude lifecycle integration while preserving the status line. Needs: integration-health, notch/session-island.
 - `monitoring-controls`: Pause, resume, and disconnect configured monitoring while preserving unresolved notices. Needs: codex-setup.
-- `pane-navigation`: Report exact-pane, application-only, or unavailable navigation through optional terminal adapters. Needs: session-state.
+- `pane-navigation`: [Optional terminal navigation](pane-navigation.md) reports user-linked exact-pane, application-only, or manual-return capability through separate adapters. Needs: session-state.
 - `first-use`: Verify setup, live alerts, navigation, removal, and release instructions. Needs: codex-setup, claude-setup, pane-navigation, notch/desktop-recovery, notch/accessible-controls, usage/refresh-recovery, actions/structured-answers, actions/follow-up-replies, pets/detachable-pet, pets/custom-packs.
 
 ## Shared context

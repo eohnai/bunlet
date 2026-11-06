@@ -23,6 +23,8 @@ struct AppSettingsActions {
     var localActions: () -> LocalActionController? = { nil }
     var returnPet: () -> Void = {}
     var petLibrary: () -> PetLibraryModel? = { nil }
+    var openSessions: () -> Void = {}
+    var navigation: () -> TerminalNavigation? = { nil }
 }
 
 struct AppSettingsView: View {
@@ -124,6 +126,7 @@ struct AppSettingsView: View {
         case .general:
             Text("Keep the parts of Notch Pet you use. Pet, Notch and Agents can be managed independently.")
             Button("Manage Features") { page = .features }
+            if let navigation = actions.navigation() { TerminalNavigationView(controller: navigation) }
             Text("Settings stays available even when every optional feature is uninstalled.")
                 .font(.callout).foregroundStyle(.secondary)
         case .features:
@@ -157,6 +160,9 @@ struct AppSettingsView: View {
         case .notch:
             Text("Inspect sessions and requests in the island without opening a separate app window.")
             Button("Show Notch", action: actions.showNotch)
+            Button("Open Sessions", action: actions.openSessions)
+            Text("Open Sessions enables keyboard controls. Escape collapses the island and returns editing focus.")
+                .font(.caption).foregroundStyle(.secondary)
             if !features.installed.contains(.agents) {
                 Text("Agents is not installed. You can add it from Features when you want session monitoring.")
                     .foregroundStyle(.secondary)

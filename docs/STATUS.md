@@ -2,21 +2,22 @@
 
 ## Now
 
-The full nine-area MVP goal is active again on `feat/codex-mvp` after the user resumed it. Sources 1–7 are implemented to their recorded contracts; the latest saved pack milestone is `4904db4`. Turn 7 adds the requested local PNG transform animation and seven-row sprite-sheet normalization in source.
-The user excludes AI generation/workflow, prompts and subscription linking. New customization uses original Swift/CoreGraphics code and user-supplied assets; no company source/scripts/artwork. Tests/builds/runtime/qualification remain NOT RUN.
-Local commits remain authorized. Preserve FM7/editor/CI drafts; no pushes, PRs, extra branches or worktrees. Desktop/navigation and final source audit remain unfinished. Claude Stop replies remain a 60-second existing-prompt capability; Codex actions remain unsupported.
+The full nine-area MVP goal is active on `feat/codex-mvp`. Sources 1–8 are implemented to their recorded contracts; final source audit/handoff (criterion 9) is next. Local PNG/sheet customization is saved as `d2cb963`; terminal-independent navigation and native desktop recovery are the current milestone.
+Monitoring, quotas, actions and pet reactions require no terminal integration. Any selected running application can be activated; optional exact-pane focus uses an explicit user link through iTerm2 public process-addressed Apple Events. Automatic Otty mapping is unsupported; legacy hints remain untrusted.
+The user excludes AI workflow/subscription linking and company code. All additions use original/repository code, user assets and public interfaces. Tests/builds/runtime/qualification remain NOT RUN. Claude Stop replies are limited to a 60-second existing-prompt capability; Codex actions remain unsupported.
+Local commits remain authorized. Preserve FM7/editor/CI drafts; no pushes, PRs, extra branches or worktrees.
 
 ## Next
 
-1. Save the coherent local-only PNG/sheet source milestone, excluding unrelated drafts.
-2. Complete validated terminal/application/manual navigation and native Notch display/Space/sleep/focus recovery, then the full nine-area source handoff. All nine criteria remain the finish line.
+1. Save the terminal-independent navigation and native recovery milestone.
+2. Finish the full nine-area source audit and handoff. All nine criteria remain the finish line.
 3. Keep tests/builds/probes/launches/captures, installed configuration access and runtime qualification deferred; preserve unrun acceptance checkboxes.
 4. Commit coherent source milestones on this branch and record hashes, excluding unrelated drafts.
 5. Keep SSH/cloud, extra agents, statistics/telemetry, branding and CI overhaul outside this local MVP.
 
 ## Blockers
 
-- Full MVP implementation is incomplete: desktop/navigation and final handoff remain. Pet reactions, movement, imports and preference recovery now have source paths; native behavior remains unverified. Claude actions now have concrete adapter, transport, controls and guarded installation source paths; no installed/end-to-end integration was exercised. Documented support is unverified; no compiler/live/native acceptance or runtime qualification is established.
+- Full MVP implementation awaits its final nine-area source audit/handoff; desktop/navigation now has source paths. Pet reactions, movement, imports and preference recovery now have source paths; native behavior remains unverified. Claude actions now have concrete adapter, transport, controls and guarded installation source paths; no installed/end-to-end integration was exercised. Documented support is unverified; no compiler/live/native acceptance or runtime qualification is established.
 - Reused `633b4d0` refactor and adapted `2925880` planner source around existing drafts. Original spec checkboxes remain open where their checks were not run against this changed checkout. Do not count upstream historical verification as fresh local evidence.
 - Telemetry planning conflict: `origin/docs/local-telemetry` records a history-first decision superseding collector-first D2, but this checkout retains the old order. Its D3 identifier collides with this branch's view-model D3. Reconcile decisions and links without dropping later statistics scope or marking withdrawn tasks complete.
 - A5/C5 user review established cards, fixed/running timers, usage limits and preserved focus. Broader session-island acceptance remains unverified; VoiceOver is excluded by D8. The final provider filter has unit coverage; no later visual pass is claimed.
@@ -34,7 +35,7 @@ Local commits remain authorized. Preserve FM7/editor/CI drafts; no pushes, PRs, 
 - Telemetry C1–C8, H1–H7 and S1–S6 remain proposed implementation tasks. Service lifecycle, IPC, schema/durability and instrumentation coverage require their recorded reviews. Battery targets are provisional and unmeasured.
 - I3b1's design is accepted, including the final independent-editor race and indistinguishable identical replacement. Codex 0.164.0 is a qualification candidate, not a qualified installer release. Effective enablement/policy evidence and timeout enforcement still need isolated verification. `integration-health` and `notch/session-island` acceptance remain open before dependent implementation.
 - Migration pending: planned area specs still have missing files, including the five settings/reference additions. Claude setup and monitoring-controls now have implementation records; original shared acceptance has not been migrated or ticked. Derive counts from the progress board. Codex setup maps its source obligations without removing shared I5/I6 tasks. Keep the source specification and its original tasks/evidence until every requirement has a destination; confirm its final move/removal before changing it.
-- Terminal independence is accepted scope, not completed compatibility verification. Optional version-1 terminal metadata remains Otty-specific. N7–N8 need planning and live acceptance.
+- Terminal-independent monitoring/navigation has source paths, without compatibility verification. Optional version-1 metadata remains Otty-specific and untrusted; exact iTerm2 linking is user-owned. N7–N8 live acceptance remains unrun.
 - Real Claude forwarding and terminal-output/cancellation preservation remain unverified. Codex reconnect/account switching and remaining physical-notch acceptance are unverified. The full-goal implementation policy settles the five receiver choices in `docs/contracts/usage-intake.md`; historical acceptance is unchanged.
 - Stale: `docs/specs/usage/codex-allowance.md` leaves U3b2 unchecked despite historical goal-log evidence. Review U3b2, U1 and I2a–I2c evidence before changing those checkboxes.
 - Stale: `scripts/check-event-contract.py` permits a previously conflicting turn ID to restore working state; SessionStore enforces the accepted unseen-turn rule.
