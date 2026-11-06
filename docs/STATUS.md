@@ -2,15 +2,16 @@
 
 ## Now
 
-The full local MVP is merged into main through PR #16 (`fa691f4`), including PR #15. Current feature specs now link the merged implementation paths and exact hosted evidence in `docs/specs/notch-companion.md#merged-mvp-handoff-2026-11-06`.
-Hosted run 42194558749 passed at `ab2ae13`; no new local tests/builds/provider launches/captures were run for this documentation update. Feature-specific native/provider acceptance and runtime qualification remain deferred; original acceptance checkboxes remain open.
-Bunlet and Notchbun are still name candidates. No rename is approved or implemented. Unrelated FM7/editor/CI drafts are preserved.
+The full local MVP is merged through PR #16. Bunlet is now the accepted name under decision 0016.
+The visible app and bundle rename is complete, uncommitted on `feat/settings-product-name`, based on main `d0d4639`.
+Build, package and focused native rename results are recorded in `docs/specs/settings/product-name.md`. Internal identities remain stable.
+The isolated validation app is stopped. Broader native/provider acceptance and FM7 remain deferred.
 
 ## Next
 
-1. Choose the app name before preparing a separate rename task.
-2. Select future work from the updated feature handoffs; do not reimplement paths already merged or resume native/provider checks without explicit authorization.
-3. Keep separate telemetry/CI reconciliation and FM7 drafts outside this MVP documentation commit.
+1. Review and commit the Bunlet rename on `feat/settings-product-name`, then merge it into main when ready.
+2. Select one future task from the merged feature handoffs. Get approval before resuming broader native/provider acceptance.
+3. Keep separate telemetry/CI reconciliation and FM7 drafts outside the rename change.
 
 ## Blockers
 

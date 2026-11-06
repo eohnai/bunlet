@@ -23,7 +23,7 @@ import unicodedata
 from xml.parsers.expat import ExpatError
 
 ROOT = Path(__file__).resolve().parents[2]
-APP = "Notch Pet.app"
+APP = "Bunlet.app"
 MAX_ENTRIES = 4096
 MAX_PATH = 240
 MAX_MANIFEST = 4 * 1024 * 1024
@@ -139,6 +139,8 @@ def validate_app(entries: dict, payloads: dict[str, bytes]) -> None:
     require(type(info) is dict and info.get("CFBundleExecutable") == "NotchPet"
             and info.get("CFBundlePackageType") == "APPL"
             and info.get("CFBundleIdentifier") == "local.notchpet.dev", "invalid app plist identity")
+    require(info.get("CFBundleDisplayName") == "Bunlet" and info.get("CFBundleName") == "Bunlet",
+            "invalid app display name")
     resource_root = f"{APP}/Contents/Resources/NotchPet_Pet.bundle"
     manifest = payloads.get(resource_root + "/manifest.json")
     require(manifest is not None and len(manifest) <= MAX_MANIFEST, "missing Pet manifest")

@@ -44,7 +44,7 @@ public enum ClaudeHookActionAdapter {
         switch offer.kind {
         case .permission:
             let value: [String: Any] = decision.choice == .approveOnce
-                ? ["behavior": "allow"] : ["behavior": "deny", "message": "Denied by the user in Notch Pet."]
+                ? ["behavior": "allow"] : ["behavior": "deny", "message": "Denied by the user in Bunlet."]
             object = ["hookSpecificOutput": ["hookEventName": "PermissionRequest", "decision": value]]
         case .question:
             guard let input = offer.input,

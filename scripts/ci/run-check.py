@@ -20,7 +20,7 @@ def main() -> None:
         'build': ['bash', 'scripts/run.sh', '--build-only'],
         'contract': [sys.executable, 'scripts/check-event-contract.py'],
         'helper': [sys.executable, 'scripts/check-event-bridge.py', '--helper',
-                   str(root / 'extracted/Notch Pet.app/Contents/MacOS/NotchPetHook')],
+                   str(root / 'extracted/Bunlet.app/Contents/MacOS/NotchPetHook')],
     }
     if job not in commands:
         raise SystemExit('Unsupported check job')

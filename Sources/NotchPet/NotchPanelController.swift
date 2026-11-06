@@ -25,7 +25,7 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         panel = ActionNotchPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                                 backing: .buffered, defer: false)
         super.init()
-        panel.title = "Notch Pet Sessions"
+        panel.title = "Bunlet Sessions"
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false

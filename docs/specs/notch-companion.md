@@ -41,7 +41,9 @@ The local-only sprite-sheet conversion choice is accepted and implemented under 
 its earlier P5 proposal is superseded. P5/P6 native acceptance is not established by that source finding.
 Unimplemented broader roadmap work (login/language preferences, automatic attention/haptics,
 telemetry/statistics, additional agents and SSH/cloud) is not delivered by this merge.
-Bunlet and Notchbun remain name candidates; no product rename was approved or implemented.
+The user chose Bunlet on 2026-11-06 to emphasize the pet, including desktop use.
+[Decision 0016](../decisions/0016-use-bunlet-name.md) and the
+[product-name spec](settings/product-name.md) own the approved visible app and bundle rename.
 
 ## Goal
 

@@ -64,7 +64,7 @@ def main() -> None:
             return (value.get('schema_version') == 1 and type(value.get('llvm_cov_version')) is str
                     and all(type(digest) is str and len(digest) == 64 and all(c in '0123456789abcdef' for c in digest) for digest in hashes))
         if name == 'build-manifest.json':
-            return (value.get('schema_version') == 1 and value.get('app') == 'Notch Pet.app'
+            return (value.get('schema_version') == 1 and value.get('app') == 'Bunlet.app'
                     and type(value.get('identity')) is dict and value['identity'].get('commit') == os.environ['GITHUB_SHA']
                     and type(value.get('entries')) is dict and bool(value['entries']))
         return False
