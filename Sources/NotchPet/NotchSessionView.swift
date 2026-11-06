@@ -63,6 +63,16 @@ struct NotchSessionView: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Sessions").font(.headline)
+                            if let issue = sessionStore.capacityIssue {
+                                Text(issue == .sessionCapacity
+                                     ? "Session capacity reached. New sessions are not being observed. Existing requests are retained."
+                                     : "A session reached its identity or request capacity. Its state is unconfirmed.")
+                                    .font(.callout).foregroundStyle(.yellow)
+                            }
+                            if sessionStore.deliveryOverflowed {
+                                Text("Some events were lost. Affected sessions need fresh evidence.")
+                                    .font(.callout).foregroundStyle(.yellow)
+                            }
                             if !features.installed.contains(.agents) {
                                 Text("Agents is not installed.").foregroundStyle(.secondary)
                                 Button("Open Features", action: onOpenFeatures)

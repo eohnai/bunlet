@@ -3,17 +3,19 @@ import Darwin
 import Foundation
 import os
 
-/// Call stop during app shutdown. Existing endpoints are never adopted or removed on start.
+/// Call stop during app shutdown. A lease permits recovery of provably refused owned sockets.
 public final class UsageReceiver {
     private let endpointURL: URL
     private let lock = NSLock()
     private var source: DispatchSourceRead?
     private var identity: stat?
+    private var lease: UsageEndpointLease?
     private var cancelled = OSAllocatedUnfairLock(initialState: false)
 
     public init(endpointURL: URL = UsageDelivery.standardEndpoint) { self.endpointURL = endpointURL }
 
-    public func start(onObservation: @escaping @Sendable (UsageObservation) -> Void) throws {
+    public func start(onRejected: @escaping @Sendable () -> Void = {},
+                      onObservation: @escaping @Sendable (UsageObservation) -> Void) throws {
         lock.lock()
         defer { lock.unlock() }
         guard source == nil, endpointURL.isFileURL else { throw UsageProviderError.invalidSource }
@@ -24,10 +26,11 @@ public final class UsageReceiver {
                   lstat(parent, &directory) == 0 else { throw UsageProviderError.invalidSource }
         }
         guard directory.st_mode & S_IFMT == S_IFDIR, directory.st_uid == getuid(),
-              directory.st_mode & 0o7777 == 0o700,
-              lstat(endpointURL.path, &existing) != 0, errno == ENOENT else {
+              directory.st_mode & 0o7777 == 0o700 else {
             throw UsageProviderError.invalidSource
         }
+        let candidateLease = try UsageEndpointLease(endpoint: endpointURL)
+        try candidateLease.removeRefusedSocket(endpointURL)
         var address = sockaddr_un()
         let path = Array(endpointURL.path.utf8) + [0]
         guard path.count <= MemoryLayout.size(ofValue: address.sun_path) else { throw UsageProviderError.resourceLimit }
@@ -45,7 +48,9 @@ public final class UsageReceiver {
                 }
             }
         }
-        guard fcntl(fd, F_SETFL, O_NONBLOCK) == 0, fcntl(fd, F_SETFD, FD_CLOEXEC) == 0 else {
+        var capacity = UsageDelivery.receiveBufferBytes
+        guard setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &capacity, socklen_t(MemoryLayout<Int32>.size)) == 0,
+              fcntl(fd, F_SETFL, O_NONBLOCK) == 0, fcntl(fd, F_SETFD, FD_CLOEXEC) == 0 else {
             throw UsageProviderError.invalidSource
         }
         address.sun_family = sa_family_t(AF_UNIX)
@@ -63,24 +68,17 @@ public final class UsageReceiver {
         let reader = DispatchSource.makeReadSource(fileDescriptor: fd,
                                                    queue: DispatchQueue(label: "local.notchpet.usage"))
         reader.setEventHandler {
-            var bytes = [UInt8](repeating: 0, count: 8193)
+            var bytes = [UInt8](repeating: 0, count: UsageDelivery.payloadLimit + 1)
             for _ in 0..<32 {
                 guard !flag.withLock({ $0 }) else { return }
                 let count = recv(fd, &bytes, bytes.count, 0)
                 if count < 0 { return }
-                guard count > 0, count <= 8192,
+                guard count > 0, count <= UsageDelivery.payloadLimit,
                       let value = try? JSONDecoder().decode(UsageObservation.self, from: Data(bytes.prefix(count))),
-                      Agent(rawValue: value.provider) != nil,
-                      !value.sourceID.isEmpty, value.sourceID.utf8.count <= 256,
-                      value.accountID.map({ !$0.isEmpty && $0.utf8.count <= 256 }) ?? true,
-                      value.windows.count <= 64,
-                      Set(value.windows.map(\.id)).count == value.windows.count,
-                      value.windows.allSatisfy({ window in
-                          !window.id.isEmpty && window.id.utf8.count <= 256 &&
-                          window.usedPercent.isFinite && (0...100).contains(window.usedPercent) &&
-                          (window.durationMinutes.map { $0 > 0 } ?? true) &&
-                          (window.resetsAtMs.map { $0 >= 0 } ?? true)
-                      }) else { continue }
+                      UsageValidation.acceptsClaudeIngress(value) else {
+                    if !flag.withLock({ $0 }) { onRejected() }
+                    continue
+                }
                 guard !flag.withLock({ $0 }) else { return }
                 onObservation(UsageObservation(provider: value.provider, sourceID: value.sourceID,
                     accountID: value.accountID, receivedAtMs: Int64(Date().timeIntervalSince1970 * 1000),
@@ -90,6 +88,7 @@ public final class UsageReceiver {
         reader.setCancelHandler { close(fd) }
         source = reader
         identity = owned
+        lease = candidateLease
         cancelled = flag
         ready = true
         reader.resume()
@@ -109,5 +108,6 @@ public final class UsageReceiver {
             }
         }
         identity = nil
+        lease = nil
     }
 }

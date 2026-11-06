@@ -62,6 +62,7 @@ An eventual session-to-pet adapter must consume the same authoritative snapshots
 | `Pet` | Artwork, preferences, rendering and playback rules | None |
 | `NotchPet` | App composition, feature management, Settings, windows and optional services | `Pet`, `EventBridge`, `SessionState`, `Usage`, `Integration` |
 | `NotchPetHook` | Silent one-way observation helper | `EventBridge` |
+| `NotchPetStatusLine` | Bounded Claude status-line input forwarding and original-command execution | `Usage` |
 
 [Codex setup R2a](specs/sessions/codex-setup.md#tasks) separates `Usage` and `Integration` from `SessionState`.
 R3 replaces `IntegrationAgent` directly with `EventBridge.Agent`; no compatibility alias remains.
@@ -109,8 +110,16 @@ The notch reflects that state through pure presentation rules. Session-driven pe
 Planned navigation clicks must use a terminal adapter's verified capability.
 Missing terminal identity or navigation support does not block event receipt or session presentation.
 
-Usage providers send account snapshots to a separate usage store.
+Usage providers send source snapshots to a separate usage store.
 They do not create agent lifecycle events or start agent turns.
+`AgentServices` independently starts/stops `UsageReceiver` and Codex refresh. A bounded UsageInbox
+batches Claude-only ingress onto the main actor, guarded by the service generation. UsageStore keeps
+receiver state, receipt and intake/capacity loss separate from lifecycle health. Private socket leases,
+refused-endpoint recovery and enlarged socket buffers implement the [quota intake contract](contracts/usage-intake.md).
+`NotchPetStatusLine` retains bounded parse input while streaming original stdin to the original shell
+command with inherited output/cwd/environment. Cancellation targets its process group; quota forwarding
+is nonblocking and has no terminal output. Owned wrapper installation remains incomplete. No new
+source behavior is compiler- or runtime-verified.
 
 The receiver, adapters, inbox, stores and visible session/allowance surfaces are implemented.
 The Codex MVP adds explicit Check/setup/removal controls and owned transaction source, with installation gated

@@ -29,36 +29,53 @@ public struct UsageSnapshot: Equatable, Sendable {
     public let isStale: Bool
 }
 
+public enum UsageReceiverState: Equatable, Sendable {
+    case stopped, listening, unavailable
+}
+
 @MainActor
 @Observable
 public final class UsageStore {
     public private(set) var observations: [UsageObservation] = []
+    public private(set) var receiverState: UsageReceiverState = .stopped
+    public private(set) var lastClaudeReceiptMs: Int64?
+    public private(set) var intakeLost = false
+    public private(set) var invalidIntake = false
+    public private(set) var capacityReached = false
+
+    public func setReceiverState(_ state: UsageReceiverState) { receiverState = state }
+
+    public func receiveClaudeBatch(_ batch: [UsageObservation], lost: Bool, rejected: Bool) {
+        intakeLost = intakeLost || lost
+        invalidIntake = invalidIntake || rejected
+        for observation in batch where UsageValidation.acceptsClaudeIngress(observation) {
+            if apply(observation) { lastClaudeReceiptMs = observation.receivedAtMs }
+        }
+    }
 
     public init() { }
 
     @discardableResult
     public func apply(_ observation: UsageObservation) -> Bool {
-        guard Agent(rawValue: observation.provider) != nil,
-              !observation.sourceID.isEmpty, observation.sourceID.utf8.count <= 256,
-              observation.accountID.map({ !$0.isEmpty && $0.utf8.count <= 256 }) ?? true,
-              observation.receivedAtMs >= 0, observation.measuredAtMs.map({ $0 >= 0 }) ?? true,
-              observation.windows.count <= 64,
-              Set(observation.windows.map(\.id)).count == observation.windows.count,
-              observation.windows.allSatisfy({ window in
-                  !window.id.isEmpty && window.id.utf8.count <= 256 &&
-                  window.usedPercent.isFinite && (0...100).contains(window.usedPercent) &&
-                  (window.durationMinutes.map { $0 > 0 } ?? true) &&
-                  (window.resetsAtMs.map { $0 >= 0 } ?? true)
-              }) else { return false }
+        guard UsageValidation.accepts(observation) else { return false }
+        // Expire only on intake; inactive apps need no cleanup timer. Future timestamps are retained as stale.
+        observations.removeAll {
+            observation.receivedAtMs >= $0.receivedAtMs &&
+                observation.receivedAtMs - $0.receivedAtMs >= 86_400_000
+        }
         if let index = observations.firstIndex(where: {
             $0.provider == observation.provider && $0.sourceID == observation.sourceID
         }) {
             guard observation.receivedAtMs >= observations[index].receivedAtMs else { return false }
             observations[index] = observation
         } else {
-            guard observations.count < 128 else { return false }
+            guard observations.count < 128 else {
+                capacityReached = true
+                return false
+            }
             observations.append(observation)
         }
+        capacityReached = false
         return true
     }
 

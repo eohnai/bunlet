@@ -51,7 +51,8 @@ public enum CodexUsageConnection {
                 }
                 if offset < pending.count {
                     let count = pending.withUnsafeBytes {
-                        Darwin.write(writeFD, $0.baseAddress!.advanced(by: offset), pending.count - offset)
+                        guard let base = $0.baseAddress else { return -1 }
+                        return Darwin.write(writeFD, base.advanced(by: offset), pending.count - offset)
                     }
                     if count > 0 { offset += count }
                     else if errno != EAGAIN && errno != EINTR { break }

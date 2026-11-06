@@ -3,6 +3,9 @@ import Foundation
 
 /// Usage uses a separate, private endpoint; lifecycle event framing remains unchanged.
 public enum UsageDelivery {
+    public static let payloadLimit = 8192
+    static let sendBufferBytes: Int32 = 16_384
+    static let receiveBufferBytes: Int32 = 131_072
     public static var standardEndpoint: URL {
         URL(fileURLWithPath: "/private/tmp/notch-pet-\(getuid())/usage-v1.sock")
     }
@@ -12,7 +15,7 @@ public enum UsageDelivery {
                             endpointURL: URL = standardEndpoint) -> Bool {
         guard endpointURL.isFileURL, observation.sourceID.utf8.count <= 256,
               observation.windows.count <= 64,
-              let payload = try? JSONEncoder().encode(observation), payload.count <= 8192 else { return false }
+              let payload = try? JSONEncoder().encode(observation), payload.count <= payloadLimit else { return false }
         let path = endpointURL.path
         var address = sockaddr_un()
         let bytes = Array(path.utf8) + [0]
@@ -26,7 +29,9 @@ public enum UsageDelivery {
         let fd = socket(AF_UNIX, SOCK_DGRAM, 0)
         guard fd >= 0 else { return false }
         defer { close(fd) }
-        guard fcntl(fd, F_SETFL, O_NONBLOCK) == 0, fcntl(fd, F_SETFD, FD_CLOEXEC) == 0 else { return false }
+        var capacity = sendBufferBytes
+        guard setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &capacity, socklen_t(MemoryLayout<Int32>.size)) == 0,
+              fcntl(fd, F_SETFL, O_NONBLOCK) == 0, fcntl(fd, F_SETFD, FD_CLOEXEC) == 0 else { return false }
         address.sun_family = sa_family_t(AF_UNIX)
         address.sun_len = UInt8(MemoryLayout<sockaddr_un>.size)
         withUnsafeMutableBytes(of: &address.sun_path) { $0.copyBytes(from: bytes) }

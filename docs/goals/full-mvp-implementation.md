@@ -1,6 +1,6 @@
 # Full local MVP implementation
 
-Status: prepared; not activated. Full scope: nine source criteria, four milestones.
+Status: active since 2026-11-06. Full scope: nine source criteria, four milestones.
 
 ## Goal block
 

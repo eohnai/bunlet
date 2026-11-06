@@ -56,13 +56,25 @@ final class AgentUsageController: AppFeatureService {
                 self.status = "Executable search path unavailable."
                 return
             }
+            var failures = 0
+            let delays = [5, 15, 30, 60, 120]
             while !Task.isCancelled {
                 ServiceStartLedger.record(.providerProcess)
                 let observation = await CodexUsageConnection.read(executableURL: executable,
                                                                  sourceID: "codex-managed")
                 guard !Task.isCancelled else { return }
                 self.store.apply(observation)
-                do { try await Task.sleep(for: .seconds(120)) }
+                let delay: Int
+                if observation.failure == nil {
+                    failures = 0
+                    delay = 120
+                    self.status = "Codex usage received; measurement time unverified."
+                } else {
+                    delay = delays[min(failures, delays.count - 1)]
+                    failures = min(failures + 1, delays.count)
+                    self.status = "Codex usage unavailable. Retrying in \(delay) seconds."
+                }
+                do { try await Task.sleep(for: .seconds(delay)) }
                 catch { return }
             }
         }

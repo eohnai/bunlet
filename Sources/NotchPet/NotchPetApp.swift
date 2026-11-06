@@ -112,6 +112,7 @@ final class AgentServices: NSObject, AppAgentService {
     private let integrationHealth = IntegrationHealthController()
     private let bridge: EventBridgeServer
     private let usage: any AppFeatureService
+    private let usageReceiver = UsageReceiver()
     private let startObserving: ReceiverStart?
     private let readWall: () -> Int64
     private let readMonotonic: () -> UInt64
@@ -119,6 +120,7 @@ final class AgentServices: NSObject, AppAgentService {
     private var generation: UUID?
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var inbox: SessionEventInbox?
+    private var usageInbox: UsageInbox?
     private var expiryTimer: DispatchSourceTimer?
     private var receiptCutoffNs: UInt64 = 0
 
@@ -169,12 +171,24 @@ final class AgentServices: NSObject, AppAgentService {
                 stopReceiver = { [weak self] in self?.bridge.stop() }
             }
             integrationHealth.setReceiver(.listening)
-            usage.start()
         } catch BridgeError.unsafeEndpoint {
             integrationHealth.setReceiver(.failed(.unsafeEndpoint))
         } catch {
             integrationHealth.setReceiver(.failed(.receiverUnavailable))
         }
+        // Quota intake and Codex refresh have independent failure/lifetime paths from lifecycle IPC.
+        let quotaInbox = UsageInbox { [weak self] batch, lost, rejected in
+            guard let self, self.generation == current else { return }
+            self.usageStore.receiveClaudeBatch(batch, lost: lost, rejected: rejected)
+        }
+        usageInbox = quotaInbox
+        do {
+            try usageReceiver.start(onRejected: { quotaInbox.reject() }) { quotaInbox.receive($0) }
+            usageStore.setReceiverState(.listening)
+        } catch {
+            usageStore.setReceiverState(.unavailable)
+        }
+        usage.start()
         let workspace = NSWorkspace.shared.notificationCenter
         for (center, name) in [(workspace, NSWorkspace.willSleepNotification),
                                (workspace, NSWorkspace.didWakeNotification),
@@ -196,6 +210,9 @@ final class AgentServices: NSObject, AppAgentService {
         stopReceiver = nil
         inbox = nil
         usage.stop()
+        usageReceiver.stop()
+        usageInbox = nil
+        usageStore.setReceiverState(.stopped)
         sessionStore.suspendMonitoring()
         integrationHealth.setReceiver(.stopped)
         expiryTimer?.cancel()

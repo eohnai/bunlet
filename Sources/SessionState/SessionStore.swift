@@ -8,6 +8,8 @@ import Observation
 @Observable
 public final class SessionStore {
     public private(set) var sessions: [SessionSnapshot] = []
+    public private(set) var capacityIssue: SessionApplyResult?
+    public private(set) var deliveryOverflowed = false
 
     public static let sessionLimit = 128
     public static let eventIDLimit = 4096
@@ -25,6 +27,7 @@ public final class SessionStore {
     @discardableResult
     public func apply(_ observation: SessionObservationV1) -> SessionApplyResult {
         let result = reduce(observation)
+        recordIntake(result)
         expire(at: horizonNs)
         publish()
         return result
@@ -34,8 +37,11 @@ public final class SessionStore {
     public func applyBatch(_ batch: [SessionObservationV1], observationsLost: Bool,
                            wallMs: Int64, monotonicNs: UInt64) {
         observeRuntimeClock(wallMs: wallMs, monotonicNs: monotonicNs)
-        for observation in batch { _ = reduce(observation) }
-        if observationsLost { invalidate(reason: .deliveryOverflow) }
+        for observation in batch { recordIntake(reduce(observation)) }
+        if observationsLost {
+            deliveryOverflowed = true
+            invalidate(reason: .deliveryOverflow)
+        }
         horizonNs = max(horizonNs, monotonicNs)
         expire(at: horizonNs)
         publish()
@@ -70,6 +76,13 @@ public final class SessionStore {
         records.values.compactMap { record in
             !record.terminal && record.status != .unknown ? record.deadlineNs : nil
         }.min()
+    }
+
+    private func recordIntake(_ result: SessionApplyResult) {
+        switch result {
+        case .sessionCapacity, .identityCapacity, .requestCapacity: capacityIssue = result
+        default: break
+        }
     }
 
     private func reduce(_ observation: SessionObservationV1) -> SessionApplyResult {

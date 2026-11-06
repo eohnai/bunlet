@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 public enum UsageProviderError: Error, Equatable {
@@ -5,6 +6,20 @@ public enum UsageProviderError: Error, Equatable {
 }
 
 public enum ClaudeUsageProvider {
+    /// No raw session ID or unrelated status-line data leaves this projection.
+    public static func forward(_ input: Data, receivedAtMs: Int64,
+                               endpointURL: URL = UsageDelivery.standardEndpoint) -> Bool {
+        guard input.count <= 262_144 else { return false }
+        struct Identity: Decodable { let session_id: String }
+        guard let identity = try? JSONDecoder().decode(Identity.self, from: input),
+              !identity.session_id.isEmpty, identity.session_id.utf8.count <= 256 else { return false }
+        let digest = SHA256.hash(data: Data(identity.session_id.utf8))
+            .map { String(format: "%02x", $0) }.joined()
+        guard let observation = try? parse(input, sourceID: UsageValidation.claudeSourcePrefix + digest,
+                                           receivedAtMs: receivedAtMs) else { return false }
+        return UsageDelivery.send(observation, endpointURL: endpointURL)
+    }
+
     /// Extract only supported allowance fields. Raw status-line input is never retained.
     public static func parse(_ input: Data, sourceID: String, receivedAtMs: Int64) throws -> UsageObservation {
         guard input.count <= 262_144 else { throw UsageProviderError.resourceLimit }
