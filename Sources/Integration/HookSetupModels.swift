@@ -72,4 +72,10 @@ struct HookManagedCommand: Codable, Equatable, Sendable {
 
 struct HookManagedGroup: Codable, Equatable, Sendable {
     let hooks: [HookManagedCommand]
+    let matcher: String?
+
+    init(hooks: [HookManagedCommand], matcher: String? = nil) {
+        self.hooks = hooks
+        self.matcher = matcher
+    }
 }

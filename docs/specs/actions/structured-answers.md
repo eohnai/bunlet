@@ -13,5 +13,6 @@ Oversized drafts are bounded visibly and require an edit before Send. Switching 
 to another request. Cancel/expiry returns to the provider's normal question flow without an answer.
 
 Implemented: adapter/encoding, validation, drafts/options, native composer and single dispatch/receipt.
-Remaining: guarded interactive hook setup/removal and full source audit. A5 and question-specific A7/A8
+Guarded interactive-hook setup/check/removal and Settings/disconnect controls complete the source path.
+A5 and question-specific A7/A8
 acceptance remain open; tests/builds/runtime qualification NOT RUN.

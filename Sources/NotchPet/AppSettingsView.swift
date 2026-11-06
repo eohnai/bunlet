@@ -20,6 +20,7 @@ struct AppSettingsActions {
     var claude: () -> ProviderSetupController? = { nil }
     var monitoring: () -> ProviderMonitoringModel? = { nil }
     var quota: () -> UsageStore? = { nil }
+    var localActions: () -> LocalActionController? = { nil }
 }
 
 struct AppSettingsView: View {
@@ -205,7 +206,7 @@ struct AppSettingsView: View {
                 if let setup, let monitoring = actions.monitoring() {
                     ProviderSetupView(controller: setup, features: features,
                         health: actions.health().first { $0.agent == provider },
-                        monitoring: monitoring, quota: actions.quota(),
+                        monitoring: monitoring, quota: actions.quota(), localActions: actions.localActions(),
                         showFeatures: { page = .features }, showNotch: actions.showNotch)
                 } else {
                     Text(provider == .codex ? "Codex setup unavailable" : "Claude Code setup unavailable")

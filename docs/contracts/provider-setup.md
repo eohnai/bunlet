@@ -29,9 +29,10 @@ not grant hook trust, change permissions, or call a documented integration runti
   It quotes the original command as a single wrapper argument and preserves other field members.
   The private quota ownership record/journal may contain that original value for exact restoration;
   it is never printed, logged, uploaded, or expanded into a full configuration backup.
-  Lifecycle and quota journals use separate filenames under the same record directory/writer lock.
-  A known pending operation in either scope recovers before another settings change. Unknown states
-  stop both scopes. Disconnect pauses, removes quota wrapping, then lifecycle entries; failure between
+  Lifecycle, quota and interactive-action journals use separate filenames under the same record directory/writer lock.
+  A known pending operation in any scope recovers before another settings change. Unknown states
+  stop all scopes. Disconnect pauses and disables responses, removes interactive actions, quota wrapping,
+  then lifecycle entries; failure between
   scopes is reported as partial removal, never rolled back over edits or blindly replayed.
 - Monitoring preferences are per-provider, with the existing global Agents monitoring master switch.
   Pause immediately drops that provider's queued events/refresh, retains unconfirmed requests and
@@ -52,3 +53,10 @@ release qualification records stay historical; the runtime-qualified registry re
 Repair never reconstructs edited/deleted owned groups from guesses. If the app/helper path moved,
 remove the old owned entries first, then Connect from the new location. Removal uses the recorded path
 and does not need that old helper or the provider executable to exist.
+
+Interactive Claude setup owns PermissionRequest, Stop and an AskUserQuestion-only PreToolUse group,
+using the separate action helper and 75-second provider timeout (60-second user window). Its exact
+groups, ownership and journal never adopt lifecycle entries. Consent defaults off and enables only after
+explicit opt-in; master/provider pause cancels response channels. Settings supports responses without
+Notch. Resume alone does not install hooks. Action removal first disables responses; failure stays disabled.
+See [local actions](local-actions-v1.md) for the exact provider and receipt limits.

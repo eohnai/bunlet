@@ -17,6 +17,7 @@ final class PetSettingsController {
     private let readClaude: () -> ProviderSetupController?
     private let readMonitoring: () -> ProviderMonitoringModel?
     private let readQuota: () -> UsageStore?
+    private let readLocalActions: () -> LocalActionController?
 
     init(defaults: UserDefaults, features: FeatureSettingsModel, onSizeChange: @escaping (Double) -> Void,
          onShowPet: @escaping () -> Void, onShowNotch: @escaping () -> Void,
@@ -24,7 +25,8 @@ final class PetSettingsController {
          readCodex: @escaping () -> ProviderSetupController? = { nil },
          readClaude: @escaping () -> ProviderSetupController? = { nil },
          readMonitoring: @escaping () -> ProviderMonitoringModel? = { nil },
-         readQuota: @escaping () -> UsageStore? = { nil }) {
+         readQuota: @escaping () -> UsageStore? = { nil },
+         readLocalActions: @escaping () -> LocalActionController? = { nil }) {
         self.defaults = defaults
         self.features = features
         self.onSizeChange = onSizeChange
@@ -35,6 +37,7 @@ final class PetSettingsController {
         self.readClaude = readClaude
         self.readMonitoring = readMonitoring
         self.readQuota = readQuota
+        self.readLocalActions = readLocalActions
         window = PetSettingsWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 520),
                                    styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         window.contentMinSize = NSSize(width: 660, height: 480)
@@ -60,7 +63,7 @@ final class PetSettingsController {
                     guard let self else { return }
                     self.defaults.set(raw, forKey: "settings.selectedPane")
                     self.window.title = AppFeature(rawValue: raw)?.title ?? raw.capitalized
-                }, codex: readCodex, claude: readClaude, monitoring: readMonitoring, quota: readQuota)
+                }, codex: readCodex, claude: readClaude, monitoring: readMonitoring, quota: readQuota, localActions: readLocalActions)
             window.contentView = NSHostingView(rootView: PetWindowPlayback(window: window) { [features, defaults] visible, sleeping in
                 AppSettingsView(features: features, defaults: defaults, actions: actions, page: page,
                                 isVisible: visible, isSleeping: sleeping)

@@ -8,16 +8,18 @@ import Observation
 enum ProviderSetupAction: Equatable {
     case connect, repair, check, remove, disconnect
     case connectQuota, checkQuota, removeQuota
+    case connectActions, checkActions, removeActions
 
     var scope: ProviderSetupScope {
         switch self {
         case .connectQuota, .checkQuota, .removeQuota: .claudeQuota
+        case .connectActions, .checkActions, .removeActions: .claudeActions
         default: .lifecycle
         }
     }
 
-    var isCheck: Bool { self == .check || self == .checkQuota }
-    var removes: Bool { self == .remove || self == .disconnect || self == .removeQuota }
+    var isCheck: Bool { self == .check || self == .checkQuota || self == .checkActions }
+    var removes: Bool { self == .remove || self == .disconnect || self == .removeQuota || self == .removeActions }
 }
 
 /// View-owned action state, separate from configuration, delivery and live session truth.
@@ -29,6 +31,7 @@ final class ProviderSetupController {
     private(set) var operation: ProviderSetupAction?
     private(set) var inspection: ProviderSetupInspection?
     private(set) var quotaInspection: ProviderSetupInspection?
+    private(set) var actionInspection: ProviderSetupInspection?
     private(set) var confirmation: ProviderSetupAction?
     private(set) var message = "Check a provider to inspect setup. Connecting is optional."
     @ObservationIgnored private var task: Task<Void, Never>?
@@ -36,13 +39,16 @@ final class ProviderSetupController {
     @ObservationIgnored private let service: ProviderSetupService
     @ObservationIgnored private let onConnected: () -> Void
     @ObservationIgnored private let onPaused: () -> Void
+    @ObservationIgnored private let onActionsConsent: (Bool) -> Void
     @ObservationIgnored private let onInspection: (IntegrationHealthEvidence) -> Void
 
     init(agent: Agent = .codex, service: ProviderSetupService = ProviderSetupService(),
          onConnected: @escaping () -> Void, onPaused: @escaping () -> Void = {},
+         onActionsConsent: @escaping (Bool) -> Void = { _ in },
          onInspection: @escaping (IntegrationHealthEvidence) -> Void) {
         self.agent = agent
         self.onPaused = onPaused
+        self.onActionsConsent = onActionsConsent
         self.service = service
         self.onConnected = onConnected
         self.onInspection = onInspection
@@ -60,7 +66,8 @@ final class ProviderSetupController {
         }
         let removing = action.removes
         if action == .disconnect { onPaused() }
-        let targetName = action.scope == .claudeQuota ? "quota forwarding" : "hooks"
+        if action == .removeActions || (action == .disconnect && agent == .claude) { onActionsConsent(false) }
+        let targetName = action.scope == .claudeQuota ? "quota forwarding" : (action.scope == .claudeActions ? "interactive hooks" : "lifecycle hooks")
         message = action.isCheck ? "Checking \(providerName) \(targetName)…" : "Updating owned \(providerName) \(targetName)…"
         task = Task { @MainActor [weak self] in
             guard let self else { return }
@@ -70,7 +77,7 @@ final class ProviderSetupController {
                     self.task = nil
                 }
             }
-            var disconnectedQuota = false
+            var disconnectedScopes: [String] = []
             do {
                 let context = try self.context(needsExecutable: !removing, scope: action.scope)
                 ServiceStartLedger.record(.configurationProbe)
@@ -83,12 +90,20 @@ final class ProviderSetupController {
                     self.message = Self.summary(result)
                 } else {
                     if action.scope == .lifecycle { self.inspection = nil }
-                    else { self.quotaInspection = nil }
+                    else if action.scope == .claudeQuota { self.quotaInspection = nil }
+                    else { self.actionInspection = nil }
                     if action == .disconnect, self.agent == .claude {
+                        self.actionInspection = nil
+                        let actionContext = try self.context(needsExecutable: false, scope: .claudeActions)
+                        _ = try await self.service.execute(.remove, context: actionContext)
+                        disconnectedScopes.append("local responses")
+                        try Task.checkCancellation()
+                        self.actionInspection = await self.service.check(actionContext)
+                        try Task.checkCancellation()
                         self.quotaInspection = nil
                         let quotaContext = try self.context(needsExecutable: false, scope: .claudeQuota)
                         _ = try await self.service.execute(.remove, context: quotaContext)
-                        disconnectedQuota = true
+                        disconnectedScopes.append("quota forwarding")
                         try Task.checkCancellation()
                         self.quotaInspection = await self.service.check(quotaContext)
                         try Task.checkCancellation()
@@ -96,6 +111,7 @@ final class ProviderSetupController {
                     let change = try await self.service.execute(removing ? .remove : .connect, context: context)
                     try Task.checkCancellation()
                     guard self.generation == current else { return }
+                    if action == .connectActions { self.onActionsConsent(true) }
                     if !removing { self.onConnected() }
                     switch change {
                     case .installed:
@@ -118,17 +134,17 @@ final class ProviderSetupController {
             } catch is CancellationError {
                 if self.generation == current {
                     self.message = "Stopped observing this operation. If saving had begun, use Check before retrying."
-                    if disconnectedQuota { self.message += " Quota forwarding was already removed; this provider remains paused." }
+                    if !disconnectedScopes.isEmpty { self.message += " Removal completed for: " + disconnectedScopes.joined(separator: ", ") + ". This provider remains paused." }
                 }
             } catch let failure as ProviderSetupFailure {
                 if self.generation == current {
                     self.message = Self.explanation(failure, agent: self.agent)
-                    if disconnectedQuota { self.message += " Quota forwarding was already removed; this provider remains paused. Use Check before retrying." }
+                    if !disconnectedScopes.isEmpty { self.message += " Removal completed for: " + disconnectedScopes.joined(separator: ", ") + ". This provider remains paused. Use Check before retrying." }
                 }
             } catch {
                 if self.generation == current {
                     self.message = "Setup could not finish. Use Check before retrying; no automatic recovery over uncertain changes is attempted."
-                    if disconnectedQuota { self.message += " Quota forwarding was already removed; this provider remains paused." }
+                    if !disconnectedScopes.isEmpty { self.message += " Removal completed for: " + disconnectedScopes.joined(separator: ", ") + ". This provider remains paused." }
                 }
             }
         }
@@ -151,7 +167,8 @@ final class ProviderSetupController {
 
     private func record(_ result: ProviderSetupInspection, scope: ProviderSetupScope) {
         if scope == .lifecycle { inspection = result }
-        else { quotaInspection = result }
+        else if scope == .claudeQuota { quotaInspection = result }
+        else { actionInspection = result }
     }
 
     private func context(needsExecutable: Bool, scope: ProviderSetupScope = .lifecycle) throws -> ProviderSetupContext {
@@ -177,7 +194,7 @@ final class ProviderSetupController {
         let identity = SHA256.hash(data: Data(directory.path.utf8)).map { String(format: "%02x", $0) }.joined()
         return ProviderSetupContext(configurationDirectory: directory,
             ownershipDirectory: support.appendingPathComponent(agent == .codex ? "NotchPet/Integrations/Codex" : "NotchPet/Integrations/Claude").appendingPathComponent(identity),
-            helperURL: executableDirectory.appendingPathComponent(scope == .lifecycle ? "NotchPetHook" : "NotchPetStatusLine"),
+            helperURL: executableDirectory.appendingPathComponent(scope == .lifecycle ? "NotchPetHook" : (scope == .claudeQuota ? "NotchPetStatusLine" : "NotchPetActionHook")),
             executableURL: executable, agent: agent, scope: scope)
     }
 

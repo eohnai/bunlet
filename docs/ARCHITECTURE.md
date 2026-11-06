@@ -131,12 +131,15 @@ only version/configuration/helper fields, preserving live receiver/delivery evid
 Remaining acceptance stays open in the [Sessions area](specs/sessions/area.md).
 Health observations do not start sessions, grant hook trust, or make a successful socket write proof of receipt.
 
-## Local-action flow: partial source implementation
+## Local-action flow: documented source implementation
 
 The user accepted local approvals, structured answers and explicit follow-ups, then requested source
 implementation with runtime qualification unrun. Documented Claude callback adapters, native controls,
 transient ActionStore, bounded stream transport/inbox and app-owned LocalActionController now exist.
-Guarded action-hook setup/removal is still missing; the complete action criterion remains incomplete.
+A separate Claude actions scope owns guarded interactive-hook setup/check/removal and cross-scope
+recovery under the shared writer lock. Explicit response consent, Claude monitoring and the Agents
+master switch gate intake. Settings exposes the same composers without requiring Notch. Disconnect
+disables responses before removing actions, quota and lifecycle scopes, reporting partial removal.
 [Local actions v1](contracts/local-actions-v1.md) defines the implemented identity, output and failure contract.
 The action helper is separately packaged; the observer helper keeps its one-way deadline/allowlist.
 A1 first verifies each installed agent/version's supported response mechanisms and ability to target an existing local agent session.

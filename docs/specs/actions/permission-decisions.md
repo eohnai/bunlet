@@ -13,5 +13,6 @@ ID requires exactly one matching observation; competing offers or a previously d
 request are unavailable. Helper receipt, provider acceptance and lifecycle resolution remain distinct.
 
 Implemented: typed decision encoding, transient store, single dispatch, uncertainty/cancellation and
-native controls. Remaining: guarded action-hook setup/removal and complete source/acceptance audit.
+native controls, guarded opt-in action-hook setup/check/removal and Settings/disconnect integration.
+Source coverage is recorded in the full-goal turn-4 audit; acceptance remains unverified.
 Original A3/A4 and relevant A7/A8 checks are preserved; tests/builds/runtime checks NOT RUN.

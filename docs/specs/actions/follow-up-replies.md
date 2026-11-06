@@ -15,6 +15,7 @@ unknown; uncertain delivery has no replay. Incoming offers do not activate the a
 opens the composer. Follow-up capability has no dependency on terminal navigation metadata.
 
 Implemented: the concrete Stop-feedback adapter, native composer, identity/draft/receipt bounds and app
-lifecycle. Remaining: opt-in guarded setup/removal, clear reply-window setup guidance and source audit.
+lifecycle, opt-in guarded setup/check/removal and Settings controls. Setup explains the bounded reply
+window and possible prompt delay. The full-goal turn-4 audit records the complete source path.
 This bounded channel is a capability limit, not a claim of arbitrary-time replies to every provider.
 Original A6 and follow-up-specific A7/A8 checks remain open; tests/builds/runtime checks NOT RUN.

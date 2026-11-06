@@ -1,4 +1,5 @@
 import EventBridge
+import AgentActions
 import Integration
 import SwiftUI
 import Usage
@@ -10,6 +11,7 @@ struct ProviderSetupView: View {
     let health: IntegrationHealthSnapshot?
     let monitoring: ProviderMonitoringModel
     let quota: UsageStore?
+    let localActions: LocalActionController?
     let showFeatures: () -> Void
     let showNotch: () -> Void
 
@@ -94,6 +96,7 @@ struct ProviderSetupView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
+            if controller.agent == .claude { responseControls }
             if !features.installed.contains(.notch) {
                 Text("Notch is not installed. Monitoring can run independently; add Notch from Features to see session cards and limits.")
                     .font(.callout).foregroundStyle(.secondary)
@@ -111,7 +114,11 @@ struct ProviderSetupView: View {
                 }
             }
         } message: {
-            if controller.confirmation?.scope == .claudeQuota {
+            if controller.confirmation?.scope == .claudeActions {
+                Text(removing
+                     ? "Disable local responses and remove only unchanged owned interactive hooks. Lifecycle monitoring and quota forwarding stay configured. Pending responses fall back to the terminal."
+                     : "Add three owned interactive hooks and enable local responses. Each finished response can wait up to 60 seconds for follow-up feedback in the same prompt, including while you open Settings. Nothing is sent without your explicit decision. Normal trust/policy applies; runtime support is unverified.")
+            } else if controller.confirmation?.scope == .claudeQuota {
                 Text(removing
                      ? "Restore the exact original status-line value only if the owned wrapper is unchanged. Lifecycle hooks stay in place."
                      : "Wrap the existing status-line command while preserving its input and output, or install a silent forwarder if none exists. Creating a status line may hide Claude’s built-in footer hints. Runtime compatibility is unverified.")
@@ -119,6 +126,46 @@ struct ProviderSetupView: View {
                 Text("Only unchanged, uniquely owned entries can be removed. Finish other configuration edits first. Disconnect pauses this provider before removal; retained requests stay unconfirmed.")
             } else {
                 Text("This installs or checks seven owned hooks and resumes monitoring after success. Repair recovers only known saved states and preserves conflicting edits. Finish other configuration edits first. Runtime support is unverified and normal trust review still applies.")
+            }
+        }
+    }
+
+    private var responseControls: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Local responses").font(.subheadline.weight(.semibold))
+            HStack {
+                Button("Connect actions…") { controller.requestConfirmation(.connectActions) }
+                Button("Check actions") { controller.start(.checkActions) }
+                Button("Remove actions…") { controller.requestConfirmation(.removeActions) }
+            }
+            .disabled(controller.operation != nil)
+            Text("Approve once, answer structured questions, or send feedback through a waiting Stop hook. Reply windows last at most 60 seconds and can delay returning to the terminal prompt.")
+                .font(.caption).foregroundStyle(.secondary)
+            Button(monitoring.actionsEnabled ? "Pause local responses" : "Resume local responses") {
+                monitoring.setActionsEnabled(!monitoring.actionsEnabled)
+            }
+            .disabled(controller.operation != nil)
+            Text(monitoring.actionsEnabled ? "Local response consent enabled; Claude monitoring must also be on." : "Local response consent off.")
+                .font(.caption).foregroundStyle(.secondary)
+            if monitoring.actionWriteIssue {
+                Text("Local responses are disabled for this run; their preference could not be saved. Retry before reopening.")
+                    .font(.caption).foregroundStyle(.red)
+            }
+            if let inspection = controller.actionInspection {
+                LabeledContent("Owned interactive hooks", value: ownership(inspection.ownership))
+                LabeledContent("Interactive helper", value: helper(inspection.health.helper))
+                if let reason = inspection.installationUnavailable {
+                    Text(ProviderSetupController.explanation(reason, agent: .claude)).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            if let localActions {
+                Text(localActions.status).font(.caption).foregroundStyle(.secondary)
+                ForEach(localActions.store.snapshots) { action in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Session: \(action.offer.sessionID)").font(.caption).textSelection(.enabled)
+                        LocalActionView(snapshot: action, controller: localActions, beginInput: {})
+                    }
+                }
             }
         }
     }
@@ -132,6 +179,8 @@ struct ProviderSetupView: View {
         case .repair: "Repair"
         case .connectQuota: "Connect quota for"
         case .removeQuota: "Remove quota forwarding for"
+        case .connectActions: "Connect local responses for"
+        case .removeActions: "Remove local responses for"
         default: "Connect"
         }
     }

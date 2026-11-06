@@ -204,7 +204,7 @@ public final class ActionStore {
     public var nextDeadlineNs: UInt64? {
         records.values.compactMap { record in
             if record.phase == .awaitingEvidence { return min(record.expiresAtNs, record.receivedAtNs + ActionProtocol.evidenceWaitNs) }
-            return record.phase == .available || record.phase == .sending ? record.expiresAtNs : nil
+            return record.phase == .available || record.phase == .sending ? record.expiresAtNs : record.expiresAtNs + Self.historyNs
         }.min()
     }
 

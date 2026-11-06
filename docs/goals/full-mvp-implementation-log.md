@@ -3,7 +3,7 @@
 - Goal file: goals/full-mvp-implementation.md
 - Created: 2026-11-06 11:47 +08
 - Turn limit: 60
-- Status: active since 2026-11-06; execution turn 3
+- Status: active since 2026-11-06; execution turn 4
 - Scope: all nine source criteria; four milestones are not separate completion goals
 - Verification: tests, builds, runtime checks and provider qualification NOT RUN by user instruction
 - Branch/base: feat/codex-mvp / 8707bdf; current checkout only
@@ -16,6 +16,7 @@
 | 1 | 2026-11-06 12:11 +08 | Source 2 implemented; 1, 3–9 incomplete. Acceptance unverified. | Started the full goal. Added bounded Claude forwarding executable and packaging; session-hashed source projection; per-socket buffers; private receiver lease/refused-socket recovery; Claude-only validation; bounded inbox/app receipt; source expiry and loss/health feedback; Codex retry; session capacity/overflow UI. See source audit below. Coherent local source commit being saved; hash recorded after creation. Tests/builds/runtime/qualification NOT RUN. |
 | 2 | 2026-11-06 13:20 +08 | Sources 1–3 implemented; 4–9 incomplete. Acceptance unverified. | Previous turn classified as progress (`299d021`). Generalized guarded provider setup/recovery; concrete documented release/policy bindings; native controls for both agents; independent consent/cutoffs/cancellation; separate owned Claude status-line wrapping/restoration and cross-scope recovery. Corrected Codex launch arguments against official stdio documentation without executing a probe. Relevant source audit below. Preparing a scoped local milestone commit. Tests/builds/runtime/qualification NOT RUN. |
 | 3 | 2026-11-06 14:43 +08 | Sources 1–3 implemented; 4 partial; 5–9 incomplete. Acceptance unverified. | Previous turn was progress (`32f7b0f`). Added separate Claude permission/question/Stop-feedback adapters, bounded private interactive IPC/helper and inbox, transient action/draft/receipt state, app-owned lifecycle/validation and native composers. Guarded interactive-hook setup/removal is still missing; criterion 4 remains incomplete. All tests/builds/runtime/qualification NOT RUN. |
+| 4 | 2026-11-06 14:58 +08 | Sources 1–4 implemented; 5–7 incomplete; 8 partial; 9 incomplete. All acceptance unverified. | Finished separate guarded Claude action scope, shared recovery/lock, explicit response consent, Settings composers, disconnect partial-removal reporting and bounded transient-history cleanup. Removed ambiguous shared composer shortcut. Preserved unrelated drafts. Tests/builds/runtime/qualification NOT RUN. |
 
 Preparation is not an execution turn. Continue numbering from the latest execution row after activation.
 Each row must account for all nine criteria and separate missing source implementation from unverified behavior.
@@ -197,6 +198,24 @@ Claude documentation were used. No credentials/transcripts were read, and no tru
 The helper's concrete interface is implemented, but its guarded configuration path is the next source unit.
 Unrelated FM7/editor/CI drafts remain excluded from staging; the mixed app-controller/status snapshots
 are staged without discarding those working-copy edits. The full goal stays active after this save.
+
+Saved implementation commit: `6554af7` — `feat: add documented Claude hook response channels`.
+This saves the concrete adapters/helper/service/native controls, not completion of action criterion 4.
+Guarded interactive-hook setup/removal is next. Tests/builds/runtime/qualification NOT RUN.
+
+## Turn 4 source audit
+
+1. **Implemented in source, unverified — providers.** `ProviderSetupController.start` dispatches lifecycle, quota and action operations separately. Claude Disconnect disables consent before removing actions, quota, then lifecycle; failures report completed removals and keep monitoring paused. `ProviderHookTransaction.run` recovers each other known Claude scope under the same writer lock.
+2. **Implemented in source, unverified — sessions.** `SessionStore` keeps agent/session identities and seen event/turn bounds; observed end sets terminal state. Actions never resolve that store. Existing cards, selection, timers and delivery-capacity warnings remain the shared observation path.
+3. **Implemented in source, unverified — quotas.** Existing `ClaudeStatusLinePlanner` and quota helper/receiver/store/strip remain separate from actions; action removal does not edit statusLine. Codex allowance reads/retries remain read-only.
+4. **Implemented in source, unverified — actions.** `HookSetupPlanner.definitions` installs PermissionRequest/Stop plus AskUserQuestion-only PreToolUse with the separate helper and 75s outer timeout. Exact group validation/removal uses the actions ownership/journal files. Settings Connect actions enables explicit persisted consent; consent, Claude monitoring and Agents master gate `LocalActionController.startReceiver`. The same native composers work in Settings without Notch. `send` refreshes exact session evidence before `store.prepare` and single transport dispatch. Claude adapter encodes allow-once/deny, original question input plus answers, and Stop feedback; stdout receipt only proves the helper write. Stop replies last at most 60s and may delay prompt return, disclosed before installation. Unsupported Codex actions stay unsupported. Terminal action history now has one-shot cleanup even after monitoring stops. No runtime verification is claimed.
+5. **Incomplete — pet reactions.** Pet still has no session adapter; next milestone.
+6. **Incomplete — movement.** `PetPanelController` still ignores mouse input; no drag/hide/overlap-return workflow yet.
+7. **Incomplete — custom packs/preferences.** Built-in artwork/size remain; import, selection, sound and placement restoration are missing.
+8. **Partial — desktop/navigation.** Explicit Respond acquires focus via `NotchPanelController.beginInput`; full navigation and desktop recovery remain.
+9. **Incomplete — full handoff.** Action/provider contracts, area specs, README, architecture and STATUS now reflect setup and consent, but pet/desktop paths and final 9/9 audit remain. No original acceptance boxes changed.
+
+Source inspection only: git status/diff and diff whitespace check, targeted rg/nl excerpts. One inspection used the nonexistent `Sources/NotchPet/AgentServices.swift`; locating the real declaration corrected that lookup. No tests, builds, probes, app/helper launches, captures, installed configuration or credentials were accessed.
 
 ## Final result
 

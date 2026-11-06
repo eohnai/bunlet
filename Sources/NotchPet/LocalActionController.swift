@@ -15,21 +15,29 @@ final class LocalActionController: AppFeatureService {
     @ObservationIgnored private var generation: UUID?
     @ObservationIgnored private var observation: ObservationLoop<[SessionSnapshot]>?
     @ObservationIgnored private var timer: DispatchSourceTimer?
+    @ObservationIgnored private var runtimeActive = false
+    @ObservationIgnored private var consentEnabled: Bool
 
-    init(store: ActionStore, sessions: SessionStore, endpoint: BridgeEndpoint = .standard) {
+    init(store: ActionStore, sessions: SessionStore, endpoint: BridgeEndpoint = .standard, consentEnabled: Bool = false) {
         self.store = store
         self.sessions = sessions
         transport = ActionTransport(endpoint: endpoint)
+        self.consentEnabled = consentEnabled
     }
 
     func start() {
+        runtimeActive = true
+        updateAvailability()
+    }
+
+    private func startReceiver() {
         guard generation == nil else { return }
         let current = UUID()
         generation = current
         let inbox = ActionInbox { [weak self] batch, overflow in
             guard let self, self.generation == current else { return }
             if overflow {
-                self.stop()
+                self.stopReceiver()
                 self.status = "Local response intake overflowed. Pause and resume Agents before responding."
                 return
             }
@@ -63,6 +71,11 @@ final class LocalActionController: AppFeatureService {
     }
 
     func stop() {
+        runtimeActive = false
+        stopReceiver()
+    }
+
+    private func stopReceiver() {
         generation = nil
         observation?.cancel()
         observation = nil
@@ -71,11 +84,27 @@ final class LocalActionController: AppFeatureService {
         transport.stop()
         store.stop()
         status = "Local response receiver stopped. Retained requests are not resolved."
+        scheduleExpiry()
     }
 
     func setEnabledProviders(_ providers: Set<Agent>) {
         self.providers = providers
+        updateAvailability()
         refreshEvidence()
+    }
+
+    func setConsent(_ enabled: Bool) {
+        consentEnabled = enabled
+        updateAvailability()
+    }
+
+    private func updateAvailability() {
+        if runtimeActive && consentEnabled && providers.contains(.claude) {
+            startReceiver()
+        } else {
+            stopReceiver()
+            status = consentEnabled ? "Local responses paused with Claude monitoring." : "Local responses disabled. Connect actions to opt in."
+        }
     }
 
     func refreshEvidence() {
@@ -101,7 +130,8 @@ final class LocalActionController: AppFeatureService {
     private func scheduleExpiry() {
         timer?.cancel()
         timer = nil
-        guard let current = generation, let next = store.nextDeadlineNs else { return }
+        let current = generation
+        guard let next = store.nextDeadlineNs else { return }
         let now = nowNs()
         let delay = min(next > now ? next - now : 0, ActionProtocol.lifetimeNs)
         let source = DispatchSource.makeTimerSource(queue: .main)

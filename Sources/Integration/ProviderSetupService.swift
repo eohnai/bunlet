@@ -153,9 +153,12 @@ public struct ProviderSetupService: Sendable {
                 return .conflict
             }
             let records = try HookFileDirectory(context.ownershipDirectory, privateDirectory: true)
-            let pending = context.scope == .lifecycle ? "pending-v1.json" : "quota-pending-v1.json"
-            let ownership = context.scope == .lifecycle ? "ownership-v1.json" : "quota-ownership-v1.json"
-            if try records.read(pending, privateFile: true).data != nil { return .recoveryRequired }
+            let pending = context.scope.journalName
+            let ownership = context.scope.ownershipName
+            let pendingNames = context.agent == .claude ? ProviderSetupScope.allCases.map(\.journalName) : [pending]
+            for name in pendingNames {
+                if try records.read(name, privateFile: true).data != nil { return .recoveryRequired }
+            }
             guard let owner = try records.read(ownership, privateFile: true).data else {
                 let target = HookSetupTarget(configurationPath: context.configurationDirectory.appendingPathComponent(name).path,
                     parentDevice: configuration.device, parentInode: configuration.inode, helperPath: context.helperURL.path)
@@ -169,8 +172,9 @@ public struct ProviderSetupService: Sendable {
             let target = HookSetupTarget(configurationPath: context.configurationDirectory.appendingPathComponent(name).path,
                 parentDevice: configuration.device, parentInode: configuration.inode, helperPath: record.target.helperPath)
             guard let hooks = hooks.data else { return .conflict }
-            if context.scope == .lifecycle { try HookSetupPlanner.verifyInstalled(hooks, ownership: owner, target: target, agent: context.agent) }
-            else { try ClaudeStatusLinePlanner.verifyInstalled(hooks, ownership: owner, target: target) }
+            if context.scope == .claudeQuota { try ClaudeStatusLinePlanner.verifyInstalled(hooks, ownership: owner, target: target) }
+            else { try HookSetupPlanner.verifyInstalled(hooks, ownership: owner, target: target, agent: context.agent,
+                                                        interactive: context.scope == .claudeActions) }
             guard record.target.helperPath == context.helperURL.path else { return .conflict }
             return .owned
         } catch {
@@ -179,8 +183,8 @@ public struct ProviderSetupService: Sendable {
     }
 
     private static func removalPlan(_ context: ProviderSetupContext, configuration: Data?, target: HookSetupTarget) -> HookSetupPlan {
-        context.scope == .lifecycle
-            ? HookSetupPlanner.remove(configuration: configuration, ownership: nil, target: target, agent: context.agent)
-            : ClaudeStatusLinePlanner.remove(configuration: configuration, ownership: nil, target: target)
+        context.scope == .claudeQuota ? ClaudeStatusLinePlanner.remove(configuration: configuration, ownership: nil, target: target)
+            : HookSetupPlanner.remove(configuration: configuration, ownership: nil, target: target, agent: context.agent,
+                                      interactive: context.scope == .claudeActions)
     }
 }

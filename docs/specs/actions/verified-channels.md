@@ -1,6 +1,6 @@
 # Local response channels
 
-Status: partial source implementation; runtime unverified.
+Status: source implementation complete to the documented contract; runtime unverified.
 
 The approved full MVP goal permits documented channel implementation without running tests/builds or
 runtime qualification. [Local actions v1](../../contracts/local-actions-v1.md) defines exact identities,
@@ -16,9 +16,11 @@ At most 32 sockets and 128 queued delivery events are retained. Overflow closes 
 than dropping identity/acknowledgement state silently. Requests wait at most 60 seconds; runtime receipt
 only proves helper stdout completion. Lost/partial delivery stays uncertain and cannot be replayed.
 
-Remaining source work: guarded install/check/remove of the three interactive Claude groups in a separate
-ownership/journal scope, Settings controls, disconnect integration and the complete source audit.
-Until then, this criterion remains incomplete; native controls alone do not establish an installed channel.
+Guarded Connect/Check/Remove uses a separate Claude actions ownership/journal scope under the shared
+writer lock. PermissionRequest and Stop use the interactive helper; PreToolUse matches AskUserQuestion.
+Settings offers explicit consent, pause/resume and the same composers independently of Notch. Claude
+Disconnect disables responses, then removes actions, quota and lifecycle scopes with partial-failure
+reporting. Installation remains separate from runtime delivery. See the full-goal turn-4 source audit.
 
 Codex remains unsupported for local actions. Claude callbacks are documented/unverified, scoped to the
 exact live invocation. See the per-action specs for capability limits. All original A1–A8 acceptance and

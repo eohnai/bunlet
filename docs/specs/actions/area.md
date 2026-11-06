@@ -29,4 +29,4 @@ Code: `Sources/AgentActions/`, `Sources/NotchPetActionHook/` and native action s
 
 ## Open questions
 
-- Initial Claude channels now have primary documentation and source implementation under the full MVP verification waiver. Runtime behavior remains unverified; guarded action setup/removal and complete source audit remain incomplete. Codex response channels remain unsupported.
+- Initial Claude channels now have primary documentation and source implementation under the full MVP verification waiver. Runtime behavior remains unverified; guarded action setup/check/removal, consent, Settings and disconnect integration are implemented in source. Codex response channels remain unsupported.

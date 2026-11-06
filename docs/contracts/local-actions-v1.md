@@ -73,3 +73,19 @@ remove all unchanged owned scopes while preserving unrelated settings/Otty confi
 
 Source implementation and native controls must be audited before this criterion is called implemented.
 Runtime hook dispatch, policy, output preservation and provider behavior remain unverified by request.
+
+## Guarded setup and consent
+
+Interactive actions use a third Claude setup scope with actions-ownership-v1.json and
+actions-pending-v1.json under the existing private records directory/writer lock. Its exact three
+groups have a 75-second command timeout; PreToolUse matches only AskUserQuestion. Any known pending
+scope recovers before another Claude settings write. Unknown/edited entries remain conflicts.
+
+Connect actions is explicit and separate from lifecycle/quota Connect. Its confirmation explains
+that Stop can wait up to 60 seconds for follow-up feedback, including while the user opens Settings.
+Settings offers the same pending response controls when Notch is absent. Installation never opens a
+composer or sends an action. A separate app-owned local-response consent defaults off and persists
+only after explicit Connect/Resume. The receiver starts only with that consent, Claude monitoring and
+the Agents runtime. Pause responses closes pending callbacks while retaining normal monitoring/hooks.
+Remove actions disables consent before owned removal; Claude Disconnect disables it and removes actions,
+quota wrapping and lifecycle hooks in separate guarded operations. Partial removal remains paused.

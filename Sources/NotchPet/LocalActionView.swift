@@ -82,7 +82,6 @@ struct LocalActionView: View {
             }
             .disabled(snapshot.draftWasClipped || snapshot.answers.count != snapshot.offer.questions.count ||
                       snapshot.answers.contains { $0.answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
-            .keyboardShortcut(.return, modifiers: .command)
         case .followUp:
             Text("Sent as feedback to this waiting Stop hook in the existing turn. The reply window closes automatically.")
                 .font(.caption).foregroundStyle(.secondary)
@@ -94,7 +93,6 @@ struct LocalActionView: View {
                 focused = nil
             }
             .disabled(snapshot.draftWasClipped || snapshot.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            .keyboardShortcut(.return, modifiers: .command)
         }
     }
 

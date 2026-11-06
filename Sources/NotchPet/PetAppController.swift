@@ -20,11 +20,13 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     private let sessions = SessionStore()
     private let usage = UsageStore()
     private let actionStore = ActionStore()
-    @ObservationIgnored private lazy var localActions = LocalActionController(store: actionStore, sessions: sessions)
+    @ObservationIgnored private lazy var localActions = LocalActionController(store: actionStore, sessions: sessions, consentEnabled: providerMonitoring.actionsEnabled)
     private(set) var codexSetup: ProviderSetupController?
     private(set) var claudeSetup: ProviderSetupController?
     @ObservationIgnored private(set) lazy var providerMonitoring = ProviderMonitoringModel(defaults: defaults) { [weak self] enabled in
-        self?.agents?.setEnabledProviders(enabled)
+        guard let self else { return }
+        self.agents?.setEnabledProviders(enabled)
+        self.localActions.setConsent(self.providerMonitoring.actionsEnabled)
     }
     @ObservationIgnored private weak var pet: PetPanelController?
     @ObservationIgnored private weak var notch: NotchPanelController?
@@ -69,7 +71,8 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             readCodex: { [weak self] in self?.codexSetup },
             readClaude: { [weak self] in self?.claudeSetup },
             readMonitoring: { [weak self] in self?.providerMonitoring },
-            readQuota: { [weak self] in self?.usage })
+            readQuota: { [weak self] in self?.usage },
+            readLocalActions: { [weak self] in self?.localActions })
         if installed.contains(.pet) && !defaults.bool(forKey: "pet.setupComplete") {
             settings?.show(page: .pet, activate: false)
         }
@@ -118,6 +121,8 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             if self.providerMonitoring.isEnabled(agent) { self.features.setMonitoring(true) }
         }, onPaused: { [weak self] in
             self?.providerMonitoring.setEnabled(false, for: agent)
+        }, onActionsConsent: { [weak self] enabled in
+            self?.providerMonitoring.setActionsEnabled(enabled)
         }, onInspection: { [weak self] evidence in
             self?.agents?.recordInspection(evidence)
         })
