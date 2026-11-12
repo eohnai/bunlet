@@ -20,7 +20,7 @@ final class ProviderMonitoringModel {
         self.onChange = onChange
         let actionConsent = defaults.object(forKey: Self.actionsKey) as? NSNumber
         actionsEnabled = actionConsent.map { CFGetTypeID($0) == CFBooleanGetTypeID() && $0.boolValue } ?? false
-        let consent = defaults.object(forKey: FeaturePreferences.monitoringKey) as? NSNumber
+        let consent = defaults.object(forKey: "agentMonitoringEnabled") as? NSNumber
         let legacyEnabled = consent.map { CFGetTypeID($0) == CFBooleanGetTypeID() && $0.boolValue } ?? false
         enabledProviders = Set(Agent.allCases.filter { agent in
             let value = defaults.object(forKey: Self.key(agent))

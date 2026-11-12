@@ -2,19 +2,18 @@
 
 ## Now
 
-`feat/island-ui` (PR #18, open against main) restyles the island, session rows, usage popup, request/completion cards,
-Settings sidebar/agent list and pet bubble/panel to the reference look, under decisions 0017–0019 and
-[the UI reference](notes/flux-ui-reference.md). It also forwards prompt/reply previews and adds the pill drag-out gesture.
-The app has not been launched with these changes.
-The Bunlet rename is merged to main (PR #17). Native/provider acceptance and FM7 remain deferred; no spec has a due date.
+`feat/settings-redesign` (PR #21; #19 and #20 are merged) removes feature install/uninstall
+(decision 0020), rebuilds Settings in the reference layout with General, Agents, Display, Sound, Shortcuts and About (0021),
+makes the island follow those settings, adds ⌃I/Esc/⌃Y/⌃N/⌃↩ shortcuts and uses a hare logo. The built-in rabbit stays
+as the default pet, replaceable with your own image. Nothing here has been run on screen yet.
 
 ## Next
 
-1. Launch `bash scripts/run.sh` and compare the island, Settings and pet panel against the reference side by side (user's visual check).
-2. Check hover in the nonactivating panels with Bunlet inactive: pill hover-open, usage popup, row "⋯" chip.
-3. Try the pill drag-out on a notched display: pet follows, release over the pill returns it.
-4. Confirm `prompt` and `last_assistant_message` arrive in installed Claude Code 2.1.306 and Codex 0.164.0 hook payloads.
-5. Watch PR #18 checks and merge it once the visual check is done.
+1. Merge PR #21 once its checks pass.
+2. Run `bash scripts/run.sh`, connect Claude Code and Codex in Settings → Agents, and start a new session to confirm tracking.
+3. Check the Settings window against the reference screenshots, and choose a pet image under Display → Desktop Pet.
+4. Try ⌃I, and ⌃Y/⌃N on a Claude permission request while the panel is open.
+5. Decide whether to update the superseded pet and feature-management specs (see Blockers).
 
 ## Blockers
 
@@ -30,3 +29,5 @@ The Bunlet rename is merged to main (PR #17). Native/provider acceptance and FM7
 - Capture reproduction command: `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer python3 scripts/check-standalone-pet.py --app "/private/var/folders/t3/6n_zw1rn5nn6vv7ccx9r6s240000gn/T/notch-pet-dev/Notch Pet.app" --artifacts /private/tmp/notch-pet-completion/evidence/standalone` failed with `could not create image from window` / screencapture exit 1. The native preflight returned screenCaptureAuthorized=false; the user explicitly prohibited further captures and later all further testing. Do not request that permission or retry the failing capture.
 - Stale: `scripts/check-event-contract.py` permits a previously conflicting turn ID to restore working state; SessionStore enforces the accepted unseen-turn rule.
 - Unverified on screen: the redesigned island, Settings and pet panel were built and unit-tested only. SwiftUI hover in the nonactivating panels and the pill drag-out need a real-display check.
+- Stale: `docs/specs/settings/feature-management.md` (FM1–FM7) and `docs/specs/pets/*.md` describe installable features and pet-only use; decision 0020 removed both.
+- Unverified: launch at login (`SMAppService`) may be refused for the dev build in TMPDIR; Settings shows the reason if so.

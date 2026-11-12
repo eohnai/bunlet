@@ -75,7 +75,14 @@ def declaration_only_sources(sources: set[Path]) -> set[Path]:
                 b"    case codex, claude\n}\n")
     require(read_regular(agent, MAX_FILE) == expected,
             "agent declaration changed; review its coverage classification")
-    return {agent}
+    feature = ROOT / "Sources/NotchPet/AppFeature.swift"
+    require(feature in sources, "missing feature declaration")
+    expected = ("/// The runtimes Bunlet starts. All always run (decision 0020); the split only orders start and stop.\n"
+                "enum AppFeature: String, CaseIterable, Hashable, Sendable {\n"
+                "    case pet, notch, agents\n}\n").encode()
+    require(read_regular(feature, MAX_FILE) == expected,
+            "feature declaration changed; review its coverage classification")
+    return {agent, feature}
 
 
 def validated_metric(value: dict) -> tuple[int, int]:

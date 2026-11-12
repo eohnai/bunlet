@@ -69,7 +69,7 @@ public struct PetView: View {
                     .interpolation(.high)
                     .scaledToFit()
             } else {
-                Image(systemName: "pawprint")
+                Image(systemName: "hare")
                     .foregroundStyle(.secondary)
                     .accessibilityLabel("Pet artwork unavailable")
             }

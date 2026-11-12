@@ -115,3 +115,36 @@ private extension Double {
     /// 1470 × 0.46 = 676.2 is below the 680 minimum.
     var clamped680: CGFloat { CGFloat(Swift.max(680, self)) }
 }
+
+struct IslandAutoOpenTests {
+    private let key = SessionKey(agent: .claude, sessionID: "fictional")
+
+    @Test func behaviorSwitchesGateEachKind() {
+        func open(_ notification: IslandNotification, action: Bool, end: Bool) -> Bool {
+            IslandAutoOpen.shouldOpen(notification, expandOnActionNeeded: action, expandOnSessionEnd: end,
+                                      focusAwareSuppression: false, frontmostBundleID: nil)
+        }
+        #expect(open(.attention(key), action: true, end: false))
+        #expect(!open(.attention(key), action: false, end: true))
+        #expect(open(.completed(key), action: false, end: true))
+        #expect(!open(.completed(key), action: true, end: false))
+    }
+
+    @Test func focusAwareSuppressionOnlyAppliesToTerminals() {
+        func open(_ frontmost: String?, suppress: Bool) -> Bool {
+            IslandAutoOpen.shouldOpen(.attention(key), expandOnActionNeeded: true, expandOnSessionEnd: true,
+                                      focusAwareSuppression: suppress, frontmostBundleID: frontmost)
+        }
+        #expect(!open("com.googlecode.iterm2", suppress: true))
+        #expect(open("com.googlecode.iterm2", suppress: false))
+        #expect(open("com.apple.Safari", suppress: true))
+        #expect(open(nil, suppress: true))
+    }
+
+    @Test func panelHeightSettingSizesTheWindow() throws {
+        let screen = CGRect(x: 0, y: 0, width: 1470, height: 956)
+        #expect(try #require(IslandGeometry.windowFrame(screen: screen, safeTop: 38, panelMaxHeight: 300)).height == 332)
+        #expect(try #require(IslandGeometry.windowFrame(screen: screen, safeTop: 38, panelMaxHeight: 700)).height == 732)
+        #expect(try #require(IslandGeometry.windowFrame(screen: screen, safeTop: 38, panelMaxHeight: 50)).height == 232)
+    }
+}

@@ -130,12 +130,13 @@ public enum IslandGeometry {
     }
 
     /// One fixed window at the top center of the screen; the shape animates inside it.
-    public static func windowFrame(screen: CGRect, safeTop: CGFloat) -> CGRect? {
+    public static func windowFrame(screen: CGRect, safeTop: CGFloat,
+                                   panelMaxHeight: CGFloat = IslandMetrics.panelMaxHeight) -> CGRect? {
         guard [screen.origin.x, screen.origin.y, screen.width, screen.height, safeTop].allSatisfy({ $0.isFinite }),
               screen.width > 24, screen.height > 44, safeTop >= 0, safeTop <= screen.height - 12 else { return nil }
         let width = min(IslandMetrics.windowWidth, screen.width)
-        let height = min(IslandMetrics.windowHeight,
-                         IslandMetrics.panelMaxHeight + IslandMetrics.shadowMargin, screen.height - 12)
+        let height = min(IslandMetrics.windowHeight, max(200, panelMaxHeight) + IslandMetrics.shadowMargin,
+                         screen.height - 12)
         return CGRect(x: screen.midX - width / 2, y: screen.maxY - height, width: width, height: height)
     }
 }
@@ -163,5 +164,33 @@ public enum IslandNotification: Equatable, Sendable {
             session.status == .responseReady && before[session.key].map { $0.status != .responseReady } ?? true
         }) { return .completed(session.key) }
         return nil
+    }
+}
+
+/// Whether a notification may open the island on its own (decision 0021's Behavior settings).
+public enum IslandAutoOpen {
+    /// Terminals and editors where agents usually run. Focus-aware suppression treats them as "the session's terminal".
+    public static let terminalBundleIDs: Set<String> = [
+        "com.apple.Terminal", "com.googlecode.iterm2", "dev.warp.Warp-Stable", "com.mitchellh.ghostty",
+        "net.kovidgoyal.kitty", "org.alacritty", "com.github.wez.wezterm", "co.zeit.hyper",
+        "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92"
+    ]
+
+    public static func shouldOpen(_ notification: IslandNotification, expandOnActionNeeded: Bool,
+                                  expandOnSessionEnd: Bool, focusAwareSuppression: Bool,
+                                  frontmostBundleID: String?) -> Bool {
+        let wanted: Bool = switch notification {
+        case .attention: expandOnActionNeeded
+        case .completed: expandOnSessionEnd
+        }
+        guard wanted else { return false }
+        if focusAwareSuppression, let frontmostBundleID, terminalBundleIDs.contains(frontmostBundleID) { return false }
+        return true
+    }
+
+    /// Sessions that appeared since the previous snapshot, for the "session starts" sound.
+    public static func newSessions(previous: [SessionSnapshot], current: [SessionSnapshot]) -> [SessionKey] {
+        let before = Set(previous.map(\.key))
+        return current.map(\.key).filter { !before.contains($0) }
     }
 }

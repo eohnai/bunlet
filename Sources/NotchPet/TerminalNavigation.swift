@@ -225,3 +225,19 @@ final class TerminalNavigation {
         }
     }
 }
+
+extension TerminalNavigation {
+    /// Returns to a session's terminal: its linked pane, else the preferred app.
+    /// Returns false when neither is set up, so the caller can show terminal setup instead.
+    @discardableResult
+    func jump(to key: SessionKey) -> Bool {
+        if hasLinkedPane(key) {
+            focusLinkedPane(for: key)
+        } else if preferredName != nil {
+            activateApplication()
+        } else {
+            return false
+        }
+        return true
+    }
+}

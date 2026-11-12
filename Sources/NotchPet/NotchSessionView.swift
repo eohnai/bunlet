@@ -1,4 +1,5 @@
 import AgentActions
+import EventBridge
 import SessionState
 import SwiftUI
 import Usage
@@ -19,6 +20,7 @@ struct NotchSessionView: View {
     var beginInput: () -> Void = {}
     var endInput: () -> Void = {}
     var onOpenSettings: () -> Void = {}
+    var settings: BunletSettings? = nil
     @State private var selection: SessionKey?
     @State private var listContentHeight: CGFloat = 0
     @State private var detailsKey: SessionKey?
@@ -76,6 +78,14 @@ struct NotchSessionView: View {
         }
     }
 
+    /// Display → Top Info Items hides a provider's limits without affecting tracking.
+    private var shownLimitProviders: Set<Agent> {
+        NotchPresentation.activeProviders(sessions).filter { provider in
+            guard let settings else { return true }
+            return provider == .codex ? settings.showCodexLimits : settings.showClaudeLimits
+        }
+    }
+
     /// The running label: the prompt of the most recently updated working session.
     private var latestRunningPrompt: String? {
         sessions.filter { $0.status == .working }
@@ -122,15 +132,14 @@ struct NotchSessionView: View {
         }
     }
 
-    private var listMaxHeight: CGFloat { max(0, IslandMetrics.panelMaxHeight - headerHeight - 1) }
+    private var listMaxHeight: CGFloat { max(0, windowState.panelMaxHeight - headerHeight - 1) }
 
     /// Sits beside the physical notch: limits on the left, panel actions on the right.
     private var usageRow: some View {
         HStack(spacing: 0) {
             Group {
                 if expanded && isVisible && !isSleeping {
-                    NotchAllowanceStrip(store: usageStore,
-                                        activeProviders: NotchPresentation.activeProviders(sessions))
+                    NotchAllowanceStrip(store: usageStore, activeProviders: shownLimitProviders)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -167,12 +176,8 @@ struct NotchSessionView: View {
             Text("Some events were lost. Affected sessions need fresh evidence.")
                 .font(.system(size: 12)).foregroundStyle(IslandPalette.attention)
         }
-        if !features.installed.contains(.agents) {
-            emptyState("Agents is not installed.", action: ("Open Features", onOpenFeatures))
-        } else if !features.monitoringEnabled {
-            emptyState("Monitoring is off.", action: ("Open Features", onOpenFeatures))
-        } else if sessions.isEmpty {
-            emptyState("No sessions", action: nil)
+        if sessions.isEmpty {
+            emptyState("No sessions", action: ("Connect agents", onOpenFeatures))
         }
     }
 
@@ -241,11 +246,7 @@ struct NotchSessionView: View {
 
     /// A row click returns to the session's terminal, then collapse. Without a known target, show setup instead.
     private func jump(to key: SessionKey, using navigation: TerminalNavigation) {
-        if navigation.hasLinkedPane(key) {
-            navigation.focusLinkedPane(for: key)
-        } else if navigation.preferredName != nil {
-            navigation.activateApplication()
-        } else {
+        guard navigation.jump(to: key) else {
             detailsKey = key
             selection = key
             return

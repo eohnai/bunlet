@@ -154,7 +154,7 @@ All cards use the card border/fill from the palette. Headers are 5×8 padding wi
 | Flux element | Bunlet |
 | --- | --- |
 | Window, shape, sizes, timings, colors, type | Same values, drawn with SwiftUI/AppKit |
-| Phase icons, app logo, provider logos | Bunlet's own icons (SF Symbols and Bunlet artwork) at the same sizes |
+| Phase icons, app logo, provider logos | Bunlet's own icons at the same sizes; the idle logo and menu bar icon are the SF Symbols hare |
 | Pill label and count | Same, with Bunlet's app name |
 | Usage percentage | Percent **left** ([D6](../DECISIONS.md#d6-show-allowance-as-percent-left-not-percent-used)); color levels mirror Flux's (≤20% left red, ≤50% yellow) |
 | Usage hover popup | Same, per [0018](../decisions/0018-restore-usage-hover-details.md) |
@@ -172,18 +172,35 @@ All cards use the card border/fill from the palette. Headers are 5×8 padding wi
 
 ## Settings window
 
-- Two columns. Sidebar 220 wide (`rgba(40,40,44,0.95)` in dark mode, 1 px right border at 10% white), content `#1E1E22`.
-  Flux follows the system light/dark setting.
-- Sidebar items: emoji icon + label (13 regular, 85% white), hover 8% white. Sections: an untitled first group
-  (General, Agents, Display, Sound, Feishu), then "Advanced" (Shortcuts, SSH remote), then "Flux" (Profile, Statistics, About, Contact).
-  Section headers are 11 semibold uppercase at 40% white.
-- Content: page title 22 bold, 85% white, 16 below; scrollbars 4 px.
-- Agents page: one row per agent — name, status dot and word ("Active" green, "Disabled" gray), trailing switch, thin dividers.
+Source: the bundled settings renderer plus three screenshots the user supplied on 2026-11-12 (General, Agents, Display, dark mode).
 
-Bunlet keeps native SwiftUI controls and system appearance. Its sidebar is General plus one item per installed feature
-(🐰 Desktop Pet, 🖥️ Notch, 🤖 Agents), then a "Bunlet" section with 🧩 Features, so a removed feature stays recoverable (D7).
-The Agents page starts with Flux's row list; the switch is Bunlet's per-provider monitoring consent and the status word says
-Active, Paused or Monitoring off. Setup, trust and delivery evidence stay in the provider details below the list.
+- **Window:** two columns, about 1350×1040 in the screenshots, standard traffic-light buttons over the sidebar.
+- **Sidebar:** 220 wide, `rgba(40,40,44,0.95)` with a 1 px right border at 10% white. Items are an emoji icon and a 13-point
+  label (85% white); the selected item is a full-width rounded rectangle (about 10 radius) filled with the system blue, white text;
+  hover 8% white. Sections: an untitled group (General ⚙️, Agents 🤖, Display 🖥️, Sound 🔊, Feishu 📨), "ADVANCED"
+  (Shortcuts ⌨️, Remote SSH 🌐) and "FLUX" (Mine 👤, Statistics 📊, About ℹ️ with a blue "Update" capsule, Contact 💬).
+  Section headers are 11 semibold uppercase at 40% white with letter spacing.
+- **Content:** `#1E1E22`. Page title 22 bold (renders large, about 30 pt in the screenshots), 85% white, 16 below.
+  Each group has a gray heading (about 15 semibold, 55% white) and a card: `#2C2C30`-like fill, about 12 radius, rows of
+  title (13–15 regular, white) with an optional gray subtitle, trailing control, and inset 1 px dividers.
+- **Controls:** large blue switches; pop-up menus with a rounded dark field and chevron; a slider with a percentage on the right;
+  inline blue links ("Modify", "Open folder").
+- **General:** System (Launch at login; Language). Behavior (Expand panel when a session ends — "Auto-expand panel to show results when
+  task completes", default off; Expand when action is needed, default on; Focus-aware suppression — "Agent does not automatically expand
+  when the terminal tab is in the foreground", on; Haptic feedback on hover, on; collapse on mouse leave; reminder duration, with Esc to
+  close early). Visibility (always hidden; hide in fullscreen). Sessions (idle auto-clean, 30 min–7 days; panel max height 200–700).
+  A destructive "Remove all automatic configuration".
+- **Agents:** heading "CLI Hooks"; one row per agent: name, green dot and "Active" (or gray "Disabled"), optional gray hint, switch.
+- **Display:** "Island Location" (Display preference: Main display / Automatic, follow the frontmost app; current main display with
+  Modify). "Desktop Pet" (Pet size slider 50–150%; customization with Open folder). "Top Info Items" (switches per item:
+  Claude Code subscription, Codex subscription, token count, sound icon, SSH status, …).
+- **Sound:** enable, smart mute during Feishu meetings, volume, session and interaction event groups, custom sound folder.
+- **Shortcuts:** modifier key, global shortcuts (toggle panel, anywhere; arrows navigate, Enter jumps), panel shortcuts (collapse,
+  approve, deny, always allow, jump, switch session), key recording, conflict warnings, restore defaults.
+
+Bunlet builds the subset in [decision 0021](../decisions/0021-settings-scope.md) with native SwiftUI controls styled to these values,
+an untitled group (General, Agents, Display, Sound), "ADVANCED" (Shortcuts) and "BUNLET" (About). There is no Features page
+([0020](../decisions/0020-one-app-with-pet-mode.md)).
 
 ## Pet and pet panel
 
@@ -192,5 +209,7 @@ Active, Paused or Monitoring off. Setup, trust and delivery evidence stay in the
   Fill `rgba(18,19,20,0.9)`, 1 px light border, shadow `0 16 48 rgba(0,0,0,0.35)`. It lists the same session rows and actionable
   cards as the island; clicking a row jumps to the terminal. Empty state: centered "No sessions" at 45% white.
 
-Bunlet uses its own artwork and keeps the pet a separate feature that runs without Agents or Notch. Its bubble shows the
-existing mood label (attention yellow, response ready green, unknown orange). Without Agents the panel says Agents is not installed.
+Flux ships a default pet that users replace by dropping a same-named PNG into a folder. Bunlet also ships a default,
+its own white lionhead rabbit; Display → Desktop Pet → Choose Image… (or a sprite sheet or pack) replaces it. The pet is part of the app ([0020](../decisions/0020-one-app-with-pet-mode.md)): it docks in the island
+and comes out by dragging the pill down or with Show Pet. Its bubble shows the existing mood label (attention yellow,
+response ready green, unknown orange).

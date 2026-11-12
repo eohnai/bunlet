@@ -11,9 +11,10 @@ private final class PetSurfaceState {
     var cue = false
     var dragging = false
     var size: Double
-    var presentation: PetPresentation
+    /// The built-in rabbit unless the user chose their own pet. Nil only if no artwork could be loaded.
+    var presentation: PetPresentation?
 
-    init(size: Double, presentation: PetPresentation) {
+    init(size: Double, presentation: PetPresentation?) {
         self.size = size
         self.presentation = presentation
     }
@@ -47,9 +48,13 @@ private struct PetSurfaceView: View {
                     .accessibilityAddTraits(.isButton)
                     .accessibilityHint("Shows sessions")
             } else { Color.clear.frame(height: 26) }
-            PetView(presentation: state.presentation, pose: state.pose, isVisible: visible,
-                    isSleeping: sleeping, onFrameImage: onFrame)
-                .frame(width: state.size, height: state.size)
+            if let presentation = state.presentation {
+                PetView(presentation: presentation, pose: state.pose, isVisible: visible,
+                        isSleeping: sleeping, onFrameImage: onFrame)
+                    .frame(width: state.size, height: state.size)
+            } else {
+                Color.clear.frame(width: state.size, height: state.size)
+            }
         }
     }
 
@@ -156,21 +161,21 @@ final class PetPanelController: AppFeatureService {
     private var followTimer: Timer?
     var isDetached: Bool { detached }
 
-    init?(size: Double, defaults: UserDefaults = .standard, presentation selected: PetPresentation? = nil,
+    init(size: Double, defaults: UserDefaults = .standard, presentation: PetPresentation? = nil,
           onDragBegan: @escaping () -> Void = {},
           returnTarget: @escaping () -> CGRect? = { nil }, onReturn: @escaping () -> Void = {},
           onBadgeClick: @escaping () -> Void = {}, onHide: @escaping () -> Void = {}) {
         self.onHide = onHide
-        guard let presentation = selected ?? PetArtwork.presentation() else { return nil }
         preferences = PetPreferences(defaults: defaults)
         detached = preferences.placement?.detached ?? false
         self.onDragBegan = onDragBegan
         self.returnTarget = returnTarget
         self.onReturn = onReturn
-        state = PetSurfaceState(size: size, presentation: presentation)
+        state = PetSurfaceState(size: size, presentation: presentation ?? PetArtwork.presentation())
+        let title = state.presentation?.name ?? "Bunlet Pet"
         panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: size, height: size + 30),
                         styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        panel.title = presentation.name
+        panel.title = title
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.hasShadow = false
@@ -204,11 +209,13 @@ final class PetPanelController: AppFeatureService {
     /// A returned pet lives inside the island and has no window of its own until it is pulled out again.
     /// Without an island (Notch not installed or no usable display) it always stays on the desktop.
     private var docked: Bool { !detached && returnTarget() != nil }
+    /// Without any artwork there is no pet to show or drag out.
+    private var hasArtwork: Bool { state.presentation != nil }
 
     /// Shows the pet window, or keeps it hidden while docked. Also re-evaluates docking when the island appears or goes away.
     func show() {
         guard running && !sleeping else { return }
-        if docked {
+        if docked || !hasArtwork {
             panel.orderOut(nil)
             onHide()
         } else {
@@ -219,7 +226,7 @@ final class PetPanelController: AppFeatureService {
 
     /// Show Pet: a docked pet comes back out to its last desktop spot, which hides the island as dragging out does.
     func reveal() {
-        guard running && !sleeping else { return }
+        guard running && !sleeping && hasArtwork else { return }
         if docked {
             detached = true
             restorePlacement()
@@ -292,7 +299,7 @@ final class PetPanelController: AppFeatureService {
     /// Drag-out from the island pill: the pet detaches and follows the pointer until the button is released.
     /// The island hides mid-drag, so release is read from the button state rather than from events it would own.
     func beginPointerDrag() -> Bool {
-        guard running, !sleeping, followTimer == nil else { return false }
+        guard running, !sleeping, hasArtwork, followTimer == nil else { return false }
         detached = true
         state.dragging = true
         onDragBegan()
@@ -331,10 +338,11 @@ final class PetPanelController: AppFeatureService {
     /// Where the session panel anchors. Nil while hidden.
     var frameOnScreen: CGRect? { panel.isVisible ? panel.frame : nil }
 
-    func setArtwork(_ presentation: PetPresentation) {
+    func setArtwork(_ presentation: PetPresentation?) {
         cancelCue()
         state.presentation = presentation
-        panel.title = presentation.name
+        panel.title = presentation?.name ?? "Bunlet Pet"
+        show()
     }
 
     func setReaction(_ mood: PetMood, cue: Bool) {
@@ -346,7 +354,7 @@ final class PetPanelController: AppFeatureService {
         guard cue, running, !sleeping, panel.isVisible, panel.occlusionState.contains(.visible) else { return }
         cancelCue()
         state.cue = true
-        if preferences.soundEnabled { NSSound(named: NSSound.Name("Glass"))?.play() }
+        // Sounds now come from Settings → Sound (decision 0021), so the pet's cue is silent.
         cueTask = Task { @MainActor [weak self] in
             do { try await Task.sleep(for: .seconds(2)) } catch { return }
             guard !Task.isCancelled else { return }
@@ -455,7 +463,7 @@ final class PetPanelController: AppFeatureService {
             "phase": phase,
             "presentation": "pet",
             "petVisible": panel.isVisible,
-            "artworkLoaded": PetArtwork.url(for: "white-lionhead-idle").flatMap(NSImage.init(contentsOf:)) != nil,
+            "artworkLoaded": state.presentation != nil,
             "size": panel.frame.width,
             "windowNumber": panel.windowNumber,
             "agentServicesEnabled": agentsEnabled,

@@ -31,7 +31,7 @@ struct IslandPhaseIcon: View {
         ZStack {
             switch kind {
             case .idle:
-                Image(systemName: "pawprint.fill").resizable().scaledToFit()
+                Image(systemName: "hare.fill").resizable().scaledToFit()
                     .padding(size * 0.2).foregroundStyle(.white.opacity(0.9))
             case .running:
                 Circle().stroke(.white.opacity(0.15), lineWidth: size * 0.1)
