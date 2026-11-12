@@ -2,6 +2,10 @@
 
 Status: done
 
+Superseded in part on 2026-11-12: [decision 0017](../../decisions/0017-match-flux-island-ui.md) restyled the cards and
+[0019](../../decisions/0019-show-prompt-and-reply-previews.md) added prompt and reply previews. See **Current layout** below.
+The tasks and evidence record what was built and verified at the time; they are not reopened.
+
 ## Goal
 
 Replace the expanded notch's disclosure rows with compact session cards, based on the reference layout the user supplied on 2026-10-31.
@@ -16,9 +20,9 @@ The allowance strip above the cards is a separate spec, `allowance-strip`. See t
   It stops at its final duration on `Stop`.
   It is hidden for unknown and ended sessions, and for sessions with no observed turn.
 - A pending request shows a request card with the tool name and the text "Answer in the terminal".
-  No prompt, command, question, or tool-input text appears anywhere in the panel.
+  No prompt, command, question, or tool-input text appears anywhere in the panel. (Superseded for prompts and replies by 0019.)
 - Every observed state keeps its label: idle, working, question, approval, response ready, ended, and unknown.
-- The expanded panel is wider and shorter than before, at the sizes under **My calls**.
+- The expanded panel is wider and shorter than before, at the sizes under **My calls**. (Superseded: see **Current layout**.)
 - `swift test` passes, including new store and presentation tests.
 - Real app: fictional events sent through the bundled helper show two same-folder sessions, a running timer, a stopped timer, a request card, and an unknown session.
   The user reviews them in one batched visual pass.
@@ -80,6 +84,7 @@ See [allowance-strip Results](allowance-strip.md#results) for final commands, lo
 ## My calls
 
 - Expanded panel: 620 points wide (was 560) and 240 points below the header (was 280). The user asked for "a little shorter but a little wider".
+  Superseded 2026-11-12: 680–704 wide, growing with content up to 540 tall.
 - Timer times come from the events' `observed_at_ms`, not the app's receipt times. A delayed delivery does not shorten the timer.
 - A new turn resets the timer. A repeated `Stop` does not change the final duration.
 - C1 exposes `turnStartedAtMs` and `responseReadyAtMs` on `SessionSnapshot`, using event capture times in Unix milliseconds.
@@ -312,6 +317,19 @@ The final app has no hover details. After removal, the full-suite rerun passed 1
 The final review used only the shared-folder timer pair and an idle Claude session to avoid scrolling through prior cases.
 See the allowance spec for the implementation and test evidence.
 No agent-initiated capture or capture-permission request ran; the user supplied the images.
+
+## Current layout, 2026-11-12
+
+- A session row has a 32-point phase icon, the provider badge in its color, the folder name, a short session ID chip for
+  same-folder sessions, and a timer chip. Below it: "You: {prompt preview}", then "Using {tool}" while working or the
+  reply preview when done. Paths under the session folder are shown relative to it.
+- Visible status words remain only for unknown and ended; the other states show through the phase icon and its color.
+  Every state is still spoken in the row's accessibility label. This narrows the original "keeps its label" check.
+- Clicking a row returns to the terminal (linked pane, else the preferred app; without either it opens terminal setup)
+  and collapses the island. A "⋯" chip shows the full path, session ID and refresh time.
+- A request without a local reply channel shows a card with the tool name, "Pending/Unconfirmed approval/question",
+  terminal guidance and a "Jump to terminal" button. A request with a verified channel is shown only by its action card.
+- The timer rules under **My calls** are unchanged.
 
 ## Tasks
 

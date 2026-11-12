@@ -2,25 +2,19 @@
 
 ## Now
 
-Flux UI match (2026-11-12, on `feat/island-ui`): decisions [0017](decisions/0017-match-flux-island-ui.md),
-[0018](decisions/0018-restore-usage-hover-details.md) and [0019](decisions/0019-show-prompt-and-reply-previews.md) are accepted;
-[the Flux UI reference](notes/flux-ui-reference.md) records the target. Island shape/pill/hover/notification-open, Flux session rows,
-usage popup, request/completion cards, Settings sidebar and agent list, pet bubble and pet session panel are implemented.
-Prompt/reply previews are forwarded on UserPromptSubmit/Stop only. Dragging the closed pill down 50 points pulls the pet out; it follows the pointer until release.
-`swift test` passes 209 tests; `scripts/run.sh --build-only` packages.
-Not verified: no app launch or visual comparison was made (the user does the visual check); hover inside the nonactivating
-panels, the drag-out gesture on a real display, and live hook payloads in installed provider versions remain open.
-
-The full local MVP is merged through PR #16. Bunlet is now the accepted name under decision 0016.
-The visible app and bundle rename is complete, uncommitted on `feat/settings-product-name`, based on main `d0d4639`.
-Build, package and focused native rename results are recorded in `docs/specs/settings/product-name.md`. Internal identities remain stable.
-The isolated validation app is stopped. Broader native/provider acceptance and FM7 remain deferred.
+`feat/island-ui` (PR #18, open against main) restyles the island, session rows, usage popup, request/completion cards,
+Settings sidebar/agent list and pet bubble/panel to the reference look, under decisions 0017–0019 and
+[the UI reference](notes/flux-ui-reference.md). It also forwards prompt/reply previews and adds the pill drag-out gesture.
+The app has not been launched with these changes.
+The Bunlet rename is merged to main (PR #17). Native/provider acceptance and FM7 remain deferred; no spec has a due date.
 
 ## Next
 
-1. Review and commit the Bunlet rename on `feat/settings-product-name`, then merge it into main when ready.
-2. Select one future task from the merged feature handoffs. Get approval before resuming broader native/provider acceptance.
-3. Keep separate telemetry/CI reconciliation and FM7 drafts outside the rename change.
+1. Launch `bash scripts/run.sh` and compare the island, Settings and pet panel against the reference side by side (user's visual check).
+2. Check hover in the nonactivating panels with Bunlet inactive: pill hover-open, usage popup, row "⋯" chip.
+3. Try the pill drag-out on a notched display: pet follows, release over the pill returns it.
+4. Confirm `prompt` and `last_assistant_message` arrive in installed Claude Code 2.1.306 and Codex 0.164.0 hook payloads.
+5. Watch PR #18 checks and merge it once the visual check is done.
 
 ## Blockers
 
@@ -35,3 +29,4 @@ The isolated validation app is stopped. Broader native/provider acceptance and F
 - FM7 is deferred by the user. The last native command was `python3 scripts/check-feature-management.py --app '/private/tmp/notch-pet-features/notch-pet-dev/Notch Pet.app' --artifacts /private/tmp/np-features-native-final`: all eight startup sets and fresh setup passed; recovery/interaction failed `explicit Settings focus`, and reopen failed `launch choices` after interaction stopped. Its process exited 1 and is stopped. Full pending-removal, keyboard and relaunch acceptance remains unproven. Do not restart it automatically.
 - Capture reproduction command: `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer python3 scripts/check-standalone-pet.py --app "/private/var/folders/t3/6n_zw1rn5nn6vv7ccx9r6s240000gn/T/notch-pet-dev/Notch Pet.app" --artifacts /private/tmp/notch-pet-completion/evidence/standalone` failed with `could not create image from window` / screencapture exit 1. The native preflight returned screenCaptureAuthorized=false; the user explicitly prohibited further captures and later all further testing. Do not request that permission or retry the failing capture.
 - Stale: `scripts/check-event-contract.py` permits a previously conflicting turn ID to restore working state; SessionStore enforces the accepted unseen-turn rule.
+- Unverified on screen: the redesigned island, Settings and pet panel were built and unit-tested only. SwiftUI hover in the nonactivating panels and the pill drag-out need a real-display check.
