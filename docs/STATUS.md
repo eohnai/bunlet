@@ -2,6 +2,15 @@
 
 ## Now
 
+Flux UI match (2026-11-12, on `feat/island-ui`): decisions [0017](decisions/0017-match-flux-island-ui.md),
+[0018](decisions/0018-restore-usage-hover-details.md) and [0019](decisions/0019-show-prompt-and-reply-previews.md) are accepted;
+[the Flux UI reference](notes/flux-ui-reference.md) records the target. Island shape/pill/hover/notification-open, Flux session rows,
+usage popup, request/completion cards, Settings sidebar and agent list, pet bubble and pet session panel are implemented.
+Prompt/reply previews are forwarded on UserPromptSubmit/Stop only. Dragging the closed pill down 50 points pulls the pet out; it follows the pointer until release.
+`swift test` passes 209 tests; `scripts/run.sh --build-only` packages.
+Not verified: no app launch or visual comparison was made (the user does the visual check); hover inside the nonactivating
+panels, the drag-out gesture on a real display, and live hook payloads in installed provider versions remain open.
+
 The full local MVP is merged through PR #16. Bunlet is now the accepted name under decision 0016.
 The visible app and bundle rename is complete, uncommitted on `feat/settings-product-name`, based on main `d0d4639`.
 Build, package and focused native rename results are recorded in `docs/specs/settings/product-name.md`. Internal identities remain stable.

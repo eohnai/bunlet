@@ -1,6 +1,6 @@
 # 0014: Omit usage-limit tooltips from the notch
 
-- Status: accepted
+- Status: superseded by [0018](0018-restore-usage-hover-details.md) on 2026-11-12
 - Date: 2026-11-02
 
 ## Context

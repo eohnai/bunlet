@@ -9,7 +9,7 @@ It is not a live visual/accessibility acceptance report or an approved UI implem
 
 ## Accepted product choices
 
-- **Use both references as inspiration for an original, polished Notch Pet interface (2026-11-02).** The user explicitly rejects copying either
+- **Superseded 2026-11-12 by [0017](../decisions/0017-match-flux-island-ui.md): match Flux Island's visible UI.** Original 2026-11-02 choice: **use both references as inspiration for an original, polished Notch Pet interface.** The user explicitly rejects copying either
   app's complete UI. Combine useful behavior and organization, then improve hierarchy, spacing, copy, motion and native interaction through
   Impeccable and Apple guidance. Reference screenshots are evidence of patterns, not visual templates. Preserve the pet's own personality and
   truthful session/installation states. This direction does not claim that the current UI has passed visual acceptance.
@@ -31,8 +31,8 @@ It is not a live visual/accessibility acceptance report or an approved UI implem
 - [0010](../decisions/0010-add-local-agent-actions.md): local approval, structured answers and explicit follow-ups are in scope,
   conditional on verified provider channels. Lifecycle observation alone does not establish action support.
 - [0012](../decisions/0012-support-terminal-independent-operation.md): monitoring and pet reactions require no specific terminal.
-- Observation keeps its metadata allowlist. Flux's prompt/activity previews and request content are not permission to widen it.
-- Preserve the allowance strip's accepted removal of hover tooltips on the feature branch. Clarification should not silently restore them.
+- Amended 2026-11-12 by [0019](../decisions/0019-show-prompt-and-reply-previews.md): prompt and reply previews are shown. Original choice: observation keeps its metadata allowlist. Flux's prompt/activity previews and request content are not permission to widen it.
+- Superseded 2026-11-12 by [0018](../decisions/0018-restore-usage-hover-details.md). Original choice: preserve the allowance strip's accepted removal of hover tooltips on the feature branch. Clarification should not silently restore them.
 
 The following layout choices are proposals. Installing this reference does not implement them or change acceptance checkboxes.
 

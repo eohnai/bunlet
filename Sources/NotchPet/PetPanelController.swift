@@ -32,17 +32,34 @@ private struct PetSurfaceView: View {
     let sleeping: Bool
     let onFrame: (NSImage?) -> Void
 
+    /// The speech bubble sits above the pet; clicking it toggles the session panel.
     var body: some View {
         VStack(spacing: 4) {
+            if state.mood != .idle {
+                Text(state.mood.label)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(bubbleColor)
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                    .padding(.horizontal, 8).frame(height: 22)
+                    .background(Color(red: 18 / 255, green: 19 / 255, blue: 20 / 255).opacity(0.9), in: Capsule())
+                    .overlay { Capsule().strokeBorder(.white.opacity(0.1), lineWidth: 1) }
+                    .frame(height: 26)
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityHint("Shows sessions")
+            } else { Color.clear.frame(height: 26) }
             PetView(presentation: state.presentation, pose: state.pose, isVisible: visible,
                     isSleeping: sleeping, onFrameImage: onFrame)
                 .frame(width: state.size, height: state.size)
-            if state.mood != .idle {
-                Label(state.mood.label, systemImage: state.mood.symbol)
-                    .font(.caption2).lineLimit(1).minimumScaleFactor(0.7)
-                    .padding(.horizontal, 4).frame(height: 26)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6))
-            } else { Color.clear.frame(height: 26) }
+        }
+    }
+
+    private var bubbleColor: Color {
+        switch state.mood {
+        case .attention: IslandPalette.attention
+        case .responseReady: IslandPalette.completed
+        case .unknown: IslandPalette.unknown
+        case .ended: IslandPalette.mutedText
+        case .working, .idle: .white.opacity(0.9)
         }
     }
 }
@@ -53,6 +70,7 @@ private final class PetDragView: NSView {
     var onBegin: (() -> Void)?
     var onDrop: (() -> Void)?
     var onImageChange: (() -> Void)?
+    var onBadgeClick: (() -> Void)?
     var showsBadge = false
     private var image: NSImage?
     private var bitmap: NSBitmapImageRep?
@@ -72,8 +90,8 @@ private final class PetDragView: NSView {
 
     func accepts(_ local: NSPoint) -> Bool {
         guard bounds.contains(local) else { return false }
-        if showsBadge && local.y <= 26 { return true }
-        let art = NSRect(x: 0, y: 30, width: bounds.width, height: max(0, bounds.height - 30))
+        if showsBadge && isBadge(local) { return true }
+        let art = NSRect(x: 0, y: 0, width: bounds.width, height: max(0, bounds.height - 30))
         guard let image, let bitmap, image.size.width > 0, image.size.height > 0 else {
             return art.insetBy(dx: art.width * 0.2, dy: art.height * 0.2).contains(local)
         }
@@ -86,6 +104,8 @@ private final class PetDragView: NSView {
         let y = min(bitmap.pixelsHigh - 1, max(0, Int((fitted.maxY - local.y) / fitted.height * Double(bitmap.pixelsHigh))))
         return (bitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.08
     }
+
+    private func isBadge(_ local: NSPoint) -> Bool { local.y >= bounds.height - 26 }
 
     override func mouseDown(with event: NSEvent) {
         dragStart = NSEvent.mouseLocation
@@ -107,7 +127,11 @@ private final class PetDragView: NSView {
 
     override func mouseUp(with event: NSEvent) {
         dragStart = nil
-        if moved { onDrop?() }
+        if moved {
+            onDrop?()
+        } else if showsBadge, isBadge(convert(event.locationInWindow, from: nil)) {
+            onBadgeClick?()
+        }
         moved = false
     }
 }
@@ -121,6 +145,7 @@ final class PetPanelController: AppFeatureService {
     private let onDragBegan: () -> Void
     private let returnTarget: () -> CGRect?
     private let onReturn: () -> Void
+    private let onHide: () -> Void
     private var subscriptions: Set<AnyCancellable> = []
     private var cueTask: Task<Void, Never>?
     private var sleeping = false
@@ -128,11 +153,14 @@ final class PetPanelController: AppFeatureService {
     private var detached: Bool
     private var globalMouseMonitor: Any?
     private var localMouseMonitor: Any?
+    private var followTimer: Timer?
     var isDetached: Bool { detached }
 
     init?(size: Double, defaults: UserDefaults = .standard, presentation selected: PetPresentation? = nil,
           onDragBegan: @escaping () -> Void = {},
-          returnTarget: @escaping () -> CGRect? = { nil }, onReturn: @escaping () -> Void = {}) {
+          returnTarget: @escaping () -> CGRect? = { nil }, onReturn: @escaping () -> Void = {},
+          onBadgeClick: @escaping () -> Void = {}, onHide: @escaping () -> Void = {}) {
+        self.onHide = onHide
         guard let presentation = selected ?? PetArtwork.presentation() else { return nil }
         preferences = PetPreferences(defaults: defaults)
         detached = preferences.placement?.detached ?? false
@@ -168,6 +196,7 @@ final class PetPanelController: AppFeatureService {
             self.onDragBegan()
         }
         dragView.onDrop = { [weak self] in self?.finishDrag() }
+        dragView.onBadgeClick = onBadgeClick
         dragView.onImageChange = { [weak self] in self?.updateMousePassThrough() }
         restorePlacement()
     }
@@ -210,8 +239,11 @@ final class PetPanelController: AppFeatureService {
                     guard let self else { return }
                     if note.name == NSWorkspace.willSleepNotification {
                         self.sleeping = true
+                        self.stopFollowing()
+                        self.state.dragging = false
                         self.cancelCue()
                         self.panel.orderOut(nil)
+                        self.onHide()
                     } else {
                         self.sleeping = false
                         self.restorePlacement()
@@ -224,6 +256,7 @@ final class PetPanelController: AppFeatureService {
     }
 
     func stop() {
+        stopFollowing()
         running = false
         subscriptions.removeAll()
         if let globalMouseMonitor { NSEvent.removeMonitor(globalMouseMonitor) }
@@ -232,7 +265,49 @@ final class PetPanelController: AppFeatureService {
         localMouseMonitor = nil
         cancelCue()
         panel.orderOut(nil)
+        onHide()
     }
+
+    /// Drag-out from the island pill: the pet detaches and follows the pointer until the button is released.
+    /// The island hides mid-drag, so release is read from the button state rather than from events it would own.
+    func beginPointerDrag() -> Bool {
+        guard running, !sleeping, followTimer == nil else { return false }
+        detached = true
+        state.dragging = true
+        onDragBegan()
+        show()
+        moveToPointer()
+        let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.followPointer() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        followTimer = timer
+        return true
+    }
+
+    private func followPointer() {
+        guard NSEvent.pressedMouseButtons & 1 != 0 else {
+            stopFollowing()
+            finishDrag()
+            return
+        }
+        moveToPointer()
+    }
+
+    private func stopFollowing() {
+        followTimer?.invalidate()
+        followTimer = nil
+    }
+
+    /// Centers the artwork, which fills the lower part of the window below the bubble, on the pointer.
+    private func moveToPointer() {
+        let pointer = NSEvent.mouseLocation
+        let frame = panel.frame
+        panel.setFrameOrigin(NSPoint(x: pointer.x - frame.width / 2, y: pointer.y - state.size / 2))
+    }
+
+    /// Where the session panel anchors. Nil while hidden.
+    var frameOnScreen: CGRect? { panel.isVisible ? panel.frame : nil }
 
     func setArtwork(_ presentation: PetPresentation) {
         cancelCue()

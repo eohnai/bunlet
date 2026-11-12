@@ -49,6 +49,34 @@ public enum NotchAllowancePresentation {
         return "\(hours / 24)d\(hours % 24)h"
     }
 
+    /// One line per reported window for the hover popup (decision 0018). Missing data never reads as zero left.
+    public static func detailLines(for entry: NotchAllowanceEntry, at nowMs: Int64) -> [String] {
+        guard let source = entry.source else { return ["Usage limits unavailable"] }
+        let windows = source.observation.windows.sorted {
+            ($0.durationMinutes ?? .max, $0.id) < ($1.durationMinutes ?? .max, $1.id)
+        }
+        var lines = windows.map { window in
+            let left = Int((100 - window.usedPercent).rounded(.down))
+            let reset = window.resetsAtMs == nil ? "reset time unknown" : "resets in \(countdownText(for: window, at: nowMs))"
+            return "\(label(for: window)) \(left)% left, \(reset)"
+        }
+        if lines.isEmpty { lines.append("No limit windows reported") }
+        if source.isStale { lines.append("Stale: this reading may no longer apply") }
+        if entry.accountUnverified { lines.append("Account unverified") }
+        return lines
+    }
+
+    public static func label(for window: UsageWindow) -> String {
+        switch window.durationMinutes {
+        case 300: return "5h"
+        case 10_080: return "7d"
+        case let minutes? where minutes % 1_440 == 0: return "\(minutes / 1_440)d"
+        case let minutes? where minutes % 60 == 0: return "\(minutes / 60)h"
+        case let minutes?: return "\(minutes)m"
+        case nil: return window.id
+        }
+    }
+
     public static func entries(activeProviders: Set<Agent>,
                                snapshots: [UsageSnapshot]) -> [NotchAllowanceEntry] {
         activeProviders.sorted { $0.rawValue < $1.rawValue }.map { provider in

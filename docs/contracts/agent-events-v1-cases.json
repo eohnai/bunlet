@@ -800,6 +800,76 @@
       },
       "pad_to_bytes": 16385,
       "expect": "frame_too_large"
+    },
+    {
+      "name": "prompt preview on submit",
+      "message": {
+        "version": 1,
+        "event_id": "00000000-0000-4000-8000-000000000001",
+        "agent": "claude",
+        "session_id": "fictional-session",
+        "observed_at_ms": 1000000,
+        "turn_id": "fictional-turn",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt_preview": "Fictional request preview."
+      },
+      "expect": "valid"
+    },
+    {
+      "name": "reply preview on stop",
+      "message": {
+        "version": 1,
+        "event_id": "00000000-0000-4000-8000-000000000001",
+        "agent": "claude",
+        "session_id": "fictional-session",
+        "observed_at_ms": 1000000,
+        "turn_id": "fictional-turn",
+        "hook_event_name": "Stop",
+        "reply_preview": "Fictional reply preview."
+      },
+      "expect": "valid"
+    },
+    {
+      "name": "prompt preview outside submit",
+      "message": {
+        "version": 1,
+        "event_id": "00000000-0000-4000-8000-000000000001",
+        "agent": "claude",
+        "session_id": "fictional-session",
+        "observed_at_ms": 1000000,
+        "turn_id": "fictional-turn",
+        "hook_event_name": "Stop",
+        "prompt_preview": "Fictional request preview."
+      },
+      "expect": "prompt_preview"
+    },
+    {
+      "name": "reply preview outside stop",
+      "message": {
+        "version": 1,
+        "event_id": "00000000-0000-4000-8000-000000000001",
+        "agent": "claude",
+        "session_id": "fictional-session",
+        "observed_at_ms": 1000000,
+        "turn_id": "fictional-turn",
+        "hook_event_name": "UserPromptSubmit",
+        "reply_preview": "Fictional reply preview."
+      },
+      "expect": "reply_preview"
+    },
+    {
+      "name": "oversized prompt preview",
+      "message": {
+        "version": 1,
+        "event_id": "00000000-0000-4000-8000-000000000001",
+        "agent": "claude",
+        "session_id": "fictional-session",
+        "observed_at_ms": 1000000,
+        "turn_id": "fictional-turn",
+        "hook_event_name": "UserPromptSubmit",
+        "prompt_preview": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "expect": "prompt_preview"
     }
   ],
   "sequences": [

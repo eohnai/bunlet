@@ -13,7 +13,7 @@ Those skills assume iOS 17, MVVM, and XCTest. This project uses none of those, s
 - Stores own shared state. Mark them `@MainActor` and publish `Equatable`, `Sendable` value snapshots.
   Example: `SessionStore` publishes `SessionSnapshot`.
 - Put domain rules in pure functions or static enums, with no AppKit and no I/O, so tests can reach them.
-  Example: `NotchPresentation`, `NotchPlacement`, `PetPlaybackPolicy`.
+  Example: `NotchPresentation`, `IslandGeometry`, `PetPlaybackPolicy`.
 - AppKit controllers own windows, and actions that have their own state.
   Example: `NotchPanelController`, `PetSettingsController`.
 - Add a view model only where a view owns state ([D3](DECISIONS.md#d3-add-view-models-only-where-a-view-owns-state)). Read-only views observe stores directly.

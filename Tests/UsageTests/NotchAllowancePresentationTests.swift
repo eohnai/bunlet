@@ -227,4 +227,21 @@ struct NotchAllowancePresentationTests {
         #expect(entry.percentLeft == 75)
         #expect(entry.color == .gray)
     }
+
+    @Test func popupListsEveryWindowAndFreshness() throws {
+        let source = snapshot(stale: true, account: nil, windows: [
+            window("weekly", used: 70, minutes: 10_080, reset: 3_600_000),
+            window(used: 25.5, reset: nil)
+        ])
+        let lines = NotchAllowancePresentation.detailLines(for: try entry(source), at: 0)
+        #expect(lines == ["5h 74% left, reset time unknown", "7d 30% left, resets in 1h0m",
+                          "Stale: this reading may no longer apply", "Account unverified"])
+    }
+
+    @Test func popupNeverShowsMissingDataAsZero() throws {
+        let missing = try #require(NotchAllowancePresentation.entries(activeProviders: [.claude], snapshots: []).first)
+        #expect(NotchAllowancePresentation.detailLines(for: missing, at: 0) == ["Usage limits unavailable"])
+        #expect(NotchAllowancePresentation.detailLines(for: try entry(snapshot(windows: [])), at: 0)
+                == ["No limit windows reported"])
+    }
 }

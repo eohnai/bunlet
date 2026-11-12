@@ -31,7 +31,7 @@ HOOKS = {
 }
 TOOL_HOOKS = {"PreToolUse", "PermissionRequest", "PostToolUse"}
 REQUIRED = {"version", "event_id", "agent", "session_id", "hook_event_name", "observed_at_ms"}
-OPTIONAL = {"turn_id", "tool_use_id", "tool_name", "cwd", "terminal"}
+OPTIONAL = {"turn_id", "tool_use_id", "tool_name", "cwd", "terminal", "prompt_preview", "reply_preview"}
 
 
 class InvalidMessage(ValueError):
@@ -103,6 +103,14 @@ def decode_frame(frame: bytes) -> dict:
     for name, limit in (("turn_id", 256), ("tool_use_id", 256), ("tool_name", 128), ("cwd", 4096)):
         if name in message and not valid_string(message[name], limit):
             reject(name)
+    for name, limit in (("prompt_preview", 1024), ("reply_preview", 1024)):
+        if name in message and not valid_string(message[name], limit):
+            reject(name)
+    # Decision 0019: display previews only on the hook that carries them.
+    if "prompt_preview" in message and hook != "UserPromptSubmit":
+        reject("prompt_preview")
+    if "reply_preview" in message and hook != "Stop":
+        reject("reply_preview")
     if "cwd" in message and not message["cwd"].startswith("/"):
         reject("cwd")
     if hook in TOOL_HOOKS:

@@ -18,10 +18,24 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
     private var globalMouseMonitor: Any?
     private var localMouseMonitor: Any?
     private var pointerDown = false
+    private var pointerInside = false
+    private var pillDragStart: NSPoint?
+    /// Returns true when a pet took over the drag; the island then hides for the pet.
+    private let onPillDragOut: () -> Bool
+    private var hoverTask: Task<Void, Never>?
+    private var autoCloseTask: Task<Void, Never>?
+    private var notificationObservation: ObservationLoop<[SessionSnapshot]>?
+    private var lastSessions: [SessionSnapshot] = []
+    private let sessionStore: SessionStore
+    private let actions: LocalActionController?
 
     init(sessionStore: SessionStore, usageStore: UsageStore,
          features: FeatureSettingsModel, onOpenFeatures: @escaping () -> Void,
-         actions: LocalActionController? = nil, navigation: TerminalNavigation? = nil) {
+         actions: LocalActionController? = nil, navigation: TerminalNavigation? = nil,
+         onOpenSettings: @escaping () -> Void = {}, onPillDragOut: @escaping () -> Bool = { false }) {
+        self.sessionStore = sessionStore
+        self.onPillDragOut = onPillDragOut
+        self.actions = actions
         panel = ActionNotchPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
                                 backing: .buffered, defer: false)
         super.init()
@@ -39,11 +53,12 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         panel.contentView = NSHostingView(rootView: PetWindowPlayback(window: panel) { [state, weak self] visible, asleep in
             NotchSessionView(sessionStore: sessionStore, usageStore: usageStore, features: features,
                 onOpenFeatures: onOpenFeatures, windowState: state,
-                onExpand: { [weak self] expanded in self?.updatePlacement(expanded: expanded) },
+                onExpand: { [weak self] expanded in self?.setExpanded(expanded) },
                 isVisible: visible, isSleeping: asleep, navigation: navigation, actions: actions,
-                beginInput: { [weak self] in self?.beginInput() }, endInput: { [weak self] in self?.endInput() })
+                beginInput: { [weak self] in self?.beginInput() }, endInput: { [weak self] in self?.endInput() },
+                onOpenSettings: onOpenSettings)
         })
-        updatePlacement(expanded: false)
+        updatePlacement()
     }
 
     func start() {
@@ -63,6 +78,8 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
                     guard let self else { return }
                     if note.name == NSWorkspace.willSleepNotification {
                         self.sleeping = true
+                        self.cancelTimers()
+                        self.state.expanded = false
                         self.endInput(restore: false)
                         self.updateVisibility()
                     } else {
@@ -77,14 +94,41 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
                 self?.updateMousePassThrough()
             }
         }
-        localMouseMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDown, .leftMouseUp]) { [weak self] event in
-            MainActor.assumeIsolated {
-                guard let self else { return }
-                if event.type == .leftMouseDown, event.window === self.panel { self.pointerDown = true }
-                if event.type == .leftMouseUp { self.pointerDown = false }
+        localMouseMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.mouseMoved, .leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
+            let consumed = MainActor.assumeIsolated { () -> Bool in
+                guard let self else { return false }
+                switch event.type {
+                case .leftMouseDown where event.window === self.panel:
+                    self.pointerDown = true
+                    // Pressing the closed pill arms the drag-out gesture and cancels hover-open.
+                    if !self.state.expanded, self.pointerInside {
+                        self.pillDragStart = NSEvent.mouseLocation
+                        self.hoverTask?.cancel()
+                        self.hoverTask = nil
+                    }
+                case .leftMouseDragged:
+                    if let start = self.pillDragStart,
+                       IslandGeometry.isPillDragOut(from: start, to: NSEvent.mouseLocation) {
+                        self.pillDragStart = nil
+                        // The island may hide now and never see this button's release.
+                        self.pointerDown = false
+                        return self.onPillDragOut()
+                    }
+                case .leftMouseUp:
+                    self.pointerDown = false
+                    self.pillDragStart = nil
+                default:
+                    break
+                }
                 self.updateMousePassThrough()
+                return false
             }
-            return event
+            return consumed ? nil : event
+        }
+        lastSessions = sessionStore.sessions
+        notificationObservation = ObservationLoop({ [sessionStore] in sessionStore.sessions }) { [weak self] sessions in
+            self?.sessionsChanged(sessions)
         }
         recover()
     }
@@ -97,6 +141,12 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         globalMouseMonitor = nil
         localMouseMonitor = nil
         pointerDown = false
+        pillDragStart = nil
+        pointerInside = false
+        notificationObservation?.cancel()
+        notificationObservation = nil
+        cancelTimers()
+        state.expanded = false
         endInput()
         panel.orderOut(nil)
     }
@@ -109,20 +159,28 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
     /// Explicit menu/Settings action, enabling native keyboard navigation without waiting for an alert.
     func openSessions() {
         hiddenForPet = false
-        updatePlacement(expanded: true)
+        setExpanded(true)
         updateVisibility()
         beginInput()
     }
 
     func setHiddenForPet(_ hidden: Bool) {
         hiddenForPet = hidden
-        if hidden { endInput() }
+        if hidden {
+            cancelTimers()
+            state.expanded = false
+            endInput()
+        }
         updateVisibility()
     }
 
+    /// The closed pill in screen coordinates, where a dragged pet returns.
     var returnTarget: CGRect? {
-        guard let screen = preferredScreen() else { return nil }
-        return frame(on: screen, expanded: false)
+        guard let screen = preferredScreen(), let window = windowFrame(on: screen) else { return nil }
+        let spec = IslandShapeSpec(bodyWidth: state.pillWidth(sessions: sessionStore.sessions), bottom: state.headerHeight,
+                                   topRadius: IslandMetrics.closedTopRadius, bottomRadius: IslandMetrics.closedBottomRadius)
+        let width = spec.outerWidth(windowWidth: window.width)
+        return CGRect(x: window.midX - width / 2, y: window.maxY - state.headerHeight, width: width, height: state.headerHeight)
     }
 
     private func beginInput() {
@@ -154,12 +212,12 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
     }
 
     private func recover() {
-        updatePlacement(expanded: state.expanded)
+        updatePlacement()
         updateVisibility()
     }
 
     private func updateVisibility() {
-        let available = preferredScreen().flatMap { frame(on: $0, expanded: state.expanded) } != nil
+        let available = preferredScreen().flatMap { windowFrame(on: $0) } != nil
         if running && !sleeping && !hiddenForPet && available {
             panel.orderFrontRegardless()
             updateMousePassThrough()
@@ -184,45 +242,103 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         return max(0, right.minX - left.maxX)
     }
 
-    private func frame(on screen: NSScreen, expanded: Bool) -> CGRect? {
-        NotchPlacement.frame(screen: screen.frame, safeTop: screen.safeAreaInsets.top,
-                             notchWidth: cutoutWidth(screen), expanded: expanded)
+    private func windowFrame(on screen: NSScreen) -> CGRect? {
+        IslandGeometry.windowFrame(screen: screen.frame, safeTop: screen.safeAreaInsets.top)
     }
 
-    func updatePlacement(expanded: Bool) {
-        state.expanded = expanded
-        guard let screen = preferredScreen(), let frame = frame(on: screen, expanded: expanded) else {
+    /// The window never moves while open or closed; only the shape inside it animates.
+    private func updatePlacement() {
+        guard let screen = preferredScreen(), let frame = windowFrame(on: screen) else {
             panel.orderOut(nil)
             return
         }
         displayID = identifier(screen)
-        state.headerHeight = max(32, screen.safeAreaInsets.top)
-        state.notchWidth = min(cutoutWidth(screen), max(0, frame.width - 48))
-        if !expanded { endInput() }
-        if panel.isVisible && !sleeping && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.24
-                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                panel.animator().setFrame(frame, display: true)
-            }
-        } else { panel.setFrame(frame, display: true) }
+        let notch = cutoutWidth(screen)
+        state.hasNotch = screen.safeAreaInsets.top > 0 && notch > 0
+        state.notchWidth = notch
+        state.screenWidth = screen.frame.width
+        state.headerHeight = IslandGeometry.headerHeight(safeTop: screen.safeAreaInsets.top,
+                                                         menuBarHeight: screen.frame.maxY - screen.visibleFrame.maxY)
+        state.windowWidth = frame.width
+        state.windowHeight = frame.height
+        panel.setFrame(frame, display: true)
         updateMousePassThrough()
+    }
+
+    func setExpanded(_ expanded: Bool) {
+        autoCloseTask?.cancel()
+        autoCloseTask = nil
+        guard state.expanded != expanded else { return }
+        state.expanded = expanded
+        if !expanded { endInput() }
+        updateMousePassThrough()
+    }
+
+    private func cancelTimers() {
+        hoverTask?.cancel()
+        hoverTask = nil
+        autoCloseTask?.cancel()
+        autoCloseTask = nil
+    }
+
+    /// Hover opens after 200 ms; leaving an open island closes it after 300 ms unless the user is typing.
+    private func pointerInsideChanged(_ inside: Bool) {
+        hoverTask?.cancel()
+        hoverTask = nil
+        if inside {
+            autoCloseTask?.cancel()
+            autoCloseTask = nil
+            guard !state.expanded else { return }
+            hoverTask = Task { [weak self] in
+                try? await Task.sleep(for: IslandMetrics.hoverOpenDelay)
+                guard !Task.isCancelled, let self, self.pointerInside else { return }
+                self.setExpanded(true)
+            }
+        } else if state.expanded, !state.hasKeyboardFocus {
+            hoverTask = Task { [weak self] in
+                try? await Task.sleep(for: IslandMetrics.leaveCloseDelay)
+                guard !Task.isCancelled, let self, !self.pointerInside, !self.state.hasKeyboardFocus else { return }
+                self.setExpanded(false)
+            }
+        }
+    }
+
+    /// New approvals, questions and completions open the island without taking focus.
+    private func sessionsChanged(_ sessions: [SessionSnapshot]) {
+        defer { lastSessions = sessions }
+        guard running, !sleeping, !hiddenForPet,
+              let notification = IslandNotification.next(previous: lastSessions, current: sessions) else { return }
+        let wasExpanded = state.expanded
+        state.focusedSession = notification.key
+        setExpanded(true)
+        guard !wasExpanded || autoCloseTask == nil else { return }
+        if case .attention(let key) = notification, hasLocalResponse(for: key) { return }
+        autoCloseTask = Task { [weak self] in
+            try? await Task.sleep(for: IslandMetrics.completionPopupDuration)
+            guard !Task.isCancelled, let self, !self.pointerInside, !self.state.hasKeyboardFocus else { return }
+            self.setExpanded(false)
+        }
+    }
+
+    /// A request the user can answer here stays open; terminal-only requests close on their own.
+    private func hasLocalResponse(for key: SessionKey) -> Bool {
+        actions?.store.snapshots.contains {
+            SessionKey(agent: $0.offer.provider, sessionID: $0.offer.sessionID) == key && $0.phase == .available
+        } == true
     }
 
     private func updateMousePassThrough() {
         guard !pointerDown else { return }
-        let point = panel.convertPoint(fromScreen: NSEvent.mouseLocation)
-        let bounds = CGRect(origin: .zero, size: panel.frame.size)
-        let radius: CGFloat = state.expanded ? 24 : 16
-        var contains = bounds.contains(point)
-        // Upper corners extend above the screen edge; only the lower corners are transparent.
-        if contains, point.y < radius {
-            if point.x < radius { contains = hypot(point.x - radius, point.y - radius) <= radius }
-            else if point.x > bounds.maxX - radius {
-                contains = hypot(point.x - (bounds.maxX - radius), point.y - radius) <= radius
-            }
+        let local = panel.convertPoint(fromScreen: NSEvent.mouseLocation)
+        // AppKit's origin is bottom-left; the shape uses a top-left origin.
+        let point = CGPoint(x: local.x, y: panel.frame.height - local.y)
+        let inside = panel.isVisible && state.shape(sessions: sessionStore.sessions)
+            .path(windowWidth: panel.frame.width).contains(point)
+        panel.ignoresMouseEvents = !inside
+        if inside != pointerInside {
+            pointerInside = inside
+            pointerInsideChanged(inside)
         }
-        panel.ignoresMouseEvents = !contains
     }
 }
 

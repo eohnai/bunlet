@@ -17,6 +17,10 @@ public struct HookEnvelopeV1: Encodable, Sendable {
     public let toolName: String?
     public let cwd: String?
     public let terminal: Terminal?
+    /// Display-only preview of the submitted prompt (decision 0019). Present only on UserPromptSubmit.
+    public let promptPreview: String?
+    /// Display-only preview of the agent's last reply (decision 0019). Present only on Stop.
+    public let replyPreview: String?
 
     public struct Terminal: Encodable, Sendable {
         public let kind: String
@@ -32,7 +36,12 @@ public struct HookEnvelopeV1: Encodable, Sendable {
         case eventID = "event_id", sessionID = "session_id"
         case hookEventName = "hook_event_name", observedAtMs = "observed_at_ms"
         case turnID = "turn_id", toolUseID = "tool_use_id", toolName = "tool_name"
+        case promptPreview = "prompt_preview", replyPreview = "reply_preview"
     }
+
+    /// Previews are cut to this many characters, then to the byte limit.
+    public static let previewCharacterLimit = 200
+    public static let previewByteLimit = 1_024
 
     public static let frameLimit = 16_384
     public static let rawHookLimit = 262_144
@@ -47,7 +56,8 @@ public struct HookEnvelopeV1: Encodable, Sendable {
     private static func validate(_ value: JSONValue) throws -> Self {
         guard case .object(let fields) = value else { throw BridgeError.invalidMessage }
         let required: Set<String> = ["version", "event_id", "agent", "session_id", "hook_event_name", "observed_at_ms"]
-        let optional: Set<String> = ["turn_id", "tool_use_id", "tool_name", "cwd", "terminal"]
+        let optional: Set<String> = ["turn_id", "tool_use_id", "tool_name", "cwd", "terminal",
+                                     "prompt_preview", "reply_preview"]
         guard required.isSubset(of: Set(fields.keys)),
               Set(fields.keys).isSubset(of: required.union(optional)),
               fields["version"]?.integer == 1,
@@ -79,6 +89,11 @@ public struct HookEnvelopeV1: Encodable, Sendable {
         guard hook.requiresToolName || (toolID == nil && tool == nil) else {
             throw BridgeError.invalidMessage
         }
+        let promptPreview = try string("prompt_preview", previewByteLimit)
+        let replyPreview = try string("reply_preview", previewByteLimit)
+        guard promptPreview == nil || hook == .userPromptSubmit, replyPreview == nil || hook == .stop else {
+            throw BridgeError.invalidMessage
+        }
         let cwd = try string("cwd", 4096)
         if let cwd, !cwd.hasPrefix("/") { throw BridgeError.invalidMessage }
         var terminal: Terminal?
@@ -92,7 +107,8 @@ public struct HookEnvelopeV1: Encodable, Sendable {
         }
         return Self(version: 1, eventID: eventID, agent: agent, sessionID: session,
                     hookEventName: hook, observedAtMs: timestamp, turnID: turn,
-                    toolUseID: toolID, toolName: tool, cwd: cwd, terminal: terminal)
+                    toolUseID: toolID, toolName: tool, cwd: cwd, terminal: terminal,
+                    promptPreview: promptPreview, replyPreview: replyPreview)
     }
 
     public func frame() throws -> Data {
@@ -136,6 +152,34 @@ public struct HookEnvelopeV1: Encodable, Sendable {
             fields["terminal"] = .object(["kind": .string("otty"), "pane_selector": .string(paneSelector)])
         }
         return try validate(.object(fields))
+    }
+
+    /// Collapses whitespace, drops control and format characters, and bounds length.
+    /// Returns nil for anything that is not non-empty text, so no other JSON type can pass through.
+    static func preview(_ value: JSONValue?) -> JSONValue? {
+        guard let text = value?.string else { return nil }
+        var scalars = String.UnicodeScalarView()
+        var pendingSpace = false
+        for scalar in text.unicodeScalars {
+            let category = scalar.properties.generalCategory
+            if scalar.properties.isWhitespace || category == .control {
+                pendingSpace = !scalars.isEmpty
+                continue
+            }
+            if category == .surrogate || category == .format { continue }
+            if pendingSpace { scalars.append(" ") }
+            pendingSpace = false
+            scalars.append(scalar)
+        }
+        var preview = String(scalars)
+        guard !preview.isEmpty else { return nil }
+        if preview.count > previewCharacterLimit {
+            preview = String(preview.prefix(previewCharacterLimit - 1)) + "…"
+        }
+        while preview.utf8.count > previewByteLimit {
+            preview = String(preview.dropLast(2)) + "…"
+        }
+        return .string(preview)
     }
 
     static func validString(_ text: String, limit: Int) -> Bool {

@@ -59,27 +59,27 @@ struct AppSettingsView: View {
 
     var body: some View {
         NavigationSplitView {
+            // Emoji icons, a plain first section, then a titled one.
             List(selection: $page) {
-                Section("Settings") {
-                    Label("General", systemImage: "gearshape").tag(AppSettingsPage.general)
-                    Label("Features", systemImage: "square.grid.2x2").tag(AppSettingsPage.features)
-                }
-                if !features.installed.isEmpty {
-                    Section("Installed") {
-                        ForEach(AppFeature.allCases.filter(features.installed.contains), id: \.self) { feature in
-                            if let target = AppSettingsPage(rawValue: feature.rawValue) {
-                                Label(feature.title, systemImage: feature.symbol).tag(target)
-                            }
+                Section {
+                    navItem("General", icon: "⚙️", page: .general)
+                    ForEach(AppFeature.allCases.filter(features.installed.contains), id: \.self) { feature in
+                        if let target = AppSettingsPage(rawValue: feature.rawValue) {
+                            navItem(feature.title, icon: feature.emoji, page: target)
                         }
                     }
                 }
+                Section("Bunlet") {
+                    navItem("Features", icon: "🧩", page: .features)
+                }
             }
             .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 150, ideal: 170, max: 210)
+            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 240)
         } detail: {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    if page != .pet { Text(title).font(.title2.weight(.semibold)) }
+                    // The pet page has its own "Meet your pet" heading.
+                    if page != .pet { Text(title).font(.system(size: 22, weight: .bold)).padding(.bottom, -4) }
                     if let issue = features.preferenceIssue {
                         Text(issue == .unsupportedVersion
                              ? "Your feature choices were saved by a newer version. Update Bunlet, then retry."
@@ -172,6 +172,15 @@ struct AppSettingsView: View {
         }
     }
 
+    private func navItem(_ title: String, icon: String, page: AppSettingsPage) -> some View {
+        HStack(spacing: 8) {
+            Text(icon).font(.system(size: 14)).frame(width: 20).accessibilityHidden(true)
+            Text(title).font(.system(size: 13))
+        }
+        .tag(page)
+        .accessibilityLabel(title)
+    }
+
     private var featureRows: some View {
         VStack(spacing: 0) {
             ForEach(AppFeature.allCases, id: \.self) { feature in
@@ -211,8 +220,37 @@ struct AppSettingsView: View {
         .disabled(features.preferenceIssue != nil || features.operationIssue != nil)
     }
 
+    /// The agent list: one row per agent with a status dot, status word and switch.
+    /// "Monitoring" is Bunlet's per-provider consent; setup and delivery evidence stay in the details below (D7).
+    @ViewBuilder private var agentList: some View {
+        if let monitoring = actions.monitoring() {
+            VStack(spacing: 0) {
+                ForEach(Agent.allCases, id: \.self) { provider in
+                    let on = features.monitoringEnabled && monitoring.isEnabled(provider)
+                    HStack(spacing: 10) {
+                        Text(provider == .codex ? "Codex" : "Claude Code").font(.system(size: 13, weight: .medium))
+                        Circle().fill(on ? Color.green : Color.gray).frame(width: 7, height: 7).accessibilityHidden(true)
+                        Text(!features.monitoringEnabled ? "Monitoring off" : on ? "Active" : "Paused")
+                            .font(.system(size: 12)).foregroundStyle(.secondary)
+                        Spacer()
+                        Toggle(provider == .codex ? "Codex" : "Claude Code", isOn: Binding(
+                            get: { monitoring.isEnabled(provider) },
+                            set: { monitoring.setEnabled($0, for: provider) }))
+                            .toggleStyle(.switch).labelsHidden().controlSize(.small)
+                            .disabled(!features.monitoringEnabled)
+                    }
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 14)
+                    if provider != Agent.allCases.last { Divider().padding(.leading, 14) }
+                }
+            }
+            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
     private var agentControls: some View {
         VStack(alignment: .leading, spacing: 16) {
+            agentList
             LabeledContent("Monitoring") {
                 // Swift 6.3.2 crashes when Binding receives the main-actor method reference directly.
                 Toggle("Monitoring", isOn: Binding(get: { features.monitoringEnabled }, set: { features.setMonitoring($0) }))

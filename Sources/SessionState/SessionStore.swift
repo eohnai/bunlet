@@ -183,6 +183,9 @@ public final class SessionStore {
             record.stopped = false
             record.status = .working
             record.reason = nil
+            record.latestPrompt = event.promptPreview
+            record.lastReply = nil
+            record.currentTool = nil
             record.refresh(observation)
             return .applied
 
@@ -198,6 +201,8 @@ public final class SessionStore {
             if record.status == .responseReady { return .repeatedStop }
             record.status = .responseReady
             record.reason = nil
+            record.lastReply = event.replyPreview
+            record.currentTool = nil
             record.refresh(observation)
             return .applied
 
@@ -270,6 +275,7 @@ public final class SessionStore {
             if record.status == .unknown || !record.pending.isEmpty { return .noChange }
             record.status = .working
             record.reason = nil
+            record.currentTool = toolName
             record.refresh(observation)
             return .applied
         }
@@ -341,6 +347,9 @@ private final class Record {
     var receiptMonotonicNs: UInt64?
     var projectPath: String?
     var paneSelector: String?
+    var latestPrompt: String?
+    var lastReply: String?
+    var currentTool: String?
     var seen: [String: Data] = [:]
     var turns: Set<SourceIdentity> = []
     var retired: Set<SourceIdentity> = []
@@ -381,7 +390,8 @@ private final class Record {
                                pendingRequests: requests, captureWatermarkMs: watermarkMs,
                                receiptWallMs: receiptWallMs, receiptMonotonicNs: receiptMonotonicNs,
                                expiryMonotonicNs: deadlineNs, projectPath: projectPath,
-                               paneSelector: paneSelector, hasTerminalRestriction: terminal)
+                               paneSelector: paneSelector, hasTerminalRestriction: terminal,
+                               latestPrompt: latestPrompt, lastReply: lastReply, currentTool: currentTool)
     }
 }
 
