@@ -220,6 +220,8 @@ final class ProviderSetupController {
     static func explanation(_ failure: ProviderSetupFailure, agent: Agent = .codex) -> String {
         let name = agent == .codex ? "Codex" : "Claude Code"
         switch failure {
+        case .executableNotFound:
+            return "Couldn't find \(name). Bunlet looked in your PATH, ~/.local/bin, Homebrew and nvm. Configuration was not changed."
         case .unqualifiedVersion:
             return "This \(name) version has no documented setup binding. Configuration was not changed."
         case .enablementUnverified:
