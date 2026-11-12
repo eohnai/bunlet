@@ -146,4 +146,9 @@ public struct SessionSnapshot: Equatable, Sendable, Identifiable {
     /// An unverified hint. The future terminal adapter must validate it before navigation.
     public let paneSelector: String?
     public let hasTerminalRestriction: Bool
+    /// Display-only previews (decision 0019). Memory only: never logged, persisted or used as evidence.
+    public var latestPrompt: String? = nil
+    public var lastReply: String? = nil
+    /// The tool most recently observed in the current turn; cleared at submit and stop.
+    public var currentTool: String? = nil
 }

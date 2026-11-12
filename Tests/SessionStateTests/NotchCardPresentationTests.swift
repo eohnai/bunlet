@@ -136,4 +136,13 @@ struct NotchCardPresentationTests {
             #expect(NotchPresentation.timerText(seconds: seconds) == expected)
         }
     }
+
+    @Test func displayTextIsRelativeToTheSessionFolder() {
+        #expect(NotchPresentation.displayText("Edit /fictional/app/src/main.swift", cwd: "/fictional/app")
+                == "Edit src/main.swift")
+        #expect(NotchPresentation.displayText("Edit /fictional/app/a", cwd: "/fictional/app/") == "Edit a")
+        #expect(NotchPresentation.displayText("", cwd: nil) == nil)
+        #expect(NotchPresentation.displayText(nil, cwd: "/x") == nil)
+        #expect(NotchPresentation.displayText("/fictional/app/", cwd: "/fictional/app") == nil)
+    }
 }

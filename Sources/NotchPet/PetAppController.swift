@@ -33,6 +33,10 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         self?.pet?.setArtwork(presentation)
     }
     @ObservationIgnored private var islandHiddenForPet = false
+    /// The pet session panel, opened from the pet's speech bubble.
+    @ObservationIgnored private lazy var petSessions = PetSessionPanelController(
+        sessions: sessions, features: features, actions: localActions, navigation: navigation,
+        onOpenFeatures: { [weak self] in self?.showFeatures() }, anchor: { [weak self] in self?.pet?.frameOnScreen })
     @ObservationIgnored private lazy var petReactions = PetSessionAdapter(sessions: sessions) { [weak self] mood, cue in
         self?.pet?.setReaction(mood, cue: cue)
     }
@@ -50,13 +54,15 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             guard let self else { return nil }
             let panel = PetPanelController(size: PetPreferences(defaults: self.defaults).size, defaults: self.defaults, presentation: self.petLibrary.presentation,
                 onDragBegan: { [weak self] in
+                    self?.petSessions.close()
                     self?.islandHiddenForPet = true
                     self?.notch?.setHiddenForPet(true)
                 }, returnTarget: { [weak self] in self?.notch?.returnTarget },
                 onReturn: { [weak self] in
                     self?.islandHiddenForPet = false
                     self?.notch?.setHiddenForPet(false)
-                })
+                }, onBadgeClick: { [weak self] in self?.petSessions.toggle() },
+                onHide: { [weak self] in self?.petSessions.close() })
             panel?.setReaction(self.petReactions.mood, cue: false)
             self.pet = panel
             return panel
@@ -64,7 +70,9 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         .notch: { [weak self] in
             guard let self else { return nil }
             let panel = NotchPanelController(sessionStore: self.sessions, usageStore: self.usage,
-                features: self.features, onOpenFeatures: { [weak self] in self?.showFeatures() }, actions: self.localActions, navigation: self.navigation)
+                features: self.features, onOpenFeatures: { [weak self] in self?.showFeatures() }, actions: self.localActions, navigation: self.navigation,
+                onOpenSettings: { [weak self] in self?.showSettings() },
+                onPillDragOut: { [weak self] in self?.pet?.beginPointerDrag() ?? false })
             self.notch = panel
             return panel
         },

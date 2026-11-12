@@ -30,7 +30,8 @@ struct SessionStoreTests {
                              toolUseID: String? = nil, toolName: String? = nil,
                              observedAtMs: Int64? = nil, wallMs: Int64? = nil,
                              monotonicNs: UInt64? = nil, cwd: String? = nil,
-                             pane: String? = nil) throws -> SessionObservationV1 {
+                             pane: String? = nil, promptPreview: String? = nil,
+                             replyPreview: String? = nil) throws -> SessionObservationV1 {
         let observed = observedAtMs ?? 1_000_000 + Int64(number)
         var fields: [String: Any] = [
             "version": 1, "event_id": String(format: "00000000-0000-0000-0000-%012x", number),
@@ -40,11 +41,27 @@ struct SessionStoreTests {
         fields["tool_use_id"] = toolUseID
         fields["tool_name"] = toolName
         fields["cwd"] = cwd
+        fields["prompt_preview"] = promptPreview
+        fields["reply_preview"] = replyPreview
         if let pane { fields["terminal"] = ["kind": "otty", "pane_selector": pane] }
         let frame = try JSONSerialization.data(withJSONObject: fields, options: [.sortedKeys]) + Data([10])
         return SessionObservationV1(envelope: try HookEnvelopeV1.decode(frame: frame),
                                     receiptWallMs: wallMs ?? observed,
                                     receiptMonotonicNs: monotonicNs ?? UInt64(observed) * 1_000_000)
+    }
+
+    @Test func previewsFollowTheCurrentTurn() throws {
+        let store = SessionStore()
+        #expect(store.apply(try observation(1, promptPreview: "First request")) == .applied)
+        #expect(store.sessions.first?.latestPrompt == "First request")
+        #expect(store.apply(try observation(2, hook: "PreToolUse", toolUseID: "t", toolName: "Bash")) == .applied)
+        #expect(store.sessions.first?.currentTool == "Bash")
+        #expect(store.apply(try observation(3, hook: "Stop", replyPreview: "Done.")) == .applied)
+        let stopped = try #require(store.sessions.first)
+        #expect(stopped.lastReply == "Done." && stopped.currentTool == nil && stopped.latestPrompt == "First request")
+        #expect(store.apply(try observation(4, turnID: "b", promptPreview: "Second request")) == .applied)
+        let next = try #require(store.sessions.first)
+        #expect(next.latestPrompt == "Second request" && next.lastReply == nil)
     }
 
     @Test(arguments: ["codex", "claude"])

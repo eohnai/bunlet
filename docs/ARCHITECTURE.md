@@ -45,7 +45,7 @@ Agent monitoring and pet reactions use agent identity independently of optional 
 | Preferences and pet services | Save preferences and validate local assets | Session history queries |
 
 `NotchSessionView` observes `SessionStore` and `UsageStore` directly. Its expansion and selected-session key are local view state.
-`NotchPresentation`, `NotchAllowancePresentation`, `NotchPlacement`, `PetPresentation` and `PetPlaybackPolicy` provide reusable pure rules.
+`NotchPresentation`, `NotchAllowancePresentation`, `IslandGeometry`, `PetPresentation` and `PetPlaybackPolicy` provide reusable pure rules.
 `PetView` receives pet presentation and playback inputs. It does not observe agent stores.
 An eventual session-to-pet adapter must consume the same authoritative snapshots rather than create another session store.
 
@@ -104,7 +104,7 @@ FM7 remains deferred: native focus, keyboard, removal and relaunch acceptance is
 ## Data flow
 
 An agent event reaches a small local helper through a configured hook.
-The helper's agent adapter projects allowlisted metadata into the shared wire envelope.
+The helper's agent adapter projects allowlisted metadata, plus two bounded display previews (decision 0019), into the shared wire envelope.
 The helper sends one bounded message to the app through the Unix-domain socket.
 The receiver validates the envelope. `SessionEventInbox` queues normalized observations for main-actor delivery.
 The session store applies the event once and publishes updated presentation state.

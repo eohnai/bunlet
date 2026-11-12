@@ -43,6 +43,15 @@ public enum NotchPresentation {
             timer: promptTimer(for: session))
     }
 
+    /// Shows text relative to the session's folder. Empty text shows nothing.
+    public static func displayText(_ text: String?, cwd: String?) -> String? {
+        guard var text, !text.isEmpty else { return nil }
+        if let cwd, !cwd.isEmpty {
+            text = text.replacingOccurrences(of: cwd.hasSuffix("/") ? cwd : cwd + "/", with: "")
+        }
+        return text.isEmpty ? nil : text
+    }
+
     public static func timerText(seconds: Int64) -> String {
         let seconds = max(0, seconds)
         if seconds >= 3600 {
@@ -94,20 +103,5 @@ public enum NotchPresentation {
     public static func selection(_ current: SessionKey?, sessions: [SessionSnapshot]) -> SessionKey? {
         if let current, sessions.contains(where: { $0.key == current }) { return current }
         return ordered(sessions).first?.key
-    }
-}
-
-/// Screen coordinates are supplied by AppKit; the model has no window or process dependencies.
-public enum NotchPlacement {
-    public static func frame(screen: CGRect, safeTop: CGFloat, notchWidth: CGFloat,
-                             expanded: Bool) -> CGRect? {
-        guard [screen.origin.x, screen.origin.y, screen.width, screen.height, safeTop, notchWidth]
-            .allSatisfy({ $0.isFinite }), screen.width > 24, screen.height > 44,
-              safeTop >= 0, notchWidth >= 0, safeTop <= screen.height - 12 else { return nil }
-        let header = max(32, safeTop)
-        let width = min(expanded ? 620 : max(220, notchWidth + 48), screen.width - 24)
-        let height = min(header + (expanded ? 240 : 0), screen.height - 12)
-        return CGRect(x: screen.midX - width / 2, y: screen.maxY - height,
-                      width: width, height: height)
     }
 }

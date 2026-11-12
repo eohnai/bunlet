@@ -59,7 +59,7 @@ struct ContractAndSocketTests {
         #expect(process.terminationStatus == 0)
         struct Case: Decodable { let name: String; let frame: Data; let valid: Bool }
         let cases = try JSONDecoder().decode([Case].self, from: data)
-        #expect(cases.count == 68)
+        #expect(cases.count == 73)
         for item in cases {
             #expect(((try? HookEnvelopeV1.decode(frame: item.frame)) != nil) == item.valid, "\(item.name)")
         }

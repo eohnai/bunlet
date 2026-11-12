@@ -10,7 +10,6 @@ struct NotchSessionView: View {
     let onOpenFeatures: () -> Void
     let windowState: NotchWindowState
     var headerHeight: CGFloat { windowState.headerHeight }
-    var notchWidth: CGFloat { windowState.notchWidth }
     var expanded: Bool { windowState.expanded }
     let onExpand: (Bool) -> Void
     let isVisible: Bool
@@ -19,157 +18,260 @@ struct NotchSessionView: View {
     var actions: LocalActionController? = nil
     var beginInput: () -> Void = {}
     var endInput: () -> Void = {}
+    var onOpenSettings: () -> Void = {}
     @State private var selection: SessionKey?
+    @State private var listContentHeight: CGFloat = 0
+    @State private var detailsKey: SessionKey?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private var sessions: [SessionSnapshot] { sessionStore.sessions }
+    private var attentionCount: Int {
+        sessions.filter { IslandPhase.dominant([$0]) == .attention }.count
+    }
+
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack {
-                Button(action: toggleExpansion) {
-                    Color.clear.contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(expanded ? "Collapse sessions" : "Expand sessions")
-                .accessibilityValue("\(sessionStore.sessions.count) observed sessions")
-
-                // Keep entries outside the button label so they retain their
-                // individual tooltips and accessibility labels.
-                HStack(spacing: 0) {
-                    Color.clear
-                        .overlay {
-                            if expanded && isVisible && !isSleeping {
-                                NotchAllowanceStrip(
-                                    store: usageStore,
-                                    activeProviders: NotchPresentation.activeProviders(sessionStore.sessions))
-                                    .padding(.horizontal, 6)
-                            } else {
-                                Image(systemName: "pawprint.fill")
-                                    .padding(.leading, 6)
-                            }
-                        }
-                        .clipped()
-                    Color.clear.frame(width: notchWidth)
-                    Color.clear
-                        .overlay {
-                            if !expanded {
-                                Text("\(sessionStore.sessions.count)")
-                                    .font(.system(.caption, design: .rounded).weight(.semibold))
-                                    .monospacedDigit()
-                                    .padding(.trailing, 6)
-                            }
-                        }
-                }
-                .contentShape(Rectangle())
-                .onTapGesture(perform: toggleExpansion)
-                .accessibilityElement(children: .contain)
-                .accessibilityHidden(!expanded)
-            }
-            .frame(height: headerHeight)
-
-            if expanded {
-                VStack(alignment: .leading, spacing: 12) {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            HStack {
-                                Text("Sessions").font(.headline)
-                                Spacer()
-                                if windowState.hasKeyboardFocus { Button("Done Editing", action: endInput) }
-                            }
-                            if let actions {
-                                Text(actions.status).font(.caption).foregroundStyle(.secondary)
-                                if actions.store.capacityReached {
-                                    Text("Local response history capacity reached. Return to the existing session for new requests.")
-                                        .font(.caption).foregroundStyle(.orange)
-                                }
-                            }
-                            if let issue = sessionStore.capacityIssue {
-                                Text(issue == .sessionCapacity
-                                     ? "Session capacity reached. New sessions are not being observed. Existing requests are retained."
-                                     : "A session reached its identity or request capacity. Its state is unconfirmed.")
-                                    .font(.callout).foregroundStyle(.yellow)
-                            }
-                            if sessionStore.deliveryOverflowed {
-                                Text("Some events were lost. Affected sessions need fresh evidence.")
-                                    .font(.callout).foregroundStyle(.yellow)
-                            }
-                            if !features.installed.contains(.agents) {
-                                Text("Agents is not installed.").foregroundStyle(.secondary)
-                                Button("Open Features", action: onOpenFeatures)
-                            } else if !features.monitoringEnabled {
-                                Text("Monitoring is off.").foregroundStyle(.secondary)
-                                Button("Open Features", action: onOpenFeatures)
-                            } else if sessionStore.sessions.isEmpty {
-                                Text("No sessions observed yet.").foregroundStyle(.secondary)
-                            }
-                            if NotchPresentation.shouldTickPromptTimers(expanded: expanded && isVisible && !isSleeping,
-                                                                      sessions: sessionStore.sessions) {
-                                TimelineView(.periodic(from: .now, by: 1)) { context in
-                                    sessionCards(at: Int64(context.date.timeIntervalSince1970 * 1000))
-                                }
-                            } else {
-                                sessionCards(at: Int64(Date.now.timeIntervalSince1970 * 1000))
-                            }
-                        }.frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-                .padding(20)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            }
-        }
-        .foregroundStyle(.white)
-        .background {
-            RoundedRectangle(cornerRadius: expanded ? 24 : 16, style: .continuous)
+        let motion: Animation? = reduceMotion ? nil
+            : expanded ? .timingCurve(0.32, 0.02, 0.2, 1, duration: 0.26) : .easeOut(duration: 0.24)
+        ZStack(alignment: .top) {
+            IslandShape(spec: windowState.shape(sessions: sessions))
                 .fill(.black)
-                // Extend the upper corners beyond the screen edge so the panel
-                // joins the physical cutout and only the lower corners remain visible.
-                .padding(.top, expanded ? -24 : -16)
+                .overlay {
+                    IslandShape(spec: windowState.shape(sessions: sessions))
+                        .stroke(.white.opacity(expanded ? 0 : 0.1), lineWidth: 1)
+                }
+                .shadow(color: .black.opacity(expanded ? 0.35 : 0), radius: 8, y: 8)
+                .animation(motion, value: windowState.shape(sessions: sessions))
+
+            pillLayer
+                .frame(width: windowState.pillWidth(sessions: sessions), height: headerHeight)
+                .opacity(expanded ? 0 : 1)
+                .allowsHitTesting(!expanded)
+                .accessibilityHidden(expanded)
+
+            panelLayer
+                .frame(width: windowState.panelWidth)
+                .opacity(expanded ? 1 : 0)
+                .allowsHitTesting(expanded)
+                .accessibilityHidden(!expanded)
         }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: expanded)
+        .phaseAnimator([CGFloat(1), 1.04, 1], trigger: reduceMotion ? 0 : attentionCount) { content, scale in
+            content.scaleEffect(scale, anchor: .top)
+        } animation: { _ in .timingCurve(0.32, 0.02, 0.2, 1, duration: 0.093) }
+        .frame(width: windowState.windowWidth, height: windowState.windowHeight, alignment: .top)
+        .foregroundStyle(.white)
         .preferredColorScheme(.dark)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.24), value: expanded)
         .onExitCommand {
-            windowState.expanded = false
             onExpand(false)
             endInput()
         }
         .onAppear {
-            selection = NotchPresentation.selection(selection, sessions: sessionStore.sessions)
+            selection = NotchPresentation.selection(selection, sessions: sessions)
         }
         .onChange(of: sessionStore.sessions) { _, sessions in
             selection = NotchPresentation.selection(selection, sessions: sessions)
         }
+        .onChange(of: windowState.focusedSession) { _, key in
+            if let key { selection = key }
+        }
+    }
+
+    /// The running label: the prompt of the most recently updated working session.
+    private var latestRunningPrompt: String? {
+        sessions.filter { $0.status == .working }
+            .max { ($0.receiptWallMs ?? 0) < ($1.receiptWallMs ?? 0) }
+            .flatMap { NotchPresentation.displayText($0.latestPrompt, cwd: $0.projectPath) }
+    }
+
+    private var pillLayer: some View {
+        Button(action: toggleExpansion) {
+            IslandPillView(sessions: sessions, hasNotch: windowState.hasNotch, latestPrompt: latestRunningPrompt,
+                           animates: isVisible && !isSleeping && !expanded)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Expand sessions")
+        .accessibilityValue("\(sessions.count) observed sessions")
+    }
+
+    private var panelLayer: some View {
+        VStack(spacing: 0) {
+            usageRow
+            Rectangle().fill(IslandPalette.divider).frame(height: 1).padding(.horizontal, 18)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    notices
+                    if NotchPresentation.shouldTickPromptTimers(expanded: expanded && isVisible && !isSleeping,
+                                                              sessions: sessions) {
+                        TimelineView(.periodic(from: .now, by: 1)) { context in
+                            sessionCards(at: Int64(context.date.timeIntervalSince1970 * 1000))
+                        }
+                    } else {
+                        sessionCards(at: Int64(Date.now.timeIntervalSince1970 * 1000))
+                    }
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                    listContentHeight = height
+                    windowState.panelContentHeight = headerHeight + 1 + min(height, listMaxHeight)
+                }
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollIndicators(.automatic)
+            .frame(height: min(listContentHeight, listMaxHeight))
+        }
+    }
+
+    private var listMaxHeight: CGFloat { max(0, IslandMetrics.panelMaxHeight - headerHeight - 1) }
+
+    /// Sits beside the physical notch: limits on the left, panel actions on the right.
+    private var usageRow: some View {
+        HStack(spacing: 0) {
+            Group {
+                if expanded && isVisible && !isSleeping {
+                    NotchAllowanceStrip(store: usageStore,
+                                        activeProviders: NotchPresentation.activeProviders(sessions))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Color.clear.frame(width: windowState.hasNotch ? windowState.notchWidth : 0)
+            HStack(spacing: 12) {
+                if windowState.hasKeyboardFocus {
+                    Button("Done", action: endInput).buttonStyle(.plain)
+                        .font(.system(size: 12, weight: .medium)).foregroundStyle(IslandPalette.mutedText)
+                }
+                IslandIconButton(systemImage: "gearshape", label: "Settings", action: onOpenSettings)
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        }
+        .padding(.horizontal, 18)
+        .frame(height: headerHeight)
+        // The usage popup extends below the row and must draw over the session list.
+        .zIndex(1)
+    }
+
+    @ViewBuilder private var notices: some View {
+        if let actions {
+            if actions.store.capacityReached {
+                Text("Local response history capacity reached. Return to the existing session for new requests.")
+                    .font(.system(size: 12)).foregroundStyle(.orange)
+            }
+        }
+        if let issue = sessionStore.capacityIssue {
+            Text(issue == .sessionCapacity
+                 ? "Session capacity reached. New sessions are not being observed. Existing requests are retained."
+                 : "A session reached its identity or request capacity. Its state is unconfirmed.")
+                .font(.system(size: 12)).foregroundStyle(IslandPalette.attention)
+        }
+        if sessionStore.deliveryOverflowed {
+            Text("Some events were lost. Affected sessions need fresh evidence.")
+                .font(.system(size: 12)).foregroundStyle(IslandPalette.attention)
+        }
+        if !features.installed.contains(.agents) {
+            emptyState("Agents is not installed.", action: ("Open Features", onOpenFeatures))
+        } else if !features.monitoringEnabled {
+            emptyState("Monitoring is off.", action: ("Open Features", onOpenFeatures))
+        } else if sessions.isEmpty {
+            emptyState("No sessions", action: nil)
+        }
+    }
+
+    private func emptyState(_ text: String, action: (String, () -> Void)?) -> some View {
+        VStack(spacing: 8) {
+            IslandPhaseIcon(kind: .idle, size: 40)
+            Text(text).font(.system(size: 11)).foregroundStyle(.white.opacity(0.9))
+            if let action {
+                Button(action.0, action: action.1).buttonStyle(.plain)
+                    .font(.system(size: 12, weight: .medium)).foregroundStyle(IslandPalette.mutedText)
+            }
+        }
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
     }
 
     private func toggleExpansion() {
-        windowState.expanded.toggle()
-        onExpand(expanded)
+        onExpand(!expanded)
     }
 
     private func sessionCards(at nowMs: Int64) -> some View {
-        LazyVStack(spacing: 10) {
-            ForEach(NotchPresentation.ordered(sessionStore.sessions)) { snapshot in
-                VStack(spacing: 6) {
+        LazyVStack(alignment: .leading, spacing: 24) {
+            ForEach(NotchPresentation.ordered(sessions)) { snapshot in
+                VStack(alignment: .leading, spacing: 12) {
                     NotchSessionCard(snapshot: snapshot,
-                                     presentation: NotchPresentation.card(for: snapshot, among: sessionStore.sessions),
-                                     nowMs: nowMs, selection: $selection)
-                    if selection == snapshot.key, let navigation {
-                        TerminalNavigationView(controller: navigation, session: snapshot.key)
-                    }
-                    ForEach(snapshot.pendingRequests, id: \.eventID) { request in
-                        NotchRequestCard(request: request, hasLocalResponse: actions?.store.snapshots.contains {
-                            $0.observedRequestID == request.eventID &&
-                                SessionKey(agent: $0.offer.provider, sessionID: $0.offer.sessionID) == snapshot.key &&
-                                $0.phase == .available
-                        } == true)
-                    }
-                    if let actions {
-                        ForEach(actions.store.snapshots.filter {
-                            SessionKey(agent: $0.offer.provider, sessionID: $0.offer.sessionID) == snapshot.key
-                        }) { action in
-                            LocalActionView(snapshot: action, controller: actions, beginInput: beginInput)
+                                     presentation: NotchPresentation.card(for: snapshot, among: sessions),
+                                     nowMs: nowMs, isActive: selection == snapshot.key,
+                                     detailsOpen: detailsKey == snapshot.key,
+                                     animates: expanded && isVisible && !isSleeping,
+                                     onJump: navigation.map { navigation in { jump(to: snapshot.key, using: navigation) } },
+                                     onToggleDetails: {
+                                         detailsKey = detailsKey == snapshot.key ? nil : snapshot.key
+                                         selection = snapshot.key
+                                     })
+                    VStack(alignment: .leading, spacing: 8) {
+                        if detailsKey == snapshot.key, let navigation {
+                            TerminalNavigationView(controller: navigation, session: snapshot.key)
+                        }
+                        // A request with a verified local channel is shown by its action card instead.
+                        ForEach(snapshot.pendingRequests.filter { request in
+                            actions?.store.snapshots.contains {
+                                $0.observedRequestID == request.eventID &&
+                                    SessionKey(agent: $0.offer.provider, sessionID: $0.offer.sessionID) == snapshot.key &&
+                                    $0.phase == .available
+                            } != true
+                        }, id: \.eventID) { request in
+                            NotchRequestCard(request: request,
+                                             onJump: navigation.map { navigation in { jump(to: snapshot.key, using: navigation) } })
+                        }
+                        if selection == snapshot.key, snapshot.status == .responseReady, snapshot.lastReply != nil {
+                            CompletionCard(snapshot: snapshot,
+                                           onJump: navigation.map { navigation in { jump(to: snapshot.key, using: navigation) } })
+                        }
+                        if let actions {
+                            ForEach(actions.store.snapshots.filter {
+                                SessionKey(agent: $0.offer.provider, sessionID: $0.offer.sessionID) == snapshot.key
+                            }) { action in
+                                LocalActionView(snapshot: action, controller: actions, beginInput: beginInput)
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    /// A row click returns to the session's terminal, then collapse. Without a known target, show setup instead.
+    private func jump(to key: SessionKey, using navigation: TerminalNavigation) {
+        if navigation.hasLinkedPane(key) {
+            navigation.focusLinkedPane(for: key)
+        } else if navigation.preferredName != nil {
+            navigation.activateApplication()
+        } else {
+            detailsKey = key
+            selection = key
+            return
+        }
+        onExpand(false)
+    }
+}
+
+/// A 16-point panel icon button: half-white, brightening on hover.
+struct IslandIconButton: View {
+    let systemImage: String
+    let label: String
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .medium))
+                .frame(width: 22, height: 22)
+                .foregroundStyle(.white.opacity(hovering ? 0.85 : 0.5))
+                .background(.white.opacity(hovering ? 0.08 : 0), in: RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .accessibilityLabel(label)
+        .help(label)
     }
 }

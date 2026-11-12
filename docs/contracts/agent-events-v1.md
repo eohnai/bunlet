@@ -59,6 +59,8 @@ Two invocations for the same source hook can have different IDs. The store must 
 | `tool_name` | for tool hooks | Source tool name; 1–128 UTF-8 bytes |
 | `cwd` | no | Absolute source project path; 1–4096 UTF-8 bytes |
 | `terminal` | no | Exactly `kind: "otty"` and `pane_selector`, a 1–256-byte string |
+| `prompt_preview` | no | `UserPromptSubmit` only; display preview of the prompt, 1–1024 UTF-8 bytes |
+| `reply_preview` | no | `Stop` only; display preview of the last assistant message, 1–1024 UTF-8 bytes |
 
 Reject unknown fields, explicit nulls, duplicate object keys, invalid UTF-8, and non-finite JSON numbers.
 All strings must exclude Unicode control characters and unpaired surrogates.
@@ -73,9 +75,15 @@ Do not invent missing source identities or a source sequence number.
 `tool_name` is required for `PreToolUse`, `PermissionRequest`, and `PostToolUse`.
 It is forbidden for the other hooks. `tool_use_id` is also forbidden for non-tool hooks.
 
-Omit prompts, commands, file contents, question text, answers, assistant text, transcript paths, credentials, and raw tool input.
+Omit commands, file contents, question text, answers, transcript paths, credentials, and raw tool input.
 Do not open a transcript to fill a missing field.
-These omissions keep the contract small and avoid copying conversation content.
+
+Since [decision 0019](../decisions/0019-show-prompt-and-reply-previews.md), two display previews are the only conversation text:
+the helper projects the source `prompt` into `prompt_preview` and `last_assistant_message` into `reply_preview`.
+It collapses whitespace and control characters to single spaces, drops format characters, and cuts the text to
+200 characters (ending with `…`), then to 1024 UTF-8 bytes. Unlike identities and paths, previews may be truncated.
+A non-string or empty source value is omitted. The app keeps previews in memory for display only;
+they are never logged, persisted, or used as lifecycle or health evidence.
 
 ### Hook mapping: SourceHookV1
 

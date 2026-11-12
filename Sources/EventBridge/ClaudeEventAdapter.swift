@@ -16,6 +16,12 @@ public enum ClaudeEventAdapter {
         }
         // Missing IDs remain missing. Claude's source turn identity is prompt_id, not turn_id.
         fields["turn_id"] = source["prompt_id"]
+        // Only the two display previews from decision 0019; tool input and transcripts stay excluded.
+        switch source["hook_event_name"]?.string {
+        case HookEvent.userPromptSubmit.rawValue: fields["prompt_preview"] = HookEnvelopeV1.preview(source["prompt"])
+        case HookEvent.stop.rawValue: fields["reply_preview"] = HookEnvelopeV1.preview(source["last_assistant_message"])
+        default: break
+        }
         return try HookEnvelopeV1.projected(fields, agent: .claude, observedAtMs: observed,
                                             paneSelector: paneSelector)
     }

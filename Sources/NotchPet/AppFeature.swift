@@ -9,6 +9,15 @@ enum AppFeature: String, CaseIterable, Codable, Sendable {
         }
     }
 
+    /// Sidebar icon.
+    var emoji: String {
+        switch self {
+        case .pet: "🐰"
+        case .notch: "🖥️"
+        case .agents: "🤖"
+        }
+    }
+
     var symbol: String {
         switch self {
         case .pet: "pawprint"
