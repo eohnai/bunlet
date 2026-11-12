@@ -16,6 +16,8 @@ final class NotchWindowState {
     var windowHeight: CGFloat = IslandMetrics.windowHeight
     /// Measured height of the open panel's content, reported by the view.
     var panelContentHeight: CGFloat = 300
+    /// General → Maximum panel height.
+    var panelMaxHeight: CGFloat = IslandMetrics.panelMaxHeight
     var hasKeyboardFocus = false
     /// The session a notification opened the island for; the view makes it the active row.
     var focusedSession: SessionKey?

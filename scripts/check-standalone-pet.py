@@ -149,9 +149,7 @@ def main() -> None:
     root = args.artifacts.resolve() / uuid.uuid4().hex
     repo = Path(__file__).resolve().parents[1]
     assert not root.is_relative_to(repo), "artifacts must stay outside the repository"
-    resource = app / "Contents/Resources/NotchPet_Pet.bundle"
-    assert resource.is_dir(), "packaged Pet resource bundle missing"
-    assert list(resource.rglob("white-lionhead-idle.png")), "packaged rabbit missing"
+    # Decision 0020: no built-in pet ships; the user supplies their own image.
     root.mkdir(parents=True)
     (root / "control.swift").write_text(CONTROL)
     control = root / "control"

@@ -1,6 +1,6 @@
 # 0013: Use one app with an independent pet module
 
-- Status: accepted
+- Status: superseded by [0020](0020-one-app-with-pet-mode.md) on 2026-11-12
 - Date: 2026-10-30
 
 ## Context

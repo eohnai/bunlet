@@ -69,7 +69,7 @@ public struct PetView: View {
                     .interpolation(.high)
                     .scaledToFit()
             } else {
-                Image(systemName: "pawprint")
+                Image(systemName: "hare")
                     .foregroundStyle(.secondary)
                     .accessibilityLabel("Pet artwork unavailable")
             }
@@ -100,7 +100,7 @@ private enum PetFrameImages {
         if let cached = cache.object(forKey: key) { return cached }
         let image: NSImage?
         if let bytes = presentation.data(for: frame) { image = NSImage(data: bytes) }
-        else { image = PetArtwork.url(for: frame).flatMap(NSImage.init(contentsOf:)) }
+        else { image = nil }
         guard let image else { return nil }
         let pixels = image.cgImage(forProposedRect: nil, context: nil, hints: nil)
         cache.setObject(image, forKey: key, cost: min(4 * 1024 * 1024, (pixels?.width ?? 1) * (pixels?.height ?? 1) * 4))

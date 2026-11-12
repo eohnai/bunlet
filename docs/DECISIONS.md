@@ -144,7 +144,7 @@ Percent left is rounded down, so the notch never shows more allowance than is re
 
 ## D7: Install and uninstall features from Settings
 
-- Status: accepted
+- Status: superseded by [0020](decisions/0020-one-app-with-pet-mode.md) on 2026-11-12
 - Date: 2026-11-02
 
 **Context.** The user prefers Vorssaint's modular feature selection. They want Pet without Notch,

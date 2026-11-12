@@ -36,13 +36,12 @@ struct ProviderSetupView: View {
                 Button(isMonitoring ? "Pause" : "Resume") {
                     let resume = !isMonitoring
                     monitoring.setEnabled(resume, for: controller.agent)
-                    if resume, monitoring.isEnabled(controller.agent) { features.setMonitoring(true) }
                 }
                 Button("Disconnect…") { controller.requestConfirmation(.disconnect) }
                 Text(isMonitoring ? "Monitoring enabled" : "Monitoring paused")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            .disabled(controller.operation != nil || features.preferenceIssue != nil || features.operationIssue != nil)
+            .disabled(controller.operation != nil)
             if monitoring.writeIssue == controller.agent {
                 Text("Monitoring is paused for this run; its preference could not be saved. Retry before reopening.")
                     .font(.caption).foregroundStyle(.red)
@@ -97,13 +96,7 @@ struct ProviderSetupView: View {
                 }
             }
             if controller.agent == .claude { responseControls }
-            if !features.installed.contains(.notch) {
-                Text("Notch is not installed. Monitoring can run independently; add Notch from Features to see session cards and limits.")
-                    .font(.callout).foregroundStyle(.secondary)
-                Button("Manage Features", action: showFeatures)
-            } else {
-                Button("Show Notch", action: showNotch)
-            }
+            Button("Show Notch", action: showNotch)
         }
         .alert("\(confirmationTitle) \(controller.providerName)?",
                isPresented: confirmation) {

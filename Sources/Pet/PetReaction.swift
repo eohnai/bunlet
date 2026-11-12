@@ -15,7 +15,7 @@ public enum PetMood: String, Sendable {
 
     public var symbol: String {
         switch self {
-        case .idle: "pawprint"
+        case .idle: "hare"
         case .working: "ellipsis"
         case .attention: "exclamationmark.bubble"
         case .responseReady: "bubble.left"

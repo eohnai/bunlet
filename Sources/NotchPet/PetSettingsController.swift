@@ -10,6 +10,8 @@ final class PetSettingsController {
     private let window: PetSettingsWindow
     private let defaults: UserDefaults
     private let features: FeatureSettingsModel
+    private let settings: BunletSettings
+    private let onRemoveAllHooks: () -> Void
     private let onSizeChange: (Double) -> Void
     private let onShowPet: () -> Void
     private let onShowNotch: () -> Void
@@ -25,7 +27,8 @@ final class PetSettingsController {
     private let onReturnPet: () -> Void
     private let readLocalActions: () -> LocalActionController?
 
-    init(defaults: UserDefaults, features: FeatureSettingsModel, onSizeChange: @escaping (Double) -> Void,
+    init(defaults: UserDefaults, features: FeatureSettingsModel, settings: BunletSettings,
+         onRemoveAllHooks: @escaping () -> Void, onSizeChange: @escaping (Double) -> Void,
          onShowPet: @escaping () -> Void, onShowNotch: @escaping () -> Void,
          readHealth: @escaping () -> [IntegrationHealthSnapshot],
          readCodex: @escaping () -> ProviderSetupController? = { nil },
@@ -39,6 +42,8 @@ final class PetSettingsController {
          readNavigation: @escaping () -> TerminalNavigation? = { nil }) {
         self.defaults = defaults
         self.features = features
+        self.settings = settings
+        self.onRemoveAllHooks = onRemoveAllHooks
         self.onSizeChange = onSizeChange
         self.onShowPet = onShowPet
         self.onShowNotch = onShowNotch
@@ -52,9 +57,15 @@ final class PetSettingsController {
         self.readPetLibrary = readPetLibrary
         self.onOpenSessions = onOpenSessions
         self.readNavigation = readNavigation
-        window = PetSettingsWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 520),
-                                   styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-        window.contentMinSize = NSSize(width: 660, height: 480)
+        // The sidebar runs under the traffic-light buttons, as in the reference settings window.
+        window = PetSettingsWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 560),
+                                   styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+                                   backing: .buffered, defer: false)
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.isMovableByWindowBackground = true
+        window.title = "Bunlet Settings"
+        window.contentMinSize = NSSize(width: 680, height: 520)
         window.isReleasedWhenClosed = false
         window.tabbingMode = .disallowed
         window.appearance = NSAppearance(named: .darkAqua)
@@ -70,24 +81,19 @@ final class PetSettingsController {
 
     func show(page requested: AppSettingsPage? = nil, activate: Bool = true) {
         if !window.isVisible || requested != nil {
-            let page = requested ?? AppSettingsPage(rawValue: defaults.string(forKey: "settings.selectedPane") ?? "features") ?? .features
+            let page = requested ?? AppSettingsPage(rawValue: defaults.string(forKey: "settings.selectedPane") ?? "") ?? .general
             let actions = AppSettingsActions(resizePet: { [weak self] size in
                 guard let self else { return }
                 var preferences = PetPreferences(defaults: self.defaults)
                 preferences.size = size
                 self.onSizeChange(preferences.size)
-            }, finishPetSetup: { [weak self] in
-                guard let self else { return }
-                self.defaults.set(true, forKey: "pet.setupComplete")
-                self.close()
-            }, close: { [weak self] in self?.close() }, showPet: onShowPet, showNotch: onShowNotch,
-                health: readHealth, selectPage: { [weak self] raw in
-                    guard let self else { return }
-                    self.defaults.set(raw, forKey: "settings.selectedPane")
-                    self.window.title = AppFeature(rawValue: raw)?.title ?? raw.capitalized
-                }, codex: readCodex, claude: readClaude, monitoring: readMonitoring, quota: readQuota, localActions: readLocalActions, returnPet: onReturnPet, petLibrary: readPetLibrary, openSessions: onOpenSessions, navigation: readNavigation)
-            window.contentView = NSHostingView(rootView: PetWindowPlayback(window: window) { [features, defaults] visible, sleeping in
-                AppSettingsView(features: features, defaults: defaults, actions: actions, page: page,
+            }, close: { [weak self] in self?.close() }, showPet: onShowPet, returnPet: onReturnPet,
+                showNotch: onShowNotch, openSessions: onOpenSessions, health: readHealth,
+                selectPage: { [weak self] page in self?.defaults.set(page.rawValue, forKey: "settings.selectedPane") },
+                removeAllHooks: onRemoveAllHooks, codex: readCodex, claude: readClaude, monitoring: readMonitoring,
+                quota: readQuota, localActions: readLocalActions, petLibrary: readPetLibrary, navigation: readNavigation)
+            window.contentView = NSHostingView(rootView: PetWindowPlayback(window: window) { [features, settings, defaults] visible, sleeping in
+                AppSettingsView(features: features, settings: settings, defaults: defaults, actions: actions, page: page,
                                 isVisible: visible, isSleeping: sleeping)
             })
         }
@@ -108,7 +114,6 @@ final class PetSettingsController {
     }
 
     func close() {
-        features.cancelUninstall()
         window.close()
     }
 }

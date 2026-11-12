@@ -8,13 +8,14 @@ import UniformTypeIdentifiers
 @Observable
 final class PetLibraryModel {
     private(set) var choices: [PetPackChoice] = []
-    private(set) var selectedID = "builtin"
-    private(set) var presentation = PetArtwork.presentation()
-    private(set) var message = "Choose a manifest/PNG pack folder to import your own pet."
+    /// Empty until the user imports a pet; there is no built-in pet (decision 0020).
+    private(set) var selectedID = ""
+    private(set) var presentation: PetPresentation?
+    private(set) var message = "No pet yet. Choose an image to make your own."
     private(set) var busy = false
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let root: URL?
-    @ObservationIgnored private let onChange: (PetPresentation) -> Void
+    @ObservationIgnored private let onChange: (PetPresentation?) -> Void
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var worker: Task<Result, Error>?
     @ObservationIgnored private var picker: NSOpenPanel?
@@ -34,14 +35,18 @@ final class PetLibraryModel {
         case folder, png, sheet
     }
 
-    init(defaults: UserDefaults, onChange: @escaping (PetPresentation) -> Void) {
+    init(defaults: UserDefaults, onChange: @escaping (PetPresentation?) -> Void) {
         self.defaults = defaults
         self.onChange = onChange
         root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
             .appendingPathComponent("NotchPet/Pets", isDirectory: true)
     }
 
-    func start() { perform(.restore(defaults.string(forKey: Self.selectionKey) ?? "builtin")) }
+    func start() {
+        let saved = defaults.string(forKey: Self.selectionKey) ?? ""
+        // An earlier build's "builtin" choice now means no pet until the user imports one.
+        perform(.restore(saved == "builtin" ? "" : saved))
+    }
     func select(_ id: String) { perform(.select(id)) }
 
     func chooseImport() { choose(.folder) }
@@ -88,12 +93,12 @@ final class PetLibraryModel {
 
     private func perform(_ operation: Operation) {
         guard !busy else { return }
-        if case .select(let id) = operation, id == "builtin" {
-            guard let builtIn = PetArtwork.presentation(), saveSelection("builtin") else { return }
-            selectedID = "builtin"
-            presentation = builtIn
-            onChange(builtIn)
-            message = "Built-in pet selected. Imported packs are retained."
+        if case .select(let id) = operation, id.isEmpty {
+            guard saveSelection("") else { return }
+            selectedID = ""
+            presentation = nil
+            onChange(nil)
+            message = "Pet turned off. Imported pets are kept."
             return
         }
         guard let root else {
@@ -108,10 +113,10 @@ final class PetLibraryModel {
             switch operation {
             case .restore(let saved), .select(let saved):
                 id = saved
-                pack = saved == "builtin" ? nil : try PetPackLibrary.load(id: saved, at: root)
+                pack = saved.isEmpty ? nil : try PetPackLibrary.load(id: saved, at: root)
             case .importFolder(let source):
                 pack = try PetPackLibrary.importPack(from: source, to: root)
-                id = pack?.choice.id ?? "builtin"
+                id = pack?.choice.id ?? ""
             case .animatePNG(let source):
                 let imported = try PetPackLibrary.importPNG(from: source, to: root)
                 pack = imported
@@ -134,10 +139,7 @@ final class PetLibraryModel {
             do {
                 let result = try await withTaskCancellationHandler(operation: { try await job.value }, onCancel: { job.cancel() })
                 try Task.checkCancellation()
-                guard let presentation = result.pack?.presentation ?? PetArtwork.presentation() else {
-                    self.message = "Built-in pet artwork is unavailable. Your selection is unchanged."
-                    return
-                }
+                let presentation = result.pack?.presentation
                 if case .restore = operation {} else {
                     guard self.saveSelection(result.id) else { return }
                 }
@@ -145,13 +147,14 @@ final class PetLibraryModel {
                 self.selectedID = result.id
                 self.presentation = presentation
                 self.onChange(presentation)
-                self.message = "Pet selection saved. Missing optional animations use idle artwork."
+                self.message = presentation == nil ? "No pet yet. Choose an image to make your own."
+                    : "Pet saved. Missing optional animations use the idle pose."
             } catch is CancellationError {
                 self.message = "Import or selection cancelled. Your current pet is unchanged. A finished copy may remain available after reopening Settings."
             } catch let failure as PetPackFailure {
                 self.message = Self.explanation(failure)
                 if case .restore = operation {
-                    self.message += " Showing the built-in pet; your saved selection is retained. Choose the built-in pet to reset it."
+                    self.message += " The pet stays hidden until you choose another image; your saved selection is retained."
                     // Keep recovery choices usable even if one selected pack is invalid/missing.
                     let recovery = Task.detached { try? PetPackLibrary.choices(at: root) }
                     let recovered = await withTaskCancellationHandler(operation: { await recovery.value }, onCancel: { recovery.cancel() })

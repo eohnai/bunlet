@@ -1,3 +1,4 @@
+import AgentActions
 import AppKit
 import Combine
 import QuartzCore
@@ -28,12 +29,20 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
     private var lastSessions: [SessionSnapshot] = []
     private let sessionStore: SessionStore
     private let actions: LocalActionController?
+    private let settings: BunletSettings
+    private var settingsObservation: ObservationLoop<[String]>?
+    private var shortcutObservation: ObservationLoop<[String]>?
+    private let hotKeys = HotKeyCenter()
+    private let navigation: TerminalNavigation?
 
     init(sessionStore: SessionStore, usageStore: UsageStore,
          features: FeatureSettingsModel, onOpenFeatures: @escaping () -> Void,
          actions: LocalActionController? = nil, navigation: TerminalNavigation? = nil,
+         settings: BunletSettings,
          onOpenSettings: @escaping () -> Void = {}, onPillDragOut: @escaping () -> Bool = { false }) {
         self.sessionStore = sessionStore
+        self.settings = settings
+        self.navigation = navigation
         self.onPillDragOut = onPillDragOut
         self.actions = actions
         panel = ActionNotchPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
@@ -56,7 +65,7 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
                 onExpand: { [weak self] expanded in self?.setExpanded(expanded) },
                 isVisible: visible, isSleeping: asleep, navigation: navigation, actions: actions,
                 beginInput: { [weak self] in self?.beginInput() }, endInput: { [weak self] in self?.endInput() },
-                onOpenSettings: onOpenSettings)
+                onOpenSettings: onOpenSettings, settings: settings)
         })
         updatePlacement()
     }
@@ -126,6 +135,22 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
             }
             return consumed ? nil : event
         }
+        // Screen choice and panel height change the window; following the active app needs app switches too.
+        settingsObservation = ObservationLoop({ [settings] in
+            [settings.islandDisplay.rawValue, String(settings.panelMaxHeight)]
+        }) { [weak self] _ in self?.recover() }
+        workspace.publisher(for: NSWorkspace.didActivateApplicationNotification)
+            .receive(on: DispatchQueue.main).sink { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self, self.settings.islandDisplay == .automatic else { return }
+                    self.recover()
+                }
+            }.store(in: &subscriptions)
+        // Re-register shortcuts when their switches change or a request becomes answerable.
+        shortcutObservation = ObservationLoop({ [settings, actions] in
+            settings.enabledShortcuts.map(\.rawValue).sorted()
+                + (actions?.store.snapshots.filter { $0.phase == .available }.map(\.id.uuidString) ?? [])
+        }) { [weak self] _ in self?.updateHotKeys() }
         lastSessions = sessionStore.sessions
         notificationObservation = ObservationLoop({ [sessionStore] in sessionStore.sessions }) { [weak self] sessions in
             self?.sessionsChanged(sessions)
@@ -145,6 +170,11 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         pointerInside = false
         notificationObservation?.cancel()
         notificationObservation = nil
+        settingsObservation?.cancel()
+        settingsObservation = nil
+        shortcutObservation?.cancel()
+        shortcutObservation = nil
+        hotKeys.unregisterAll()
         cancelTimers()
         state.expanded = false
         endInput()
@@ -172,6 +202,7 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
             endInput()
         }
         updateVisibility()
+        updateHotKeys()
     }
 
     /// The closed pill in screen coordinates, where a dragged pet returns.
@@ -204,11 +235,15 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         }
     }
 
-    func windowDidBecomeKey(_ notification: Notification) { state.hasKeyboardFocus = true }
+    func windowDidBecomeKey(_ notification: Notification) {
+        state.hasKeyboardFocus = true
+        updateHotKeys()
+    }
 
     func windowDidResignKey(_ notification: Notification) {
         state.hasKeyboardFocus = false
         previousApplication = nil
+        updateHotKeys()
     }
 
     private func recover() {
@@ -231,10 +266,28 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
     }
 
+    /// Main display is the menu-bar screen. Automatic follows the screen holding the active app's front window.
     private func preferredScreen() -> NSScreen? {
         let screens = NSScreen.screens
+        if settings.islandDisplay == .automatic, let screen = activeAppScreen(screens) { return screen }
         let previous = displayID.flatMap { wanted in screens.first(where: { identifier($0) == wanted }) }
-        return screens.first(where: { $0.safeAreaInsets.top > 0 }) ?? previous ?? NSScreen.main
+        return screens.first ?? previous ?? NSScreen.main
+    }
+
+    /// Window bounds need no screen-recording permission; names and contents are never read.
+    private func activeAppScreen(_ screens: [NSScreen]) -> NSScreen? {
+        guard let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
+              let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+                as? [[String: Any]],
+              let front = windows.first(where: {
+                  ($0[kCGWindowOwnerPID as String] as? pid_t) == pid && ($0[kCGWindowLayer as String] as? Int) == 0
+              }),
+              let bounds = front[kCGWindowBounds as String] as? [String: CGFloat],
+              let primary = screens.first else { return nil }
+        // Window bounds use a top-left origin on the primary screen; NSScreen frames use bottom-left.
+        let center = CGPoint(x: (bounds["X"] ?? 0) + (bounds["Width"] ?? 0) / 2,
+                             y: primary.frame.maxY - (bounds["Y"] ?? 0) - (bounds["Height"] ?? 0) / 2)
+        return screens.first { $0.frame.contains(center) }
     }
 
     private func cutoutWidth(_ screen: NSScreen) -> CGFloat {
@@ -243,7 +296,8 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
     }
 
     private func windowFrame(on screen: NSScreen) -> CGRect? {
-        IslandGeometry.windowFrame(screen: screen.frame, safeTop: screen.safeAreaInsets.top)
+        IslandGeometry.windowFrame(screen: screen.frame, safeTop: screen.safeAreaInsets.top,
+                                   panelMaxHeight: settings.panelMaxHeight)
     }
 
     /// The window never moves while open or closed; only the shape inside it animates.
@@ -261,6 +315,7 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
                                                          menuBarHeight: screen.frame.maxY - screen.visibleFrame.maxY)
         state.windowWidth = frame.width
         state.windowHeight = frame.height
+        state.panelMaxHeight = settings.panelMaxHeight
         panel.setFrame(frame, display: true)
         updateMousePassThrough()
     }
@@ -272,6 +327,58 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         state.expanded = expanded
         if !expanded { endInput() }
         updateMousePassThrough()
+        updateHotKeys()
+    }
+
+    // MARK: Shortcuts (decision 0021)
+
+    /// ⌃I works everywhere. Panel keys exist only while the panel is open, and ⌃Y/⌃N only while
+    /// a permission can be answered here, so they don't take keys from the terminal the rest of the time.
+    private func updateHotKeys() {
+        let live = running && !sleeping
+        let open = live && !hiddenForPet && state.expanded
+        bind(.toggleIsland, .controlI, when: live) { [weak self] in self?.toggleIsland() }
+        // While the panel has keyboard focus its own Escape handling applies.
+        bind(.collapse, .escape, when: open && !state.hasKeyboardFocus) { [weak self] in self?.setExpanded(false) }
+        let answerable = open && availablePermission != nil
+        bind(.approve, .controlY, when: answerable) { [weak self] in self?.answerPermission(.approveOnce) }
+        bind(.deny, .controlN, when: answerable) { [weak self] in self?.answerPermission(.deny) }
+        bind(.jump, .controlReturn, when: open && navigation != nil) { [weak self] in self?.jumpToFocusedSession() }
+    }
+
+    private func bind(_ shortcut: BunletSettings.Shortcut, _ key: HotKeyCenter.Key, when active: Bool,
+                      action: @escaping () -> Void) {
+        if active && settings.isShortcutOn(shortcut) { hotKeys.register(key, action: action) } else { hotKeys.unregister(key) }
+    }
+
+    private func toggleIsland() {
+        if state.expanded && !hiddenForPet { setExpanded(false) } else { openSessions() }
+    }
+
+    /// The first permission request with a verified local channel, in island order.
+    private var availablePermission: ActionSnapshot? {
+        guard let actions else { return nil }
+        let order = NotchPresentation.ordered(sessionStore.sessions).map(\.key)
+        return actions.store.snapshots
+            .filter { $0.phase == .available && $0.offer.kind == .permission }
+            .min { left, right in
+                let a = order.firstIndex(of: SessionKey(agent: left.offer.provider, sessionID: left.offer.sessionID)) ?? .max
+                let b = order.firstIndex(of: SessionKey(agent: right.offer.provider, sessionID: right.offer.sessionID)) ?? .max
+                return a < b
+            }
+    }
+
+    private func answerPermission(_ choice: ActionChoice) {
+        guard let actions, let request = availablePermission else { return }
+        actions.send(request.id, choice: choice)
+    }
+
+    private func jumpToFocusedSession() {
+        guard let navigation else { return }
+        let key = state.focusedSession.flatMap { key in sessionStore.sessions.contains { $0.key == key } ? key : nil }
+            ?? NotchPresentation.ordered(sessionStore.sessions).first?.key
+        guard let key, navigation.jump(to: key) else { return }
+        setExpanded(false)
     }
 
     private func cancelTimers() {
@@ -292,9 +399,12 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
             hoverTask = Task { [weak self] in
                 try? await Task.sleep(for: IslandMetrics.hoverOpenDelay)
                 guard !Task.isCancelled, let self, self.pointerInside else { return }
+                if self.settings.hapticFeedback {
+                    NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+                }
                 self.setExpanded(true)
             }
-        } else if state.expanded, !state.hasKeyboardFocus {
+        } else if state.expanded, !state.hasKeyboardFocus, settings.collapseOnMouseLeave {
             hoverTask = Task { [weak self] in
                 try? await Task.sleep(for: IslandMetrics.leaveCloseDelay)
                 guard !Task.isCancelled, let self, !self.pointerInside, !self.state.hasKeyboardFocus else { return }
@@ -303,18 +413,30 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         }
     }
 
-    /// New approvals, questions and completions open the island without taking focus.
+    /// New approvals, questions and completions play their sounds and, if the Behavior settings allow,
+    /// open the island without taking focus.
     private func sessionsChanged(_ sessions: [SessionSnapshot]) {
         defer { lastSessions = sessions }
-        guard running, !sleeping, !hiddenForPet,
-              let notification = IslandNotification.next(previous: lastSessions, current: sessions) else { return }
+        guard running, !sleeping else { return }
+        if !IslandAutoOpen.newSessions(previous: lastSessions, current: sessions).isEmpty { settings.play(.sessionStart) }
+        guard let notification = IslandNotification.next(previous: lastSessions, current: sessions) else { return }
+        switch notification {
+        case .attention: settings.play(.actionNeeded)
+        case .completed: settings.play(.taskComplete)
+        }
+        guard !hiddenForPet,
+              IslandAutoOpen.shouldOpen(notification, expandOnActionNeeded: settings.expandOnActionNeeded,
+                                        expandOnSessionEnd: settings.expandOnSessionEnd,
+                                        focusAwareSuppression: settings.focusAwareSuppression,
+                                        frontmostBundleID: NSWorkspace.shared.frontmostApplication?.bundleIdentifier)
+        else { return }
         let wasExpanded = state.expanded
         state.focusedSession = notification.key
         setExpanded(true)
         guard !wasExpanded || autoCloseTask == nil else { return }
         if case .attention(let key) = notification, hasLocalResponse(for: key) { return }
         autoCloseTask = Task { [weak self] in
-            try? await Task.sleep(for: IslandMetrics.completionPopupDuration)
+            try? await Task.sleep(for: .seconds(self?.settings.reminderSeconds ?? 5))
             guard !Task.isCancelled, let self, !self.pointerInside, !self.state.hasKeyboardFocus else { return }
             self.setExpanded(false)
         }

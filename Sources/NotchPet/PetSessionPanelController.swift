@@ -102,10 +102,8 @@ private struct PetSessionPanelView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                if !features.installed.contains(.agents) {
-                    empty("Agents is not installed.", action: ("Open Features", onOpenFeatures))
-                } else if sessions.sessions.isEmpty {
-                    empty("No sessions", action: nil)
+                if sessions.sessions.isEmpty {
+                    empty("No sessions", action: ("Connect agents", onOpenFeatures))
                 } else if model.isOpen {
                     TimelineView(.periodic(from: .now, by: 1)) { context in
                         rows(nowMs: Int64(context.date.timeIntervalSince1970 * 1000))
@@ -153,13 +151,7 @@ private struct PetSessionPanelView: View {
     }
 
     private func jump(_ key: SessionKey, _ navigation: TerminalNavigation) {
-        if navigation.hasLinkedPane(key) {
-            navigation.focusLinkedPane(for: key)
-        } else if navigation.preferredName != nil {
-            navigation.activateApplication()
-        } else {
-            navigation.chooseApplication()
-        }
+        if !navigation.jump(to: key) { navigation.chooseApplication() }
         onJumped()
     }
 

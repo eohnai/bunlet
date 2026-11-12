@@ -12,7 +12,7 @@ struct NotchPetApp: App {
     @NSApplicationDelegateAdaptor(PetAppController.self) private var delegate
 
     var body: some Scene {
-        MenuBarExtra("Bunlet", systemImage: "pawprint.fill") {
+        MenuBarExtra("Bunlet", systemImage: "hare.fill") {
             CompanionMenu(controller: delegate)
         }
         .menuBarExtraStyle(.menu)

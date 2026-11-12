@@ -44,10 +44,10 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     @ObservationIgnored private weak var notch: NotchPanelController?
     @ObservationIgnored private weak var agents: AgentServices?
     @ObservationIgnored private var settings: PetSettingsController?
-    @ObservationIgnored lazy var features = FeatureSettingsModel(defaults: defaults, apply: { [weak self] installed, monitoring in
+    /// Personal settings (decision 0021), shared by the settings window and the island.
+    @ObservationIgnored private(set) lazy var preferences = BunletSettings(defaults: defaults)
+    @ObservationIgnored lazy var features = FeatureSettingsModel(apply: { [weak self] installed, monitoring in
         self?.applyRuntimes(installed, monitoring: monitoring) ?? installed
-    }, pendingNotices: { [weak self] in
-        self?.sessions.sessions.reduce(0) { $0 + $1.pendingRequests.count } ?? 0
     })
     @ObservationIgnored private lazy var runtimes = FeatureRuntimeOwner(factories: [
         .pet: { [weak self] in
@@ -63,7 +63,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
                     self?.notch?.setHiddenForPet(false)
                 }, onBadgeClick: { [weak self] in self?.petSessions.toggle() },
                 onHide: { [weak self] in self?.petSessions.close() })
-            panel?.setReaction(self.petReactions.mood, cue: false)
+            panel.setReaction(self.petReactions.mood, cue: false)
             self.pet = panel
             return panel
         },
@@ -71,7 +71,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             guard let self else { return nil }
             let panel = NotchPanelController(sessionStore: self.sessions, usageStore: self.usage,
                 features: self.features, onOpenFeatures: { [weak self] in self?.showFeatures() }, actions: self.localActions, navigation: self.navigation,
-                onOpenSettings: { [weak self] in self?.showSettings() },
+                settings: self.preferences, onOpenSettings: { [weak self] in self?.showSettings() },
                 onPillDragOut: { [weak self] in self?.pet?.beginPointerDrag() ?? false })
             self.notch = panel
             return panel
@@ -92,7 +92,8 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         petLibrary.start()
         petReactions.start()
         features.start()
-        settings = PetSettingsController(defaults: defaults, features: features, onSizeChange: { [weak self] size in
+        settings = PetSettingsController(defaults: defaults, features: features, settings: preferences,
+            onRemoveAllHooks: { [weak self] in self?.removeAllHooks() }, onSizeChange: { [weak self] size in
             self?.pet?.setSize(size)
         }, onShowPet: { [weak self] in self?.showPet() }, onShowNotch: { [weak self] in self?.showNotch() },
             readHealth: { [weak self] in self?.healthSnapshots ?? [] },
@@ -105,9 +106,6 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             readPetLibrary: { [weak self] in self?.petLibrary },
             onOpenSessions: { [weak self] in self?.openSessions() },
             readNavigation: { [weak self] in self?.navigation })
-        if installed.contains(.pet) && !defaults.bool(forKey: "pet.setupComplete") {
-            settings?.show(page: .pet, activate: false)
-        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
             guard let self else { return }
             self.pet?.writeEvidence(phase: "launched", agentsEnabled: self.monitoringEnabled,
@@ -116,23 +114,19 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     }
 
     func showPet() {
-        guard installed.contains(.pet) else { return }
         pet?.reveal()
     }
 
     func returnPet() {
-        guard installed.contains(.pet) else { return }
         pet?.returnPet()
     }
 
     func showNotch() {
-        guard installed.contains(.notch) else { return }
         islandHiddenForPet = false
         notch?.show()
     }
 
     func openSessions() {
-        guard installed.contains(.notch) else { return }
         islandHiddenForPet = false
         notch?.openSessions()
     }
@@ -156,16 +150,14 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         if !monitoring { active.remove(.agents) }
         runtimes.apply(active)
         notch?.setHiddenForPet(islandHiddenForPet)
-        // Installing or removing Notch changes whether a returned pet docks inside the island.
+        // Once the island exists, a returned pet docks inside it.
         pet?.show()
         return runtimes.unavailableFeatures
     }
 
     private func makeProviderSetup(_ agent: Agent) -> ProviderSetupController {
         ProviderSetupController(agent: agent, onConnected: { [weak self] in
-            guard let self, self.installed.contains(.agents) else { return }
-            self.providerMonitoring.setEnabled(true, for: agent)
-            if self.providerMonitoring.isEnabled(agent) { self.features.setMonitoring(true) }
+            self?.providerMonitoring.setEnabled(true, for: agent)
         }, onPaused: { [weak self] in
             self?.providerMonitoring.setEnabled(false, for: agent)
         }, onActionsConsent: { [weak self] enabled in
@@ -176,7 +168,6 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     }
 
     func requestSetup(_ action: ProviderSetupAction, agent: Agent) {
-        guard installed.contains(.agents) else { return }
         settings?.show(page: .agents)
         let setup = agent == .codex ? codexSetup : claudeSetup
         if action.isCheck { setup?.start(action) }
@@ -184,18 +175,21 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     }
 
     func toggleProviderMonitoring(_ agent: Agent) {
-        guard installed.contains(.agents) else { return }
-        let resume = !(monitoringEnabled && providerMonitoring.isEnabled(agent))
+        let resume = !providerMonitoring.isEnabled(agent)
         if !resume { (agent == .codex ? codexSetup : claudeSetup)?.cancel() }
         providerMonitoring.setEnabled(resume, for: agent)
-        if resume, providerMonitoring.isEnabled(agent) { features.setMonitoring(true) }
     }
 
     func showSettings() {
         settings?.show()
     }
 
-    func showFeatures() { settings?.show(page: .features) }
+    func showFeatures() { settings?.show(page: .agents) }
+
+    /// General → Remove all hook configuration: disconnect both providers, which removes every hook scope Bunlet owns.
+    private func removeAllHooks() {
+        for setup in [codexSetup, claudeSetup] { setup?.start(.disconnect) }
+    }
 
     func applicationWillTerminate(_ notification: Notification) {
         codexSetup?.cancel()
