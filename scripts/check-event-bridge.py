@@ -133,7 +133,12 @@ def main() -> None:
             assert frame.get("turn_id") == payload.get("prompt_id" if agent == "claude" else "turn_id")
             assert frame["terminal"] == {"kind": "otty", "pane_selector": "fictional-unverified-pane"}
             assert set(frame) <= {"version", "event_id", "agent", "session_id", "hook_event_name",
-                                  "observed_at_ms", "turn_id", "tool_use_id", "tool_name", "cwd", "terminal"}
+                                  "observed_at_ms", "turn_id", "tool_use_id", "tool_name", "cwd", "terminal",
+                                  "prompt_preview", "reply_preview"}
+            # Decision 0019: display previews only on their own hooks; the fictional texts need no trimming.
+            hook = payload["hook_event_name"]
+            assert frame.get("prompt_preview") == (payload.get("prompt") if hook == "UserPromptSubmit" else None)
+            assert frame.get("reply_preview") == (payload.get("last_assistant_message") if hook == "Stop" else None)
             assert frame["event_id"] not in identities
             identities.add(frame["event_id"])
             assert abs(time.time() * 1000 - frame["observed_at_ms"]) < 2000
