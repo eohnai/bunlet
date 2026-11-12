@@ -6,6 +6,7 @@ public enum ProviderSetupFailure: String, Error, Equatable, Sendable {
     case unsafePath, unsafeMetadata, unreadable, resourceLimit, busy, changed
     case ownershipConflict, recoveryRequired, writeFailed, durabilityUncertain
     case unqualifiedVersion, enablementUnverified, hooksDisabled, managedHooksOnly, helperUnavailable
+    case executableNotFound
 }
 
 struct HookFileSnapshot {

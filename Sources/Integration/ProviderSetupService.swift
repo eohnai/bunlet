@@ -95,6 +95,8 @@ public struct ProviderSetupService: Sendable {
         async -> (ProviderSetupFailure?, ProviderHookEnablement, Bool) {
         guard !Task.isCancelled else { return (.enablementUnverified, .unverified, false) }
         guard health.helper == .available else { return (.helperUnavailable, .unverified, false) }
+        // Say the program is missing rather than reporting its version as unsupported.
+        guard context.executableURL != nil else { return (.executableNotFound, .unverified, false) }
         guard case .reported(let version) = health.version, let executable = context.executableURL else {
             return (.unqualifiedVersion, .unverified, false)
         }
