@@ -167,7 +167,7 @@ All cards use the card border/fill from the palette. Headers are 5×8 padding wi
 | Follow-up | Claude Stop-hook reply window only; never typed into a terminal |
 | Subagents, remote badge, token totals, update tag, sound, SSH/cloud status | Omitted (no Bunlet data) |
 | Shortcuts | Esc collapses; other global shortcuts are separate work |
-| Drag pill down to detach pet | Same 50-point threshold when Pet is installed; the pet follows the pointer and the island hides. Releasing over the pill returns it |
+| Drag pill down to detach pet | Same 50-point threshold when Pet is installed; the pet follows the pointer and the island hides. Releasing over the pill docks it: the pet window hides and the island returns. Show Pet brings it back to its last desktop spot. Without Notch the pet always stays on the desktop |
 | Warm-up open/close on launch | Omitted |
 
 ## Settings window

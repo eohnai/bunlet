@@ -201,11 +201,32 @@ final class PetPanelController: AppFeatureService {
         restorePlacement()
     }
 
+    /// A returned pet lives inside the island and has no window of its own until it is pulled out again.
+    /// Without an island (Notch not installed or no usable display) it always stays on the desktop.
+    private var docked: Bool { !detached && returnTarget() != nil }
+
+    /// Shows the pet window, or keeps it hidden while docked. Also re-evaluates docking when the island appears or goes away.
     func show() {
-        if running && !sleeping {
+        guard running && !sleeping else { return }
+        if docked {
+            panel.orderOut(nil)
+            onHide()
+        } else {
             panel.orderFrontRegardless()
             updateMousePassThrough()
         }
+    }
+
+    /// Show Pet: a docked pet comes back out to its last desktop spot, which hides the island as dragging out does.
+    func reveal() {
+        guard running && !sleeping else { return }
+        if docked {
+            detached = true
+            restorePlacement()
+            savePlacement()
+            onDragBegan()
+        }
+        show()
     }
 
     func start() {
@@ -275,8 +296,9 @@ final class PetPanelController: AppFeatureService {
         detached = true
         state.dragging = true
         onDragBegan()
-        show()
+        // Place the pet under the pointer before it appears, so a docked pet does not flash at an old spot.
         moveToPointer()
+        show()
         let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.followPointer() }
         }
@@ -342,13 +364,18 @@ final class PetPanelController: AppFeatureService {
     func returnPet() {
         state.dragging = false
         detached = false
-        if let target = returnTarget(), let screen = screen(containing: target) {
-            let proposed = NSRect(x: target.maxX + 8, y: target.minY - panel.frame.height,
-                                 width: panel.frame.width, height: panel.frame.height)
-            panel.setFrame(PetPlacement.clamped(proposed, in: screen.visibleFrame), display: true)
+        if returnTarget() != nil {
+            // Keep the last desktop spot so the pet comes back there when it is pulled out with Show Pet.
+            if let saved = preferences.placement {
+                preferences.placement = PetSavedPlacement(displayID: saved.displayID, x: saved.x, y: saved.y, detached: false)
+            } else {
+                savePlacement()
+            }
             onReturn()
-        } else { restorePlacement() }
-        savePlacement()
+        } else {
+            restorePlacement()
+            savePlacement()
+        }
         show()
     }
 

@@ -117,7 +117,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
 
     func showPet() {
         guard installed.contains(.pet) else { return }
-        pet?.show()
+        pet?.reveal()
     }
 
     func returnPet() {
@@ -156,6 +156,8 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         if !monitoring { active.remove(.agents) }
         runtimes.apply(active)
         notch?.setHiddenForPet(islandHiddenForPet)
+        // Installing or removing Notch changes whether a returned pet docks inside the island.
+        pet?.show()
         return runtimes.unavailableFeatures
     }
 
