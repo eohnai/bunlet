@@ -20,9 +20,9 @@ and the pet is a mode you enter by dragging it out of the island.
 
 ## Decision
 
-Remove feature installation. Bunlet always runs the island and agent services. The pet is part of the app,
-but Bunlet ships no pet of its own: the user chooses their own image (a PNG that Bunlet animates, a seven-row
-sprite sheet, or a pet pack). Until they do, there is no pet. Once chosen, the pet
+Remove feature installation. Bunlet always runs the island and agent services. The pet is part of the app.
+Bunlet ships its white lionhead rabbit as the default pet, which the user can replace with their own image
+(a PNG that Bunlet animates, a seven-row sprite sheet, or a pet pack). The pet
 docks inside the island and comes out by dragging the pill down or with Show Pet; pet mode hides the island.
 Agent tracking still needs per-provider Connect and per-provider monitoring consent.
 
@@ -33,7 +33,7 @@ The user wants one app that behaves like Flux Island for personal use.
 ## Consequences
 
 The Features page and `FeatureSettingsModel` install state are removed; every runtime starts at launch.
-The built-in white lionhead rabbit artwork is removed from the app; an earlier "built-in" selection becomes "no pet". A saved feature choice is ignored,
+On 2026-11-12 the user first chose to ship no default pet, then reversed that before merging: the rabbit stays as the default. A saved feature choice is ignored,
 not deleted. Pet-only startup without agent services is no longer supported. Connecting a provider still never happens
 without the user's confirmation, and removing hooks keeps its existing contract. Earlier feature-management specs
 (settings/feature-management, FM1–FM7) describe superseded behavior and are not resumed.

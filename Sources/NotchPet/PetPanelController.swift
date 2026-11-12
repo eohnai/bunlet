@@ -11,7 +11,7 @@ private final class PetSurfaceState {
     var cue = false
     var dragging = false
     var size: Double
-    /// Nil until the user chooses their own pet image; there is no built-in pet (decision 0020).
+    /// The built-in rabbit unless the user chose their own pet. Nil only if no artwork could be loaded.
     var presentation: PetPresentation?
 
     init(size: Double, presentation: PetPresentation?) {
@@ -171,8 +171,8 @@ final class PetPanelController: AppFeatureService {
         self.onDragBegan = onDragBegan
         self.returnTarget = returnTarget
         self.onReturn = onReturn
-        state = PetSurfaceState(size: size, presentation: presentation)
-        let title = presentation?.name ?? "Bunlet Pet"
+        state = PetSurfaceState(size: size, presentation: presentation ?? PetArtwork.presentation())
+        let title = state.presentation?.name ?? "Bunlet Pet"
         panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: size, height: size + 30),
                         styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         panel.title = title
@@ -209,7 +209,7 @@ final class PetPanelController: AppFeatureService {
     /// A returned pet lives inside the island and has no window of its own until it is pulled out again.
     /// Without an island (Notch not installed or no usable display) it always stays on the desktop.
     private var docked: Bool { !detached && returnTarget() != nil }
-    /// Without the user's own image there is no pet to show or drag out.
+    /// Without any artwork there is no pet to show or drag out.
     private var hasArtwork: Bool { state.presentation != nil }
 
     /// Shows the pet window, or keeps it hidden while docked. Also re-evaluates docking when the island appears or goes away.

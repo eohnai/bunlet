@@ -1,20 +1,18 @@
 import Pet
 import SwiftUI
 
-/// Your own pet (decision 0020): there is no built-in pet, so the first step is choosing an image.
+/// The built-in rabbit is the default; choosing an image, sprite sheet or pack replaces it (decision 0020).
 struct PetLibraryView: View {
     let library: PetLibraryModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if !library.choices.isEmpty {
-                Picker("Pet", selection: Binding(get: { library.selectedID }, set: { library.select($0) })) {
-                    Text("None").tag("")
-                    ForEach(library.choices) { choice in Text(choice.name).tag(choice.id) }
-                }
-                .frame(maxWidth: 320)
-                .disabled(library.busy)
+            Picker("Pet", selection: Binding(get: { library.selectedID }, set: { library.select($0) })) {
+                Text("White lionhead rabbit (built-in)").tag("builtin")
+                ForEach(library.choices) { choice in Text(choice.name).tag(choice.id) }
             }
+            .frame(maxWidth: 320)
+            .disabled(library.busy)
             HStack {
                 Button("Choose Image…", action: library.choosePNG).disabled(library.busy)
                 Button("Import Sprite Sheet…", action: library.chooseSpriteSheet).disabled(library.busy)

@@ -209,7 +209,7 @@ an untitled group (General, Agents, Display, Sound), "ADVANCED" (Shortcuts) and 
   Fill `rgba(18,19,20,0.9)`, 1 px light border, shadow `0 16 48 rgba(0,0,0,0.35)`. It lists the same session rows and actionable
   cards as the island; clicking a row jumps to the terminal. Empty state: centered "No sessions" at 45% white.
 
-Flux ships a default pet that users replace by dropping a same-named PNG into a folder. Bunlet ships none:
-Display → Desktop Pet → Choose Image… (or a sprite sheet or pack) creates it. The pet is part of the app ([0020](../decisions/0020-one-app-with-pet-mode.md)): it docks in the island
+Flux ships a default pet that users replace by dropping a same-named PNG into a folder. Bunlet also ships a default,
+its own white lionhead rabbit; Display → Desktop Pet → Choose Image… (or a sprite sheet or pack) replaces it. The pet is part of the app ([0020](../decisions/0020-one-app-with-pet-mode.md)): it docks in the island
 and comes out by dragging the pill down or with Show Pet. Its bubble shows the existing mood label (attention yellow,
 response ready green, unknown orange).

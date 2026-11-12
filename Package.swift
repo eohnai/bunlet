@@ -12,7 +12,7 @@ let package = Package(
         .executable(name: "NotchPetActionHook", targets: ["NotchPetActionHook"])
     ],
     targets: [
-        .target(name: "Pet"),
+        .target(name: "Pet", resources: [.process("Resources")]),
         .target(name: "EventBridge"),
         .target(name: "Integration", dependencies: ["EventBridge"]),
         .target(name: "Usage", dependencies: ["EventBridge"]),
