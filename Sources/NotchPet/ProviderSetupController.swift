@@ -95,25 +95,27 @@ final class ProviderSetupController {
                     if action == .disconnect, self.agent == .claude {
                         self.actionInspection = nil
                         let actionContext = try self.context(needsExecutable: false, scope: .claudeActions)
-                        _ = try await self.service.execute(.remove, context: actionContext)
+                        let removedActions = try await self.service.executeAndInspect(.remove, context: actionContext)
                         disconnectedScopes.append("local responses")
                         try Task.checkCancellation()
-                        self.actionInspection = await self.service.check(actionContext)
+                        self.actionInspection = removedActions.inspection
                         try Task.checkCancellation()
                         self.quotaInspection = nil
                         let quotaContext = try self.context(needsExecutable: false, scope: .claudeQuota)
-                        _ = try await self.service.execute(.remove, context: quotaContext)
+                        let removedQuota = try await self.service.executeAndInspect(.remove, context: quotaContext)
                         disconnectedScopes.append("quota forwarding")
                         try Task.checkCancellation()
-                        self.quotaInspection = await self.service.check(quotaContext)
+                        self.quotaInspection = removedQuota.inspection
                         try Task.checkCancellation()
                     }
-                    let change = try await self.service.execute(removing ? .remove : .connect, context: context)
+                    let result = try await self.service.executeAndInspect(removing ? .remove : .connect, context: context) { [weak self] stage in
+                        await self?.showProgress(stage, generation: current)
+                    }
                     try Task.checkCancellation()
                     guard self.generation == current else { return }
                     if action == .connectActions { self.onActionsConsent(true) }
                     if !removing { self.onConnected() }
-                    switch change {
+                    switch result.change {
                     case .installed:
                         self.message = "Owned \(targetName) installed. Complete \(self.providerName)’s normal hook/workspace review. Runtime support and provider delivery remain unverified."
                     case .removed:
@@ -125,11 +127,8 @@ final class ProviderSetupController {
                     if action == .disconnect {
                         self.message = "Owned integration entries removed where present. This provider remains paused; retained requests are unconfirmed."
                     }
-                    let result = await self.service.check(context)
-                    try Task.checkCancellation()
-                    guard self.generation == current else { return }
-                    self.record(result, scope: action.scope)
-                    if action.scope == .lifecycle { self.onInspection(result.health) }
+                    self.record(result.inspection, scope: action.scope)
+                    if action.scope == .lifecycle { self.onInspection(result.inspection.health) }
                 }
             } catch is CancellationError {
                 if self.generation == current {
@@ -147,6 +146,15 @@ final class ProviderSetupController {
                     if !disconnectedScopes.isEmpty { self.message += " Removal completed for: " + disconnectedScopes.joined(separator: ", ") + ". This provider remains paused." }
                 }
             }
+        }
+    }
+
+    private func showProgress(_ stage: ProviderSetupStage, generation: UUID) {
+        guard self.generation == generation else { return }
+        switch stage {
+        case .checking: message = "Checking \(providerName) version and hook policy…"
+        case .saving: message = "Saving owned \(providerName) hooks…"
+        case .verifying: message = "Verifying saved \(providerName) hooks…"
         }
     }
 

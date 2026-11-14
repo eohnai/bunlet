@@ -2,20 +2,28 @@
 
 ## Now
 
-`feat/settings-redesign` (PR #21; #19 and #20 are merged) removes feature install/uninstall
-(decision 0020), rebuilds Settings in the reference layout with General, Agents, Display, Sound, Shortcuts and About (0021),
-makes the island follow those settings, adds ⌃I/Esc/⌃Y/⌃N/⌃↩ shortcuts and uses a hare logo. The built-in rabbit stays
-as the default pet, replaceable with your own image. Nothing here has been run on screen yet.
+PR #21 is merged into `main`. Uncommitted corrections remove the closed island's light outline,
+align its window and width to display pixels, and remove repeated CLI probes after hook installation.
+Settings shows setup stages and final messages beside each provider. The app builds and all 207 tests pass with
+`env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/bunlet-notch-hooks-xcode`.
+Actual notch appearance and installed-provider setup timing remain unverified.
 
 ## Next
 
-1. Merge PR #21 once its checks pass.
-2. Run `bash scripts/run.sh`, connect Claude Code and Codex in Settings → Agents, and start a new session to confirm tracking.
-3. Check the Settings window against the reference screenshots, and choose a pet image under Display → Desktop Pet.
-4. Try ⌃I, and ⌃Y/⌃N on a Claude permission request while the panel is open.
+1. Review the uncommitted notch/setup corrections on a new branch before committing.
+2. When native checks are authorized, run `bash scripts/run.sh` and inspect the closed notch on the M2 Air.
+3. Inspect Settings → Agents setup stages and timing, then start a new session to confirm tracking.
+4. Review the synthetic transaction metadata restriction below before claiming setup acceptance.
 5. Decide whether to update the superseded pet and feature-management specs (see Blockers).
 
 ## Blockers
+
+- Synthetic full-transaction checks with `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/bunlet-notch-hooks-xcode --filter ProviderSetupServiceTests`
+  initially failed with `.unsafePath` for temporary-path aliases and `.unsafeMetadata` for extended file metadata.
+  The final regression test isolates post-save inspection and passes. It does not establish transaction acceptance.
+  The existing strict path/metadata guards remain unchanged. No installed-provider files were inspected or changed.
+- The default Command Line Tools test run (`swift test --scratch-path /private/tmp/bunlet-notch-hooks-build --filter 'ProviderSetupServiceTests|NotchPresentationTests'`)
+  failed with `no such module 'Testing'`. Select Xcode using the explicit `DEVELOPER_DIR` command above.
 
 - Runtime-qualified provider registry remains empty. Documented setup supports Codex 0.164.0 and Claude Code 2.1.306 without bypassing normal trust/policy; real install/reinstall/recovery/removal and stream-preservation acceptance remain unverified.
 - Claude actions provide explicit permission decisions, structured answers and a ≤60-second existing Stop-hook feedback window. Codex actions and arbitrary-time follow-ups remain unsupported. Hosted compilation/tests do not establish provider action acceptance.

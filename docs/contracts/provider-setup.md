@@ -46,7 +46,16 @@ not grant hook trust, change permissions, or call a documented integration runti
 - Monitoring, allowance, hooks installed, policy, trust and actual delivery are separate evidence.
   No installed boolean means a provider session is connected. No silence means success.
 
-Primary interfaces:
+Setup progress and verification, 2026-11-14:
+
+- Connect reports checking, saving and verification stages in Settings beside the provider.
+- Version and policy probes run once per Connect. Post-save verification rereads configuration,
+  helper availability and ownership without relaunching the CLI. Version and policy evidence comes
+  from that operation's preflight. An explicit Check always probes again.
+- This removes duplicate process startup. It does not remove the pre-install policy gate or durable writes.
+- Setup errors remain visible without opening the provider's details.
+
+Primary interface links:
 [Codex hooks](https://learn.chatgpt.com/docs/hooks),
 [Codex app-server](https://learn.chatgpt.com/docs/app-server),
 [Claude hooks](https://code.claude.com/docs/en/hooks),

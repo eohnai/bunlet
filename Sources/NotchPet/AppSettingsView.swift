@@ -429,25 +429,33 @@ private struct AgentRow: View {
 
     var body: some View {
         let status = status
-        SettingsRow(title: setup.providerName, last: last) {
-            HStack(spacing: 8) {
-                Circle().fill(status.color).frame(width: 8, height: 8).accessibilityHidden(true)
-                Text(status.word).font(.system(size: 13))
-                    .foregroundStyle(status.color == .gray ? SettingsStyle.subtitle : status.color)
+        VStack(alignment: .leading, spacing: 0) {
+            SettingsRow(title: setup.providerName, last: last) {
+                HStack(spacing: 8) {
+                    Circle().fill(status.color).frame(width: 8, height: 8).accessibilityHidden(true)
+                    Text(status.word).font(.system(size: 13))
+                        .foregroundStyle(status.color == .gray ? SettingsStyle.subtitle : status.color)
+                }
+                Toggle(setup.providerName, isOn: Binding(
+                    get: { connected && monitoring.isEnabled(setup.agent) },
+                    set: { on in
+                        if !on {
+                            monitoring.setEnabled(false, for: setup.agent)
+                        } else if connected {
+                            monitoring.setEnabled(true, for: setup.agent)
+                        } else {
+                            requestConnect()
+                        }
+                    }))
+                    .toggleStyle(.switch).labelsHidden()
+                    .disabled(setup.operation != nil)
             }
-            Toggle(setup.providerName, isOn: Binding(
-                get: { connected && monitoring.isEnabled(setup.agent) },
-                set: { on in
-                    if !on {
-                        monitoring.setEnabled(false, for: setup.agent)
-                    } else if connected {
-                        monitoring.setEnabled(true, for: setup.agent)
-                    } else {
-                        requestConnect()
-                    }
-                }))
-                .toggleStyle(.switch).labelsHidden()
-                .disabled(setup.operation != nil)
+            Text(setup.message)
+                .font(.system(size: 12))
+                .foregroundStyle(SettingsStyle.subtitle)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
         }
         .accessibilityElement(children: .combine)
         .accessibilityValue(status.word)

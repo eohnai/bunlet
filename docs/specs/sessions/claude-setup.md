@@ -17,6 +17,21 @@ or ticking their historical verification tasks. Local checks and feature-specifi
 
 ## Contract
 
+The user approved setup progress and duplicate-probe removal on 2026-11-14.
+The shared setup service returns the saved-file inspection with the transaction result.
+Settings shows checking, saving and verification stages, plus the final message, beside each provider.
+The post-save inspection reuses only that operation's version/policy evidence.
+Configuration, helper and ownership evidence is read again. Explicit Check remains a fresh probe.
+
+- [x] Verify post-save inspection rereads changed/malformed configuration without repeating CLI/policy
+  probes, preserves configuration bytes, and keeps explicit Check fresh with `ProviderSetupServiceTests`.
+
+Verification, 2026-11-14: all 207 tests passed with
+`env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/bunlet-notch-hooks-xcode`.
+The new test uses fictional Codex version/policy evidence to exercise the shared inspection path.
+It does not qualify live Claude/Codex installation, reinstall, removal or cancellation.
+The earlier full-transaction fixture hit existing path/metadata restrictions. See `docs/STATUS.md`.
+
 Use [provider setup](../../contracts/provider-setup.md) and the existing descriptor-relative ownership
 transaction. Lifecycle Connect adds seven separate command groups to settings.json, each invoking
 the bounded observer as `--agent claude`. Other settings, Otty hooks, trust and permissions stay intact.
