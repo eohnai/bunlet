@@ -20,6 +20,20 @@ struct NotchPresentationTests {
         #expect(frame == CGRect(x: 365, y: 384, width: 740, height: 572))
     }
 
+    @Test(arguments: [CGFloat(1), CGFloat(2)])
+    func centeredPillEdgesLandOnDisplayPixels(scale: CGFloat) throws {
+        let screen = CGRect(x: 0, y: 0, width: 1470.5, height: 956)
+        let frame = try #require(IslandGeometry.windowFrame(screen: screen, safeTop: 32, backingScale: scale))
+        let width = IslandGeometry.pixelAlignedWidth(262.3, scale: scale)
+        let left = (frame.midX - width / 2) * scale
+        let right = (frame.midX + width / 2) * scale
+        #expect(left == left.rounded())
+        #expect(right == right.rounded())
+        #expect(width >= 262.3)
+        #expect(width - 262.3 < 2 / scale)
+        #expect(frame.maxY == screen.maxY)
+    }
+
     @Test func windowUsesScreenCoordinatesAndClamps() throws {
         let screen = CGRect(x: -320, y: 100, width: 320, height: 300)
         let frame = try #require(IslandGeometry.windowFrame(screen: screen, safeTop: 38))

@@ -11,6 +11,7 @@ final class NotchWindowState {
     var headerHeight: CGFloat = IslandMetrics.fallbackHeaderHeight
     var notchWidth: CGFloat = 0
     var hasNotch = false
+    var backingScale: CGFloat = 1
     var screenWidth: CGFloat = 0
     var windowWidth: CGFloat = IslandMetrics.windowWidth
     var windowHeight: CGFloat = IslandMetrics.windowHeight
@@ -23,8 +24,9 @@ final class NotchWindowState {
     var focusedSession: SessionKey?
 
     func pillWidth(sessions: [SessionSnapshot]) -> CGFloat {
-        IslandGeometry.pillBodyWidth(notchWidth: notchWidth, hasNotch: hasNotch, visibleCount: sessions.count,
-                                     phase: IslandPhase.dominant(sessions), windowWidth: windowWidth)
+        let width = IslandGeometry.pillBodyWidth(notchWidth: notchWidth, hasNotch: hasNotch, visibleCount: sessions.count,
+                                                phase: IslandPhase.dominant(sessions), windowWidth: windowWidth)
+        return IslandGeometry.pixelAlignedWidth(width, scale: backingScale)
     }
 
     var panelWidth: CGFloat {

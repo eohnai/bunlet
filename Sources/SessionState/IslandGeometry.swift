@@ -83,6 +83,12 @@ public struct IslandShapeSpec: Equatable, Sendable {
 }
 
 public enum IslandGeometry {
+    /// Centered edges need an even number of physical pixels to avoid a half-pixel seam.
+    public static func pixelAlignedWidth(_ width: CGFloat, scale: CGFloat) -> CGFloat {
+        guard scale.isFinite, scale > 0 else { return width }
+        return (width * scale / 2).rounded(.up) * 2 / scale
+    }
+
     /// Header height follows the physical notch, else a plausible menu bar, else a fixed fallback.
     public static func headerHeight(safeTop: CGFloat, menuBarHeight: CGFloat) -> CGFloat {
         if safeTop > 0, safeTop.isFinite { return safeTop }
@@ -130,14 +136,16 @@ public enum IslandGeometry {
     }
 
     /// One fixed window at the top center of the screen; the shape animates inside it.
-    public static func windowFrame(screen: CGRect, safeTop: CGFloat,
+    public static func windowFrame(screen: CGRect, safeTop: CGFloat, backingScale: CGFloat = 1,
                                    panelMaxHeight: CGFloat = IslandMetrics.panelMaxHeight) -> CGRect? {
         guard [screen.origin.x, screen.origin.y, screen.width, screen.height, safeTop].allSatisfy({ $0.isFinite }),
               screen.width > 24, screen.height > 44, safeTop >= 0, safeTop <= screen.height - 12 else { return nil }
         let width = min(IslandMetrics.windowWidth, screen.width)
         let height = min(IslandMetrics.windowHeight, max(200, panelMaxHeight) + IslandMetrics.shadowMargin,
                          screen.height - 12)
-        return CGRect(x: screen.midX - width / 2, y: screen.maxY - height, width: width, height: height)
+        let scale = backingScale.isFinite && backingScale > 0 ? backingScale : 1
+        return CGRect(x: ((screen.midX - width / 2) * scale).rounded() / scale,
+                      y: ((screen.maxY - height) * scale).rounded() / scale, width: width, height: height)
     }
 }
 
