@@ -31,9 +31,12 @@ public enum ClaudeHookActionAdapter {
             kind = .followUp
         default: return nil
         }
-        let result = ActionOffer(version: 1, id: UUID(), provider: .claude, sessionID: session, turnID: turn,
+        let suggestions = kind == .permission ? document.rawValue(at: [.key("permission_suggestions")]) : nil
+        var result = ActionOffer(version: 1, id: UUID(), provider: .claude, sessionID: session, turnID: turn,
             toolUseID: kind == .followUp ? nil : toolID, toolName: kind == .followUp ? nil : tool,
             kind: kind, capturedAtMs: nowMs, input: kind == .followUp ? nil : input, questions: questions)
+        // A malformed or oversized suggestion list only removes "Allow always"; it never blocks the request.
+        result.permissionSuggestions = suggestions.flatMap { $0.first == 91 && $0.count <= ActionProtocol.inputLimit ? $0 : nil }
         return ActionProtocol.valid(result, nowMs: nowMs) ? result : nil
     }
 
@@ -43,8 +46,17 @@ public enum ClaudeHookActionAdapter {
         let object: [String: Any]
         switch offer.kind {
         case .permission:
-            let value: [String: Any] = decision.choice == .approveOnce
-                ? ["behavior": "allow"] : ["behavior": "deny", "message": "Denied by the user in Bunlet."]
+            var value: [String: Any]
+            switch decision.choice {
+            case .approveOnce: value = ["behavior": "allow"]
+            case .allowAlways:
+                value = ["behavior": "allow"]
+                if let suggestions = offer.permissionSuggestions,
+                   let updates = try JSONSerialization.jsonObject(with: suggestions) as? [Any] {
+                    value["updatedPermissions"] = updates
+                }
+            default: value = ["behavior": "deny", "message": "Denied by the user in Bunlet."]
+            }
             object = ["hookSpecificOutput": ["hookEventName": "PermissionRequest", "decision": value]]
         case .question:
             guard let input = offer.input,

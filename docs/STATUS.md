@@ -2,19 +2,18 @@
 
 ## Now
 
-PR #21 is merged into `main`. Uncommitted corrections remove the closed island's light outline,
-align its window and width to display pixels, and remove repeated CLI probes after hook installation.
-Settings shows setup stages and final messages beside each provider. The app builds and all 207 tests pass with
-`env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/bunlet-notch-hooks-xcode`.
-Actual notch appearance and installed-provider setup timing remain unverified.
+`feat/reference-gaps-settings` closes the Claude Code and Codex settings gaps found by comparing with the reference island, and
+reorganizes Settings (decision 0022): always allow, rebindable shortcuts, visibility options, idle-session clean-up,
+percent used or left, and a launch sound. Claude Code and Codex now start on and connect at launch without a prompt (decision 0023). Settings is now one file per page. The build and all tests pass
+(`env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test`). Nothing has run on screen.
 
 ## Next
 
-1. Review the uncommitted notch/setup corrections on a new branch before committing.
-2. When native checks are authorized, run `bash scripts/run.sh` and inspect the closed notch on the M2 Air.
-3. Inspect Settings → Agents setup stages and timing, then start a new session to confirm tracking.
-4. Review the synthetic transaction metadata restriction below before claiming setup acceptance.
-5. Decide whether to update the superseded pet and feature-management specs (see Blockers).
+1. Review and merge this branch.
+2. When native checks are authorized, launch with a Claude Code and Codex install and confirm the hooks are added once and not re-added after Disconnect; run `bash scripts/run.sh` and check each Settings page, hide-in-fullscreen on a fullscreen app,
+   and the shortcuts, including Always allow on a Claude permission request that offers it.
+3. Check Settings → Agents setup stages and timing, then start a new session to confirm tracking.
+4. Decide whether to update the superseded pet and feature-management specs (see Blockers).
 
 ## Blockers
 

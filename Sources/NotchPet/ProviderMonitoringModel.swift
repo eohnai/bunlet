@@ -21,7 +21,8 @@ final class ProviderMonitoringModel {
         let actionConsent = defaults.object(forKey: Self.actionsKey) as? NSNumber
         actionsEnabled = actionConsent.map { CFGetTypeID($0) == CFBooleanGetTypeID() && $0.boolValue } ?? false
         let consent = defaults.object(forKey: "agentMonitoringEnabled") as? NSNumber
-        let legacyEnabled = consent.map { CFGetTypeID($0) == CFBooleanGetTypeID() && $0.boolValue } ?? false
+        // Agents start on (decision 0023). An earlier saved global choice, and any per-provider choice, still wins.
+        let legacyEnabled = consent.map { CFGetTypeID($0) == CFBooleanGetTypeID() && $0.boolValue } ?? true
         enabledProviders = Set(Agent.allCases.filter { agent in
             let value = defaults.object(forKey: Self.key(agent))
             // Preserve the earlier global monitoring choice until a per-provider choice is saved.

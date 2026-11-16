@@ -7,6 +7,8 @@ import Usage
 struct NotchAllowanceStrip: View {
     let store: UsageStore
     let activeProviders: Set<Agent>
+    /// Settings choose between percent left (the default, D6) and percent used.
+    var showsUsed = false
     @State private var hovered: Agent?
 
     var body: some View {
@@ -36,14 +38,17 @@ struct NotchAllowanceStrip: View {
     private func cell(_ entry: NotchAllowanceEntry, nowMs: Int64) -> some View {
         let name = entry.provider == .codex ? "Codex" : "Claude Code"
         let countdown = NotchAllowancePresentation.countdownText(for: entry.window, at: nowMs)
-        let spoken = entry.percentLeft.map { "\(entry.windowLabel), \($0) percent left, resets in \(countdown)" }
+        let spoken = entry.percentLeft.map {
+            showsUsed ? "\(entry.windowLabel), \(100 - $0) percent used, resets in \(countdown)"
+                : "\(entry.windowLabel), \($0) percent left, resets in \(countdown)"
+        }
             ?? "\(entry.windowLabel), usage limits unavailable"
         return HStack(spacing: 6) {
             logo(entry.provider, name: name)
             HStack(spacing: 4) {
                 if let percentLeft = entry.percentLeft {
                     Text(entry.windowLabel)
-                    Text("\(percentLeft)%").foregroundStyle(color(entry.color))
+                    Text("\(showsUsed ? 100 - percentLeft : percentLeft)%").foregroundStyle(color(entry.color))
                     Text(countdown)
                 } else {
                     // Missing data must not look like zero remaining.

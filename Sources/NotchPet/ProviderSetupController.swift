@@ -36,6 +36,7 @@ final class ProviderSetupController {
     private(set) var message = "Check a provider to inspect setup. Connecting is optional."
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var generation = UUID()
+    @ObservationIgnored private var autoConnectTried = false
     @ObservationIgnored private let service: ProviderSetupService
     @ObservationIgnored private let onConnected: () -> Void
     @ObservationIgnored private let onPaused: () -> Void
@@ -55,7 +56,19 @@ final class ProviderSetupController {
         message = "Check \(providerName) to inspect setup. Connecting is optional."
     }
 
-    func start(_ action: ProviderSetupAction) {
+    /// Launch behavior (decision 0023): check once, and add Bunlet's hooks when the agent has none of them.
+    /// Anything else, such as a conflict, a missing agent or an unfinished recovery, is left for the user.
+    func connectAutomatically() {
+        guard !autoConnectTried, task == nil else { return }
+        autoConnectTried = true
+        start(.check) { [weak self] in
+            guard let self, let inspection = self.inspection, case .notOwned = inspection.ownership,
+                  inspection.installationUnavailable == nil else { return }
+            self.start(.connect)
+        }
+    }
+
+    func start(_ action: ProviderSetupAction, then followUp: (@MainActor () -> Void)? = nil) {
         guard task == nil else { return }
         let current = UUID()
         generation = current
@@ -65,7 +78,8 @@ final class ProviderSetupController {
             return
         }
         let removing = action.removes
-        if action == .disconnect { onPaused() }
+        // Removing the hooks is a choice to stop, so the next launch must not add them back.
+        if action == .disconnect || action == .remove { onPaused() }
         if action == .removeActions || (action == .disconnect && agent == .claude) { onActionsConsent(false) }
         let targetName = action.scope == .claudeQuota ? "quota forwarding" : (action.scope == .claudeActions ? "interactive hooks" : "lifecycle hooks")
         message = action.isCheck ? "Checking \(providerName) \(targetName)…" : "Updating owned \(providerName) \(targetName)…"
@@ -75,6 +89,7 @@ final class ProviderSetupController {
                 if self.generation == current {
                     self.operation = nil
                     self.task = nil
+                    if !Task.isCancelled { followUp?() }
                 }
             }
             var disconnectedScopes: [String] = []

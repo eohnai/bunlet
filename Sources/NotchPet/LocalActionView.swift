@@ -48,6 +48,10 @@ struct LocalActionView: View {
                 HStack(spacing: 8) {
                     Button("Deny") { controller.send(snapshot.id, choice: .deny) }
                         .buttonStyle(IslandButtonStyle(kind: .deny))
+                    if snapshot.offer.canAllowAlways {
+                        Button("Always allow") { controller.send(snapshot.id, choice: .allowAlways) }
+                            .buttonStyle(IslandButtonStyle(kind: .allow))
+                    }
                     Button("Allow once") { controller.send(snapshot.id, choice: .approveOnce) }
                         .buttonStyle(IslandButtonStyle(kind: .allow))
                 }

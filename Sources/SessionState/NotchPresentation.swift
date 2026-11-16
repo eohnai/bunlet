@@ -81,6 +81,16 @@ public enum NotchPresentation {
             .map { $0.key.agent })
     }
 
+    /// Hides idle and ended sessions that have been quiet longer than the limit. Sessions that need
+    /// attention, are working, or have no receipt time always stay listed.
+    public static func withoutStale(_ sessions: [SessionSnapshot], limitMinutes: Int, nowMs: Int64) -> [SessionSnapshot] {
+        let limitMs = Int64(limitMinutes) * 60_000
+        return sessions.filter { session in
+            guard session.status == .idle || session.status == .ended, let receipt = session.receiptWallMs else { return true }
+            return nowMs - receipt <= limitMs
+        }
+    }
+
     public static func ordered(_ sessions: [SessionSnapshot]) -> [SessionSnapshot] {
         let rank: (SessionSnapshot) -> Int = { session in
             if session.pendingRequests.contains(where: \.isConfirmed) { return 0 }

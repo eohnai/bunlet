@@ -140,6 +140,10 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         if installed.contains(.agents) {
             if codexSetup == nil { codexSetup = makeProviderSetup(.codex) }
             if claudeSetup == nil { claudeSetup = makeProviderSetup(.claude) }
+            if monitoring {
+                if providerMonitoring.isEnabled(.codex) { codexSetup?.connectAutomatically() }
+                if providerMonitoring.isEnabled(.claude) { claudeSetup?.connectAutomatically() }
+            }
         } else {
             codexSetup?.cancel()
             claudeSetup?.cancel()
