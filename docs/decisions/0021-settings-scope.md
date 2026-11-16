@@ -1,17 +1,17 @@
-# 0021: Build a personal subset of Flux Island's settings
+# 0021: Build a personal subset of the reference island's settings
 
 - Status: accepted
 - Date: 2026-11-12
 
 ## Context
 
-The user supplied Flux Island's General, Agents and Display settings pages and asked for Bunlet's Settings to match.
-Flux also has Sound, Feishu, Shortcuts, Remote SSH, Mine, Statistics, About and Contact pages.
+The user supplied reference island's General, Agents and Display settings pages and asked for Bunlet's Settings to match.
+The reference also has Sound, Feishu, Shortcuts, Remote SSH, Mine, Statistics, About and Contact pages.
 Asked which to build for a personal app, the user approved this recommendation.
 
 ## Decision
 
-Build General, Agents, Display, Sound, Shortcuts and About pages in Flux's layout:
+Build General, Agents, Display, Sound, Shortcuts and About pages in the reference's layout:
 
 - **General:** launch at login; open on session end (default off); open when action is needed (default on);
   focus-aware suppression, approximated as "the session's terminal app is frontmost"; haptic feedback on hover;
@@ -24,7 +24,7 @@ Build General, Agents, Display, Sound, Shortcuts and About pages in Flux's layou
 - **About:** version only.
 
 Not built: Language (English only), idle-session auto-clean (it would treat silence as completion), Feishu, Remote SSH,
-Mine, Statistics, Contact, custom key recording, and Flux's own sounds.
+Mine, Statistics, Contact, custom key recording, and the reference's own sounds.
 
 ## Reasoning
 

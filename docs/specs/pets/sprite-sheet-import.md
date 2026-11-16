@@ -22,7 +22,7 @@ must also satisfy every manifest/frame pack bound (2 MiB/frame; 16 MiB encoded a
 
 The importer reads only the explicitly selected file, slices the seven rows, writes normalized PNGs
 and a manifest to the existing private staging transaction, then saves selection only after success.
-It does not consume Flux source, scripts or artwork. User-authored compatible image geometry is data.
+It does not consume reference source, scripts or artwork. User-authored compatible image geometry is data.
 Do not add the external AI workflow, generation prompts, subscription linking or model dependencies.
 
 ## Deferred acceptance

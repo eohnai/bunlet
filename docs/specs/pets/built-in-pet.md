@@ -43,7 +43,7 @@ See the [pets area](area.md) for later detachment, custom artwork, and agent rea
 - Never infer that no agent process exists from an empty observed-session list.
 - Preserve existing hook configuration. Completing or skipping pet setup does not install, remove, or rewrite hooks.
 - Use the accepted [asset-only format](../../decisions/0006-import-asset-only-pet-packs.md) and independently supplied artwork.
-- Do not copy Flux artwork or execute pet-pack scripts. Keep imported packs and runtime files outside the repository.
+- Do not copy reference artwork or execute pet-pack scripts. Keep imported packs and runtime files outside the repository.
 - Keep preferences in UserDefaults. No database or persisted live session state is added.
 - Preserve all source P0–P8 task lines and checkbox states. BP1–BP4 were approved through the standalone-rabbit goal; the user later approved BP5 implementation with tests deferred. The user approved the BP6a/BP6b split and BP6a implementation with focused tests and a packaged build on 2026-10-30. The later BP6b1/BP6b2/BP6b3 split and BP6b1 rendering plan are approved; BP6b2, BP6b3 and BP7 implementation/acceptance remain proposed.
 - Before each implementation task, confirm a limit of three changed files, three added production functions, and five added test cases.
@@ -138,7 +138,7 @@ BP1–BP4 implementation is written on `feat/pets-built-in-pet`. No new tests or
 - The six-case app harness did not pass: `python3 scripts/check-standalone-pet.py --app "/private/tmp/notch-pet-first/notch-pet-dev/Notch Pet.app" --artifacts /private/tmp/notch-pet-first/evidence` reached window capture, where `screencapture` exited 1 with `could not create image from window`. The first case's diagnostic snapshot is in `.../evidence/b76eca08a3884cd9a610263ca73ba2ca/missing-preferences/pet.json`; it is not a screenshot or proof of all six cases.
 - The earlier build-error report was not reproduced: both unchanged-baseline and changed-source packaged builds passed. No separate build repair was made. The temporary-directory diagnostic guard was fixed after a direct Foundation probe confirmed `/private/tmp` canonicalizes to `/tmp` on this Mac.
 
-The user prefers Flux-like opening, Escape-to-close and limits presentation. Those preferences guide later setup/session interface work. Drag-out/hide and overlap-return stay accepted for detachable-pet; neither is implemented here.
+The user prefers reference-like opening, Escape-to-close and limits presentation. Those preferences guide later setup/session interface work. Drag-out/hide and overlap-return stay accepted for detachable-pet; neither is implemented here.
 
 ## BP5 implementation, 2026-10-30
 

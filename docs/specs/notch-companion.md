@@ -52,11 +52,11 @@ Let a customizable pet move between the notch and desktop while sharing the same
 Show reported usage limits and reset times so the user can monitor available allowance.
 Let the user approve or deny local agent requests, answer structured questions, and send follow-up replies from the app through verified agent-specific channels.
 
-On 2026-10-28 the user requested a specification update that adapts useful Flux Island behavior
+On 2026-10-28 the user requested a specification update that adapts useful the reference island behavior
 while retaining this app's native implementation and conservative session evidence.
 Prioritize a usable path from hook setup to visible session state and the correct terminal pane.
 The user subsequently included local approvals and replies in the release and designated SSH/cloud integrations as optional future work.
-The [reference findings](../notes/flux-island-adoption.md) separate observed Flux behavior from recommendations.
+The [reference findings](../notes/reference-adoption.md) separate observed reference behavior from recommendations.
 
 ## Done when
 
@@ -109,7 +109,7 @@ The historical sprite-sheet proposal below retains its acceptance checks. The la
 - In-app artwork generation, a pet drawing editor, three-dimensional pets, and scripted pet plugins.
 - Reading private usage endpoints, copying provider tokens, or estimating subscription quota from tokens.
 - Guaranteed notification of arbitrary questions without a verified event source.
-- Reuse of Flux Island code or internal assets, a Flux runtime dependency, or migration to Electron/React.
+- Reuse of the reference island code or internal assets, a reference runtime dependency, or migration to Electron/React.
 - Transcript or terminal-output parsing and process-liveness heuristics that infer task completion.
 
 ## Constraints
@@ -246,7 +246,7 @@ Never create a pane, launch a replacement agent session, approve a command, or s
 
 Local interaction is accepted release scope under [decision 0010](../decisions/0010-add-local-agent-actions.md).
 Expose three separate capabilities per agent/version: permission decisions, structured-question answers, and follow-up text submission.
-Verify actual response mechanisms first; lifecycle event coverage and Flux's adapter support do not establish that our installed agents expose the same channels.
+Verify actual response mechanisms first; lifecycle event coverage and the reference's adapter support do not establish that our installed agents expose the same channels.
 Record unsupported combinations explicitly and show available terminal navigation or manual-return guidance.
 Provider action channels must not require a terminal adapter merely because navigation is unavailable.
 
@@ -285,7 +285,7 @@ Animation expresses the current evidence; it never invents lifecycle events.
 Working, attention, response ready, unknown, and ended remain distinguishable.
 Idle, play, sleep, and drag are presentation states, and must not override unresolved attention or imply confirmed completion.
 Pause unnecessary animation while hidden or asleep and provide a Reduce Motion presentation.
-Prototype alert timings and placement tolerances on the target Mac instead of copying Flux constants.
+Prototype alert timings and placement tolerances on the target Mac instead of copying the reference constants.
 
 ### Pet import compatibility proposal
 
@@ -297,24 +297,24 @@ that led to this choice. P5/P6/P8 acceptance remains unchecked because tests/bui
 not run. No company source, scripts or artwork is reused.
 
 Decision 0006 remains the accepted runtime format: a versioned JSON manifest and transparent PNG frame sequences.
-The proposed addition is an optional importer for user-supplied seven-row PNG sheets in Flux-compatible row order:
+The proposed addition is an optional importer for user-supplied seven-row PNG sheets in reference-compatible row order:
 `idle`, `play`, `sleep`, `running`, `attention`, `complete`, `drag`.
-Supporting an input layout does not include distributing Flux artwork.
+Supporting an input layout does not include distributing reference artwork.
 
 - **Convert during import — recommended, proposed:** validate and normalize a sheet into the existing pack format. One runtime representation is retained; conversion and resource validation add import work.
 - **Add a second runtime loader:** retain a sheet and slice frames during playback. Import does less work; both validation and playback must handle two asset representations.
 
 If conversion is approved, its checks must establish square cells from seven equal-height rows, whole-cell width,
 bounded encoded and decoded sizes, bounded frame counts, alpha handling, and deterministic row lengths and timing.
-Review the first-empty-cell rule against real user artwork; do not blindly inherit Flux's sampled-alpha detector.
+Review the first-empty-cell rule against real user artwork; do not blindly inherit the reference's sampled-alpha detector.
 Reject interior gaps or ambiguous layouts with a useful error. Transparent trailing cells are padding; define missing optional-row fallbacks explicitly.
 Map visual `complete` to response ready, never to verified task success. Preserve source artwork and the selected pet on failed import.
-Use independently created fixtures to check every row and invalid geometry; no installed Flux assets become test fixtures.
+Use independently created fixtures to check every row and invalid geometry; no installed reference assets become test fixtures.
 
 ### Usage refresh and presentation
 
 Keep usage separate from session lifecycle and show only allowance windows supplied by verified supported interfaces.
-Adapt Flux's independent provider refresh, cancellation, reconnect, and retry-backoff patterns.
+Adapt the reference's independent provider refresh, cancellation, reconnect, and retry-backoff patterns.
 Prefer the full Codex bucket map, merge sparse updates or reread a full snapshot, and never flatten every account into fixed daily/weekly slots.
 Keep Claude's existing status-line output intact when forwarding quota; repeated forwarding is not evidence of a new provider measurement.
 Keep local receipt time, source time when supplied, reset time, and account confidence separate.
@@ -336,7 +336,7 @@ Do not add transcript fallbacks, private endpoints, token-based allowance estima
 - [0008: Use conservative event ordering](../decisions/0008-define-event-ordering.md) — accepted.
 - [0009: Defer remaining Codex interactive checks](../decisions/0009-defer-remaining-codex-interactive-checks.md) — accepted.
 - [0010: Include local approvals and replies](../decisions/0010-add-local-agent-actions.md) — accepted scope; action-channel structure and provider support remain to be verified.
-- **Retain SwiftUI/AppKit after considering Electron/React.** The user accepted the native recommendation on 2026-10-28 for this macOS companion; decision 0001 remains in force. Flux's implementation progress is not evidence of measured runtime superiority.
+- **Retain SwiftUI/AppKit after considering Electron/React.** The user accepted the native recommendation on 2026-10-28 for this macOS companion; decision 0001 remains in force. The reference's implementation progress is not evidence of measured runtime superiority.
 - **Open: normalize compatible sprite sheets at import or add a second runtime loader?** Import conversion is recommended to retain decision 0006's runtime format. Resolve in P5 before implementing P6; the options and consequences are above.
 - **Open: which supported response channel can target each existing local agent session?** Compare a dedicated interactive hook path with an app-owned provider control channel in A1–A2; do not alter the version-1 observer protocol to assume the answer.
 - **Use a separate ownership file for Codex hook setup.** The user accepted this option on 2026-10-28 after reviewing entry markers. Exact managed-entry records support safe removal and edit detection; markers alone lack verified compatibility and edit detection. The separate file requires recovery across configuration and ownership updates. The recovery design and implementation plan remain proposed. See the [setup contract](../contracts/codex-hook-setup.md#ownership-alternatives-requiring-a-decision).
@@ -362,7 +362,7 @@ The user approved architecture recommendations 0002–0007 and proceeding direct
 Each task should fit one work session; split it if the investigation shows otherwise.
 The user approved splitting Codex implementation from interactive Otty verification on 2026-10-23.
 The user approved moving the unchecked Codex interactive task immediately before final workflow verification on 2026-10-24.
-The user requested the Flux-informed planning update on 2026-10-28 and retained the native stack.
+The user requested the reference-informed planning update on 2026-10-28 and retained the native stack.
 The user accepted adding local approvals and replies, with SSH/cloud support recorded as optional future work, on 2026-10-28.
 The revised remaining tasks below are proposed for review; the earlier approval is not approval of every added task or open design choice.
 The user activated the bounded G1/G2 goal on 2026-10-28, approving those two tasks and their parser/verification plan only; other revised tasks remain subject to review.
@@ -475,7 +475,7 @@ Retain Otty evidence without presenting it as verification of other terminals.
 - [ ] R2: Verify and correct fullscreen/Spaces visibility and transparent-area hit testing with a menu-bar recovery route and no unsolicited focus changes.
 - [ ] R3: Verify physical sleep/wake recovery preserves unknown session semantics and restores accessible window placement without reviving stale working state.
 - [ ] R4: Pause unnecessary hidden/asleep animation and implement Reduce Motion and keyboard-accessible session/return controls; verify that attention remains perceivable.
-- [ ] R5: Record five-minute idle and animated-pet CPU/memory profiles on the M2 Air; address measured issues without claiming an unmeasured advantage over Flux.
+- [ ] R5: Record five-minute idle and animated-pet CPU/memory profiles on the M2 Air; address measured issues without claiming an unmeasured advantage over the reference.
 - [ ] R6: Verify installed Codex hook trust, default-mode structured-question dispatch, and explicit denial in isolated interactive Otty sessions.
 - [ ] R7: Verify installed Codex graceful end, controlled abrupt loss, prose-question classification, and unavailable-receiver behavior in isolated interactive Otty sessions.
 - [ ] R8: Verify the actual first-use install/check/alert/jump/action/reply/quit/removal workflow and update local packaging, supported versions, removal instructions, and documented limitations.

@@ -2,14 +2,14 @@
 
 Date: 2026-11-02
 
-Use Vorssaint as the main reference for native Settings and feature management, and Flux Island for the hierarchy
+Use Vorssaint as the main reference for native Settings and feature management, and the reference island for the hierarchy
 of compact session and request interactions. Keep the desktop pet usable on its own. This is a source-based design
-recommendation, with the supplied Flux settings image and Vorssaint's published Features image as visual references.
+recommendation, with the supplied reference settings image and Vorssaint's published Features image as visual references.
 It is not a live visual/accessibility acceptance report or an approved UI implementation task list.
 
 ## Accepted product choices
 
-- **Superseded 2026-11-12 by [0017](../decisions/0017-match-flux-island-ui.md): match Flux Island's visible UI.** Original 2026-11-02 choice: **use both references as inspiration for an original, polished Notch Pet interface.** The user explicitly rejects copying either
+- **Superseded 2026-11-12 by [0017](../decisions/0017-match-reference-island-ui.md): match the reference island's visible UI.** Original 2026-11-02 choice: **use both references as inspiration for an original, polished Notch Pet interface.** The user explicitly rejects copying either
   app's complete UI. Combine useful behavior and organization, then improve hierarchy, spacing, copy, motion and native interaction through
   Impeccable and Apple guidance. Reference screenshots are evidence of patterns, not visual templates. Preserve the pet's own personality and
   truthful session/installation states. This direction does not claim that the current UI has passed visual acceptance.
@@ -31,7 +31,7 @@ It is not a live visual/accessibility acceptance report or an approved UI implem
 - [0010](../decisions/0010-add-local-agent-actions.md): local approval, structured answers and explicit follow-ups are in scope,
   conditional on verified provider channels. Lifecycle observation alone does not establish action support.
 - [0012](../decisions/0012-support-terminal-independent-operation.md): monitoring and pet reactions require no specific terminal.
-- Amended 2026-11-12 by [0019](../decisions/0019-show-prompt-and-reply-previews.md): prompt and reply previews are shown. Original choice: observation keeps its metadata allowlist. Flux's prompt/activity previews and request content are not permission to widen it.
+- Amended 2026-11-12 by [0019](../decisions/0019-show-prompt-and-reply-previews.md): prompt and reply previews are shown. Original choice: observation keeps its metadata allowlist. The reference's prompt/activity previews and request content are not permission to widen it.
 - Superseded 2026-11-12 by [0018](../decisions/0018-restore-usage-hover-details.md). Original choice: preserve the allowance strip's accepted removal of hover tooltips on the feature branch. Clarification should not silently restore them.
 
 The following layout choices are proposals. Installing this reference does not implement them or change acceptance checkboxes.
@@ -88,10 +88,10 @@ Dependency rules remain open: which useful Notch content exists without Agents, 
 and how pet reactions attach when both relevant features are installed. Explain affected features before applying a removal that
 changes another feature's behavior. Do not copy Vorssaint's notch-extension cascade as an already accepted dependency graph.
 
-## Session island should borrow Flux's hierarchy
+## Session island should borrow the reference's hierarchy
 
-The portable [Flux reference](flux-island-adoption.md#portable-implementation-reference) describes the actual components and their
-provider limitations. Flux groups phase, provider, session identity and duration in a compact row, then presents contextual approval,
+The portable [reference notes](reference-adoption.md#portable-implementation-reference) describes the actual components and their
+provider limitations. The reference groups phase, provider, session identity and duration in a compact row, then presents contextual approval,
 question or follow-up controls. This matches the user's momentary task: identify what needs attention and choose the next action.
 
 Proposed hierarchy for our expanded island:

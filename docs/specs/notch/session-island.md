@@ -87,8 +87,8 @@ I1/N3–N5 source implementation is merged; their remaining actual-app checks ar
 
 ## Current layout, 2026-11-12
 
-[Decision 0017](../../decisions/0017-match-flux-island-ui.md) replaced the click-to-expand panel described in the evidence below.
-The [island UI reference](../../notes/flux-ui-reference.md) holds the exact values; this summary is enough to read the code.
+[Decision 0017](../../decisions/0017-match-reference-island-ui.md) replaced the click-to-expand panel described in the evidence below.
+The [island UI reference](../../notes/reference-ui.md) holds the exact values; this summary is enough to read the code.
 
 - One fixed transparent window, 740 wide and up to 572 tall, sits at the top center of the notched screen. `IslandGeometry`
   (in `SessionState`) computes it; `NotchPlacement` no longer exists. Only the black shape inside the window takes the pointer.

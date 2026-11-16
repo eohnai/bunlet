@@ -31,7 +31,7 @@ ON FINISH/STOP: checkpoint/log all nine statuses and unverified behavior; commit
 
 ## Scope confirmed by the user
 
-The user originally requested a full native Flux-inspired port, then clarified that the full MVP was intended.
+The user originally requested a full native reference-inspired port, then clarified that the full MVP was intended.
 The Codex-focused goal saved in commit 8707bdf is a foundation slice, not completion of this deliverable.
 On 2026-11-06 the user invoked make-goal for the full scope, then confirmed:
 "don't need to test first, just leave it unverified. i just want the code implementation".
@@ -51,7 +51,7 @@ No milestone alone can close the full goal.
 - Sessions, Notch, Usage, Actions, Pets and Settings area indexes and relevant feature specs.
 - docs/contracts/agent-events-v1.md and docs/contracts/codex-hook-setup.md.
 - docs/DECISIONS.md and the relevant named decisions in docs/decisions/.
-- docs/notes/flux-island-adoption.md and docs/notes/companion-ui-direction.md.
+- docs/notes/reference-adoption.md and docs/notes/companion-ui-direction.md.
 - docs/goals/codex-mvp-implementation.md and its log for the existing source slice and limits.
 - Read older branch records via git show only. Reconcile their proposals and obsolete limits rather than
   overwriting newer decisions or duplicating previously completed work.
@@ -109,7 +109,7 @@ Necessary test caller/import compatibility edits may accompany real source chang
 
 Read-only repository inspection and primary provider documentation/source research are permitted.
 Implement supported provider behavior from concrete interfaces; do not guess unsupported protocol fields,
-fake effective policy or copy Flux's implementation/assets. Check/updater actions written into the app may
+fake effective policy or copy the reference's implementation/assets. Check/updater actions written into the app may
 later perform bounded provider inspection when a person explicitly invokes them; do not invoke them here.
 
 Keep documented/unverified support distinct from runtime-qualified support. The current Codex release

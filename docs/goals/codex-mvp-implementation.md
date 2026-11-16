@@ -31,7 +31,7 @@ ON FINISH/STOP: set log status/result to implementation complete, stopped or blo
 On 2026-11-06, after the repository/branch/specification comparison, the user said:
 "no need to test, can just finish the MVP. run $make-goal".
 The MVP is the previously identified Codex setup → visible session → actual provider limits path,
-not the entire Flux Island parity backlog. This goal prepares that first implementation delivery.
+not the entire reference island parity backlog. This goal prepares that first implementation delivery.
 The user subsequently requested different branches where necessary, then clarified:
 "wait don't need worktree, can just do in the current one". That correction replaces the original
 separate-worktree plan. The user then required all work on codex-mvp and activated this goal. Use only feat/codex-mvp in the current checkout.
@@ -169,4 +169,4 @@ removed to obtain completion. No installer release was added to the empty qualif
 The automatic Connect gate is a deliberate deployment limitation, not a completed qualification result.
 The complete valid-input implementation exists behind it; enabling a release still requires the separately
 authorized version/policy/timeout/helper/trust qualification. This source-only goal does not promise a usable
-automatic installer for today's unqualified versions or complete the broader Flux Island port.
+automatic installer for today's unqualified versions or complete the broader reference island port.

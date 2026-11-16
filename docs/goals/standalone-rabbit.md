@@ -24,7 +24,7 @@ DONE WHEN all hold, with fresh output:
 
 EVERY TURN: run applicable checks, print output and pass/fail/not-run per criterion; append a numbered timestamped row to docs/goals/standalone-rabbit-log.md. No stale results as fresh.
 
-CONSTRAINTS: Change only Package.swift, Sources/Pet/**, Sources/NotchPet/**, Tests/PetTests/**, Tests/NotchPetTests/**, scripts/run.sh, scripts/check-standalone-pet.py, docs/specs/pets/built-in-pet.md, docs/STATUS.md and this goal/log. Freeze new checks before corresponding code; never weaken, skip or delete checks. No dependencies, commits, pushes, PRs, credentials, transcripts or real hook/config changes. Keep runtime/captures outside Git. No agent setup, reactions, detachment, imports or BP5-BP7 work. Use app-owned services; views start no I/O. No Flux code/assets.
+CONSTRAINTS: Change only Package.swift, Sources/Pet/**, Sources/NotchPet/**, Tests/PetTests/**, Tests/NotchPetTests/**, scripts/run.sh, scripts/check-standalone-pet.py, docs/specs/pets/built-in-pet.md, docs/STATUS.md and this goal/log. Freeze new checks before corresponding code; never weaken, skip or delete checks. No dependencies, commits, pushes, PRs, credentials, transcripts or real hook/config changes. Keep runtime/captures outside Git. No agent setup, reactions, detachment, imports or BP5-BP7 work. Use app-owned services; views start no I/O. No reference code/assets.
 
 STOP AND REPORT: 30 turns; same failure 3 consecutive turns; missing access/tool, unrelated baseline failure, unresolved design or scope conflict. No separate build repair is authorized. ON FINISH/STOP: set log Status/Final result, run checkpoint, print proof/gaps and exact git add/commit commands for user review. Partial evidence is incomplete.
 ```
@@ -42,7 +42,7 @@ STOP AND REPORT: 30 turns; same failure 3 consecutive turns; missing access/tool
 
 One original white lionhead rabbit, recognizable by its fluffy mane framing the face, upright rabbit ears, compact rabbit body and white coat.
 Use one calm idle pose with the full ears, mane and feet inside the image, padding on all sides, and genuine alpha transparency.
-Use subtle neutral shading to keep white fur legible against light and dark desktops. No scene, text, costume, logos or Flux artwork.
+Use subtle neutral shading to keep white fur legible against light and dark desktops. No scene, text, costume, logos or reference artwork.
 A small readable illustration is sufficient; animation frames and subjective polishing are outside this milestone.
 Inspect the generated output before bundling it. Check its alpha, visible pixels, complete silhouette and readability at the default displayed size.
 Use the built-in image tool; if unavailable, stop rather than substituting procedural artwork or an unapproved API workflow.
@@ -89,7 +89,7 @@ Build/check commands are proposed reproduction commands. None ran while preparin
 
 ## Activation and interface preference
 
-The user approved the goal, its task slices and workflow exceptions on 2026-10-30, and asked to refer to Flux Island whenever useful. They prefer similar opening behavior, Escape-to-close and limits presentation. Preserve pet-first startup and optional agent services. Apply relevant pet-surface behavior within this goal; retain limits/settings parity for its owning future interface work.
+The user approved the goal, its task slices and workflow exceptions on 2026-10-30, and asked to refer to the reference island whenever useful. They prefer similar opening behavior, Escape-to-close and limits presentation. Preserve pet-first startup and optional agent services. Apply relevant pet-surface behavior within this goal; retain limits/settings parity for its owning future interface work.
 
 ## Verification deferred by user
 

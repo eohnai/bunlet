@@ -2,7 +2,7 @@
 
 Status: done
 
-Superseded in part on 2026-11-12: [decision 0017](../../decisions/0017-match-flux-island-ui.md) restyled the cards and
+Superseded in part on 2026-11-12: [decision 0017](../../decisions/0017-match-reference-island-ui.md) restyled the cards and
 [0019](../../decisions/0019-show-prompt-and-reply-previews.md) added prompt and reply previews. See **Current layout** below.
 The tasks and evidence record what was built and verified at the time; they are not reopened.
 
