@@ -25,7 +25,7 @@ let package = Package(
         .executableTarget(name: "NotchPetActionHook", dependencies: ["AgentActions"]),
         .testTarget(name: "EventBridgeTests", dependencies: ["EventBridge"]),
         .testTarget(name: "PetTests", dependencies: ["Pet"]),
-        .testTarget(name: "NotchPetTests", dependencies: ["NotchPet", "EventBridge", "SessionState", "Integration"]),
+        .testTarget(name: "NotchPetTests", dependencies: ["NotchPet", "EventBridge", "SessionState", "Integration", "AgentActions"]),
         .testTarget(name: "UsageTests", dependencies: ["Usage", "EventBridge"]),
         .testTarget(name: "IntegrationTests", dependencies: ["Integration", "SessionState", "EventBridge"]),
         .testTarget(name: "SessionStateTests", dependencies: ["SessionState", "EventBridge", "Integration"])

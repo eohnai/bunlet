@@ -140,6 +140,10 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         if installed.contains(.agents) {
             if codexSetup == nil { codexSetup = makeProviderSetup(.codex) }
             if claudeSetup == nil { claudeSetup = makeProviderSetup(.claude) }
+            if monitoring {
+                if providerMonitoring.isEnabled(.codex) { codexSetup?.connectAutomatically() }
+                if providerMonitoring.isEnabled(.claude) { claudeSetup?.connectAutomatically() }
+            }
         } else {
             codexSetup?.cancel()
             claudeSetup?.cancel()
@@ -162,6 +166,10 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             self?.providerMonitoring.setEnabled(false, for: agent)
         }, onActionsConsent: { [weak self] enabled in
             self?.providerMonitoring.setActionsEnabled(enabled)
+        }, onQuotaChoice: { [weak self] on in
+            self?.providerMonitoring.setQuotaAutoConnect(on)
+        }, quotaAutomatic: { [weak self] in
+            self?.providerMonitoring.quotaAutoConnect ?? false
         }, onInspection: { [weak self] evidence in
             self?.agents?.recordInspection(evidence)
         })

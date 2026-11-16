@@ -14,6 +14,25 @@ struct NotchPresentationTests {
                         hasTerminalRestriction: status == .ended)
     }
 
+    private func quiet(_ id: String, _ status: SessionStatus, receiptMs: Int64?) -> SessionSnapshot {
+        SessionSnapshot(key: SessionKey(agent: .codex, sessionID: id), status: status,
+                        reason: nil, currentTurnID: nil, turnStartedAtMs: nil,
+                        responseReadyAtMs: nil, pendingRequests: [],
+                        captureWatermarkMs: nil, receiptWallMs: receiptMs, receiptMonotonicNs: nil,
+                        expiryMonotonicNs: nil, projectPath: "/fictional/project", paneSelector: nil,
+                        hasTerminalRestriction: false)
+    }
+
+    @Test func staleIdleAndEndedSessionsLeaveTheList() {
+        let now: Int64 = 10_000_000
+        let old = now - 2 * 60 * 60_000
+        let sessions = [quiet("idle-old", .idle, receiptMs: old), quiet("ended-old", .ended, receiptMs: old),
+                        quiet("idle-new", .idle, receiptMs: now - 60_000), quiet("working-old", .working, receiptMs: old),
+                        quiet("approval-old", .approvalNeeded, receiptMs: old), quiet("idle-none", .idle, receiptMs: nil)]
+        let kept = NotchPresentation.withoutStale(sessions, limitMinutes: 60, nowMs: now).map(\.key.sessionID)
+        #expect(kept == ["idle-new", "working-old", "approval-old", "idle-none"])
+    }
+
     @Test func windowIsFixedAtTopCenter() throws {
         let frame = try #require(IslandGeometry.windowFrame(screen: CGRect(x: 0, y: 0, width: 1470, height: 956),
                                                             safeTop: 38))

@@ -23,8 +23,8 @@ Build General, Agents, Display, Sound, Shortcuts and About pages in the referenc
   ⌃↩ jump to terminal.
 - **About:** version only.
 
-Not built: Language (English only), idle-session auto-clean (it would treat silence as completion), Feishu, Remote SSH,
-Mine, Statistics, Contact, custom key recording, and the reference's own sounds.
+Not built: Language (English only), Feishu, Remote SSH,
+Mine, Statistics, Contact and the reference's own sounds. [0022](0022-close-reference-settings-gaps.md) later added idle-session clean-up, key choice and more.
 
 ## Reasoning
 

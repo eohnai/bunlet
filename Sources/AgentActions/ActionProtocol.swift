@@ -30,10 +30,14 @@ public struct ActionOffer: Codable, Equatable, Sendable, Identifiable {
     /// Necessary action content only. Never forwarded to lifecycle observation or diagnostics.
     public let input: Data?
     public let questions: [ActionQuestion]
+    /// Claude's own `permission_suggestions` array, held only so "Allow always" can echo it back unchanged.
+    public var permissionSuggestions: Data? = nil
+
+    public var canAllowAlways: Bool { kind == .permission && permissionSuggestions != nil }
 }
 
 public enum ActionChoice: String, Codable, Sendable {
-    case approveOnce, deny, answer, followUp, cancel
+    case approveOnce, allowAlways, deny, answer, followUp, cancel
 }
 
 public struct ActionAnswer: Codable, Equatable, Sendable {
@@ -106,8 +110,10 @@ public enum ActionProtocol {
               offer.toolUseID.map(identity) ?? true,
               offer.toolName.map({ !$0.isEmpty && $0.utf8.count <= identityLimit }) ?? true,
               (offer.input?.count ?? 0) <= inputLimit,
+              (offer.permissionSuggestions?.count ?? 0) <= inputLimit,
               offer.questions.count <= questionLimit else { return false }
         if let input = offer.input, (try? HookConfigurationJSON(data: input)) == nil { return false }
+        if let suggestions = offer.permissionSuggestions, suggestions.first != 91 { return false }
         switch offer.kind {
         case .permission: return offer.toolName != nil && offer.input != nil && offer.questions.isEmpty
         case .followUp: return offer.toolName == nil && offer.toolUseID == nil && offer.input == nil && offer.questions.isEmpty
@@ -144,7 +150,9 @@ public enum ActionProtocol {
         if decision.choice == .cancel { return decision.text == nil && decision.answers.isEmpty }
         switch offer.kind {
         case .permission:
-            return (decision.choice == .approveOnce || decision.choice == .deny) && decision.text == nil && decision.answers.isEmpty
+            let allowed = decision.choice == .approveOnce || decision.choice == .deny
+                || (decision.choice == .allowAlways && offer.canAllowAlways)
+            return allowed && decision.text == nil && decision.answers.isEmpty
         case .followUp:
             return decision.choice == .followUp && decision.answers.isEmpty &&
                 decision.text.map { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty } == true

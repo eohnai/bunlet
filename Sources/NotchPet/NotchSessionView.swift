@@ -26,7 +26,7 @@ struct NotchSessionView: View {
     @State private var detailsKey: SessionKey?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var sessions: [SessionSnapshot] { sessionStore.sessions }
+    private var sessions: [SessionSnapshot] { settings?.visibleSessions(sessionStore.sessions) ?? sessionStore.sessions }
     private var attentionCount: Int {
         sessions.filter { IslandPhase.dominant([$0]) == .attention }.count
     }
@@ -135,7 +135,8 @@ struct NotchSessionView: View {
         HStack(spacing: 0) {
             Group {
                 if expanded && isVisible && !isSleeping {
-                    NotchAllowanceStrip(store: usageStore, activeProviders: shownLimitProviders)
+                    NotchAllowanceStrip(store: usageStore, activeProviders: shownLimitProviders,
+                                        showsUsed: settings?.usageValue == .used)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

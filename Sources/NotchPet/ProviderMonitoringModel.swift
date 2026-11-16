@@ -12,6 +12,7 @@ final class ProviderMonitoringModel {
     private(set) var actionsEnabled: Bool
     private(set) var actionWriteIssue = false
     private static let actionsKey = "agents.claude.localResponsesEnabled"
+    private static let quotaKey = "agents.claude.quotaAutoConnect"
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let onChange: (Set<Agent>) -> Void
 
@@ -21,7 +22,8 @@ final class ProviderMonitoringModel {
         let actionConsent = defaults.object(forKey: Self.actionsKey) as? NSNumber
         actionsEnabled = actionConsent.map { CFGetTypeID($0) == CFBooleanGetTypeID() && $0.boolValue } ?? false
         let consent = defaults.object(forKey: "agentMonitoringEnabled") as? NSNumber
-        let legacyEnabled = consent.map { CFGetTypeID($0) == CFBooleanGetTypeID() && $0.boolValue } ?? false
+        // Agents start on (decision 0023). An earlier saved global choice, and any per-provider choice, still wins.
+        let legacyEnabled = consent.map { CFGetTypeID($0) == CFBooleanGetTypeID() && $0.boolValue } ?? true
         enabledProviders = Set(Agent.allCases.filter { agent in
             let value = defaults.object(forKey: Self.key(agent))
             // Preserve the earlier global monitoring choice until a per-provider choice is saved.
@@ -32,6 +34,14 @@ final class ProviderMonitoringModel {
     }
 
     func isEnabled(_ agent: Agent) -> Bool { enabledProviders.contains(agent) }
+
+    /// Whether launch may add or repair Claude's quota forwarding. Removing it by hand turns this off (decision 0024).
+    var quotaAutoConnect: Bool {
+        guard let value = defaults.object(forKey: Self.quotaKey) as? NSNumber, CFGetTypeID(value) == CFBooleanGetTypeID() else { return true }
+        return value.boolValue
+    }
+
+    func setQuotaAutoConnect(_ on: Bool) { defaults.set(on, forKey: Self.quotaKey) }
 
     func setActionsEnabled(_ enabled: Bool) {
         if !enabled {

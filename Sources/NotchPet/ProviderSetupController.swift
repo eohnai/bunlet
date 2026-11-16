@@ -36,26 +36,65 @@ final class ProviderSetupController {
     private(set) var message = "Check a provider to inspect setup. Connecting is optional."
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var generation = UUID()
+    @ObservationIgnored private var autoConnectTried = false
     @ObservationIgnored private let service: ProviderSetupService
     @ObservationIgnored private let onConnected: () -> Void
     @ObservationIgnored private let onPaused: () -> Void
     @ObservationIgnored private let onActionsConsent: (Bool) -> Void
+    @ObservationIgnored private let onQuotaChoice: (Bool) -> Void
+    @ObservationIgnored private let quotaAutomatic: () -> Bool
     @ObservationIgnored private let onInspection: (IntegrationHealthEvidence) -> Void
 
     init(agent: Agent = .codex, service: ProviderSetupService = ProviderSetupService(),
          onConnected: @escaping () -> Void, onPaused: @escaping () -> Void = {},
          onActionsConsent: @escaping (Bool) -> Void = { _ in },
+         onQuotaChoice: @escaping (Bool) -> Void = { _ in }, quotaAutomatic: @escaping () -> Bool = { false },
          onInspection: @escaping (IntegrationHealthEvidence) -> Void) {
         self.agent = agent
         self.onPaused = onPaused
         self.onActionsConsent = onActionsConsent
+        self.onQuotaChoice = onQuotaChoice
+        self.quotaAutomatic = quotaAutomatic
         self.service = service
         self.onConnected = onConnected
         self.onInspection = onInspection
         message = "Check \(providerName) to inspect setup. Connecting is optional."
     }
 
-    func start(_ action: ProviderSetupAction) {
+    /// Launch behavior (decisions 0023, 0024): check once, then add Bunlet's hooks or repair drifted ones.
+    /// Claude's quota forwarding follows. Local responses are never touched. A conflict, a missing agent,
+    /// an unqualified version or an unfinished recovery is left for the user.
+    func connectAutomatically() {
+        guard !autoConnectTried, task == nil else { return }
+        autoConnectTried = true
+        start(.check) { [weak self] in
+            guard let self, let inspection = self.inspection, inspection.installationUnavailable == nil,
+                  Self.canConnectAutomatically(inspection.ownership) else { return }
+            // Connecting an owned setup is a repair: it changes nothing when the entries already match.
+            self.start(.connect) { [weak self] in
+                guard let self, case .owned = self.inspection?.ownership else { return }
+                self.connectQuotaAutomatically()
+            }
+        }
+    }
+
+    private func connectQuotaAutomatically() {
+        guard agent == .claude, quotaAutomatic() else { return }
+        start(.checkQuota) { [weak self] in
+            guard let self, let inspection = self.quotaInspection, inspection.installationUnavailable == nil,
+                  Self.canConnectAutomatically(inspection.ownership) else { return }
+            self.start(.connectQuota)
+        }
+    }
+
+    static func canConnectAutomatically(_ ownership: OwnedProviderHooks) -> Bool {
+        switch ownership {
+        case .notOwned, .owned: true
+        default: false
+        }
+    }
+
+    func start(_ action: ProviderSetupAction, then followUp: (@MainActor () -> Void)? = nil) {
         guard task == nil else { return }
         let current = UUID()
         generation = current
@@ -65,7 +104,11 @@ final class ProviderSetupController {
             return
         }
         let removing = action.removes
-        if action == .disconnect { onPaused() }
+        // Removing the hooks is a choice to stop, so the next launch must not add them back.
+        if action == .disconnect || action == .remove { onPaused() }
+        // Removing quota forwarding is a choice to stop, so the next launch must not add it back.
+        if action == .removeQuota { onQuotaChoice(false) }
+        if action == .connectQuota { onQuotaChoice(true) }
         if action == .removeActions || (action == .disconnect && agent == .claude) { onActionsConsent(false) }
         let targetName = action.scope == .claudeQuota ? "quota forwarding" : (action.scope == .claudeActions ? "interactive hooks" : "lifecycle hooks")
         message = action.isCheck ? "Checking \(providerName) \(targetName)…" : "Updating owned \(providerName) \(targetName)…"
@@ -75,6 +118,7 @@ final class ProviderSetupController {
                 if self.generation == current {
                     self.operation = nil
                     self.task = nil
+                    if !Task.isCancelled { followUp?() }
                 }
             }
             var disconnectedScopes: [String] = []
