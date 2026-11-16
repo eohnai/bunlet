@@ -12,7 +12,7 @@ and its bounded Stop-feedback follow-up limitation. The accepted local-action sc
 ## Context
 
 The original release scope sent the user back to Otty to approve or reply.
-After reviewing Flux's interaction features, the user explicitly requested adding local approvals and replies
+After reviewing the reference's interaction features, the user explicitly requested adding local approvals and replies
 and keeping SSH/cloud support as optional future work.
 The existing event helper and version-1 contract provide observations only; supported response paths remain unverified.
 

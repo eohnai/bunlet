@@ -20,8 +20,8 @@ The user accepted decisions 0002–0007 on 2026-10-22 after reviewing the compat
 SwiftUI and AppKit were already accepted in decision 0001.
 Acceptance chooses the design; the compatibility records still define what has and has not been verified.
 
-On 2026-10-28 the user retained SwiftUI/AppKit after considering Electron/React and requested a Flux-informed plan update.
-The [reference findings](notes/flux-island-adoption.md) support the planned behavior below.
+On 2026-10-28 the user retained SwiftUI/AppKit after considering Electron/React and requested a reference-informed plan update.
+The [reference findings](notes/reference-adoption.md) support the planned behavior below.
 The [specification](specs/notch-companion.md) owns acceptance checks and proposed tasks; the native stack and decisions 0001–0009 remain in force for their existing responsibilities.
 [Decision 0010](decisions/0010-add-local-agent-actions.md) adds accepted local-interaction scope without changing the existing observation protocol.
 [Decision 0012](decisions/0012-support-terminal-independent-operation.md) removes Otty as a product prerequisite.
@@ -171,7 +171,7 @@ Later plans must define remote identity, connection/authentication ownership, an
 
 ## Setup and presentation
 
-Adapt Flux's reversible setup and visible session workflow through native services and views.
+Adapt the reference's reversible setup and visible session workflow through native services and views.
 Provider setup owns only this app's entries, records ownership for removal, preserves unrelated settings
 and user edits, and reports conflicts instead of overwriting unsupported configuration.
 
@@ -252,7 +252,7 @@ Decision 0006's versioned manifest and PNG frame sequences remain the runtime re
 The user’s later local-only request selects import-time normalization of seven-row sprite sheets into this format; P5/P6 acceptance remains unrun.
 The structural alternatives are normalization into that representation at import, or a second runtime loader.
 Normalization is recommended but remains open; it would leave the renderer with one format and concentrate validation in the import service.
-No runtime format changes, detector rules, or Flux artwork are accepted by this proposal.
+No runtime format changes, detector rules, or reference artwork are accepted by this proposal.
 
 ## Resource efficiency and collection follow-up
 

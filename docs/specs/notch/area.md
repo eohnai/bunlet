@@ -27,7 +27,7 @@ Native/provider acceptance remains deferred. Broader roadmap entries without spe
 - The first delivery milestone is optional Codex setup, a visible real session, and real limits. Coordinate with sessions/codex-setup and usage/codex-allowance.
 - Opening, closing, expansion, and collapse belong to session-island. Do not create a separate feature for the same island interactions.
 - Retain pet-first startup and optional agent services. Island visibility does not enable monitoring or resolve retained notices.
-- Refine Flux-like interaction details during feature planning. Existing implementation and approved area scope do not establish actual-app acceptance.
+- Refine reference-like interaction details during feature planning. Existing implementation and approved area scope do not establish actual-app acceptance.
 - Reference images approved on 2026-10-30 show a compact allowance strip above a session/request card. Keep session identity, request details, and any terminal-return action clear.
 - Manual opening and closing remain in session-island. The new attention-behavior feature owns preferences and automatic expansion for response-ready notices or requests needing attention.
 - Response ready means a finished response. It does not establish task success or a confirmed session end.

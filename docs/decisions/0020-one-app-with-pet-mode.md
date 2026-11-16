@@ -8,14 +8,14 @@
 ## Context
 
 D7 let users install and uninstall Pet, Notch and Agents in Settings, and 0013 made the pet usable on its own.
-After matching Flux Island's UI under [0017](0017-match-flux-island-ui.md), the user decided on 2026-11-12 that
-the pet does not need to be a separate thing and should follow Flux: the island and agent services always run,
+After matching the reference island's UI under [0017](0017-match-reference-island-ui.md), the user decided on 2026-11-12 that
+the pet does not need to be a separate thing and should follow the reference: the island and agent services always run,
 and the pet is a mode you enter by dragging it out of the island.
 
 ## Options
 
-- **Keep installable features:** pet-only use stays possible; keeps a Features page and lifecycle code Flux does not have.
-- **One app, pet as a mode:** matches Flux; removes the feature manager and its lifecycle states.
+- **Keep installable features:** pet-only use stays possible; keeps a Features page and lifecycle code the reference does not have.
+- **One app, pet as a mode:** matches the reference; removes the feature manager and its lifecycle states.
 - **One app, agents optional:** a middle ground the user did not choose.
 
 ## Decision
@@ -28,7 +28,7 @@ Agent tracking still needs per-provider Connect and per-provider monitoring cons
 
 ## Reasoning
 
-The user wants one app that behaves like Flux Island for personal use.
+The user wants one app that behaves like the reference island for personal use.
 
 ## Consequences
 

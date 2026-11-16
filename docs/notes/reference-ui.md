@@ -1,22 +1,22 @@
-# Flux Island UI reference
+# Reference island UI
 
 Date: 2026-11-12
 
-This note makes Flux Island's visible UI reproducible without the installed app.
-It supports [decision 0017](../decisions/0017-match-flux-island-ui.md): Bunlet matches Flux's look while keeping its own behavior.
-For Flux's architecture and provider behavior, see [Flux adoption](flux-island-adoption.md).
+This note makes the reference island's visible UI reproducible without the installed app.
+It supports [decision 0017](../decisions/0017-match-reference-island-ui.md): Bunlet matches the reference's look while keeping its own behavior.
+For the reference's architecture and provider behavior, see [reference adoption](reference-adoption.md).
 
 ## Source
 
-- Installed `/Applications/Flux Island.app`, version 0.1.25, `app.asar` SHA-256
+- The installed reference app, version 0.1.25, `app.asar` SHA-256
   `25bf9e27fb025668d193f8323b5151bfbc37d62b2bd87bae8101cabf41f8e758` (unchanged since 2026-10-28).
 - Read from the bundled renderer: `out/renderer/assets/island-DH0GYq24.js` (window and triggers),
   `island-DzP_CVFS.js` (pill and shape), `IslandPanel-DSRHjja3.js` (panel, rows, cards),
   `island-De4B4VoU.css` and `IslandPanel-CgVhWn8Q.css` (styles). Line numbers drift between versions; component names are stable.
-- The source repository (`cloud-fe/flux-desktop`) is not readable by the user's account. No access was requested.
-- No Flux file is a build input. Its artwork, agent logo PNGs, ByteSans font and sounds are not copied (0017).
+- The source repository (its internal repository) is not readable by the user's account. No access was requested.
+- No reference file is a build input. Its artwork, agent logo PNGs, ByteSans font and sounds are not copied (0017).
 
-Values below are CSS pixels, which equal macOS points. Colors are given as Flux writes them.
+Values below are CSS pixels, which equal macOS points. Colors are given as the reference writes them.
 
 ## Palette and type
 
@@ -94,7 +94,7 @@ Left to right, 10 padding, 6 gap, full height:
 - Keyboard shortcuts (global, default modifier Control): toggle island `I`, collapse `Esc`, approve `Y`, reject `N`, always allow `A`,
   plus next/previous session and "jump to session".
 - Clicking a session row jumps to its terminal and collapses the panel.
-- On launch Flux runs one quick open/close warm-up cycle.
+- On launch the reference runs one quick open/close warm-up cycle.
 
 ## Panel (open state)
 
@@ -128,7 +128,7 @@ Row, 8 gap, 18 radius; the whole row is clickable.
   - **Activity line**: current activity, else last assistant message — 12, `#646B77`, one line, ellipsis.
   - In the active (focused) row, prompt and activity lines brighten to `#D1D3DD`.
   - Paths under the session's working directory are shown relative to it.
-- Elapsed format: `45s`, `3m`, `3m07s`, `1h`, `1h05m`. Flux measures from session creation and ticks each second until completed.
+- Elapsed format: `45s`, `3m`, `3m07s`, `1h`, `1h05m`. The reference measures from session creation and ticks each second until completed.
 
 ### Cards
 
@@ -151,16 +151,16 @@ All cards use the card border/fill from the palette. Headers are 5×8 padding wi
 
 ## How Bunlet applies this
 
-| Flux element | Bunlet |
+| Reference element | Bunlet |
 | --- | --- |
 | Window, shape, sizes, timings, colors, type | Same values, drawn with SwiftUI/AppKit |
 | Phase icons, app logo, provider logos | Bunlet's own icons at the same sizes; the idle logo and menu bar icon are the SF Symbols hare |
 | Pill label and count | Same, with Bunlet's app name |
-| Usage percentage | Percent **left** ([D6](../DECISIONS.md#d6-show-allowance-as-percent-left-not-percent-used)); color levels mirror Flux's (≤20% left red, ≤50% yellow) |
+| Usage percentage | Percent **left** ([D6](../DECISIONS.md#d6-show-allowance-as-percent-left-not-percent-used)); color levels mirror the reference's (≤20% left red, ≤50% yellow) |
 | Usage hover popup | Same, per [0018](../decisions/0018-restore-usage-hover-details.md) |
 | Prompt and activity lines | Short previews per [0019](../decisions/0019-show-prompt-and-reply-previews.md); activity shows the last reply |
 | Elapsed chip | Bunlet's observed prompt-turn timer; unknown shows no timer |
-| Status word | Unknown/ended states keep a visible word; Flux has no unknown phase |
+| Status word | Unknown/ended states keep a visible word; the reference has no unknown phase |
 | Session order and visibility | Bunlet's rules: confirmed requests first; ended and unknown stay visible |
 | Approval/question buttons | Only for verified local channels (Claude); otherwise the card shows "Jump to terminal" guidance |
 | Always allow, plan confirmation | Omitted until a verified channel exists |
@@ -178,7 +178,7 @@ Source: the bundled settings renderer plus three screenshots the user supplied o
 - **Sidebar:** 220 wide, `rgba(40,40,44,0.95)` with a 1 px right border at 10% white. Items are an emoji icon and a 13-point
   label (85% white); the selected item is a full-width rounded rectangle (about 10 radius) filled with the system blue, white text;
   hover 8% white. Sections: an untitled group (General ⚙️, Agents 🤖, Display 🖥️, Sound 🔊, Feishu 📨), "ADVANCED"
-  (Shortcuts ⌨️, Remote SSH 🌐) and "FLUX" (Mine 👤, Statistics 📊, About ℹ️ with a blue "Update" capsule, Contact 💬).
+  (Shortcuts ⌨️, Remote SSH 🌐) and the second group (Mine 👤, Statistics 📊, About ℹ️ with a blue "Update" capsule, Contact 💬).
   Section headers are 11 semibold uppercase at 40% white with letter spacing.
 - **Content:** `#1E1E22`. Page title 22 bold (renders large, about 30 pt in the screenshots), 85% white, 16 below.
   Each group has a gray heading (about 15 semibold, 55% white) and a card: `#2C2C30`-like fill, about 12 radius, rows of
@@ -204,12 +204,12 @@ an untitled group (General, Agents, Display, Sound), "ADVANCED" (Shortcuts) and 
 
 ## Pet and pet panel
 
-- Flux's pet is its own transparent window. A speech bubble above the pet shows a short colored status; clicking it toggles the panel.
+- The reference's pet is its own transparent window. A speech bubble above the pet shows a short colored status; clicking it toggles the panel.
 - The panel is a separate window 400 wide, up to 400 tall, opening above the pet or below when there is no room.
   Fill `rgba(18,19,20,0.9)`, 1 px light border, shadow `0 16 48 rgba(0,0,0,0.35)`. It lists the same session rows and actionable
   cards as the island; clicking a row jumps to the terminal. Empty state: centered "No sessions" at 45% white.
 
-Flux ships a default pet that users replace by dropping a same-named PNG into a folder. Bunlet also ships a default,
+The reference ships a default pet that users replace by dropping a same-named PNG into a folder. Bunlet also ships a default,
 its own white lionhead rabbit; Display → Desktop Pet → Choose Image… (or a sprite sheet or pack) replaces it. The pet is part of the app ([0020](../decisions/0020-one-app-with-pet-mode.md)): it docks in the island
 and comes out by dragging the pill down or with Show Pet. Its bubble shows the existing mood label (attention yellow,
 response ready green, unknown orange).
