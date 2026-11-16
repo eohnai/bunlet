@@ -1,4 +1,5 @@
 import EventBridge
+import Integration
 import Foundation
 import Testing
 @testable import NotchPet
@@ -28,5 +29,21 @@ struct AgentDefaultsTests {
         let model = ProviderMonitoringModel(defaults: store, onChange: { _ in })
         #expect(!model.isEnabled(.claude))
         #expect(!model.isEnabled(.codex))
+    }
+}
+
+@MainActor
+struct AutoConnectRulesTests {
+    @Test(arguments: [(OwnedProviderHooks.notOwned, true), (.owned, true), (.conflict, false), (.recoveryRequired, false)])
+    func onlyCleanStatesConnectAutomatically(state: OwnedProviderHooks, expected: Bool) {
+        #expect(ProviderSetupController.canConnectAutomatically(state) == expected)
+    }
+
+    @Test func quotaForwardingIsAutomaticUntilRemovedByHand() {
+        let defaults = UserDefaults(suiteName: "bunlet-quota-auto-\(UUID().uuidString)")!
+        let model = ProviderMonitoringModel(defaults: defaults, onChange: { _ in })
+        #expect(model.quotaAutoConnect)
+        model.setQuotaAutoConnect(false)
+        #expect(!ProviderMonitoringModel(defaults: defaults, onChange: { _ in }).quotaAutoConnect)
     }
 }

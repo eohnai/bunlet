@@ -4,7 +4,7 @@
 
 `feat/reference-gaps-settings` closes the Claude Code and Codex settings gaps found by comparing with the reference island, and
 reorganizes Settings (decision 0022): always allow, rebindable shortcuts, visibility options, idle-session clean-up,
-percent used or left, and a launch sound. Claude Code and Codex now start on and connect at launch without a prompt (decision 0023). Settings is now one file per page. The build and all tests pass
+percent used or left, and a launch sound. Claude Code and Codex now start on and connect at launch without a prompt, repair drifted hooks, and connect Claude quota forwarding (decisions 0023, 0024). Local responses stay manual. Settings is now one file per page. The build and all tests pass
 (`env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test`). Nothing has run on screen.
 
 ## Next

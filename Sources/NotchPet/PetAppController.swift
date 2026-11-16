@@ -166,6 +166,10 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             self?.providerMonitoring.setEnabled(false, for: agent)
         }, onActionsConsent: { [weak self] enabled in
             self?.providerMonitoring.setActionsEnabled(enabled)
+        }, onQuotaChoice: { [weak self] on in
+            self?.providerMonitoring.setQuotaAutoConnect(on)
+        }, quotaAutomatic: { [weak self] in
+            self?.providerMonitoring.quotaAutoConnect ?? false
         }, onInspection: { [weak self] evidence in
             self?.agents?.recordInspection(evidence)
         })
