@@ -102,7 +102,22 @@ The [island UI reference](../../notes/flux-ui-reference.md) holds the exact valu
 
 The **Done when** checks above still apply. Hover-open and notification-open are additions; neither takes keyboard focus.
 
-## Open questions
+## Closed-notch correction, 2026-11-14
+
+The user approved removing the visible seam and aligning the closed island to display pixels.
+The black shape has no light outline. Window placement and closed width use the selected display's backing scale.
+Cutout width and header height still come from AppKit, rather than fixed MacBook model dimensions.
+The extra width holds the status icon and session count. It remains intentional.
+The correction costs the decorative border. It avoids model-specific dimensions that fail under display scaling.
+Actual appearance on the user's M2 Air remains unverified. No screen captures were taken.
+
+- [x] Verify centered closed-island edges at 1× and 2× backing scales with `NotchPresentationTests`.
+
+Verification: the Xcode-toolchain full suite passed all 207 tests on 2026-11-14.
+Command: `env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/bunlet-notch-hooks-xcode`.
+`swift build --scratch-path /private/tmp/bunlet-notch-hooks-build` also passed.
+
+## Remaining open questions
 
 - Physical-notch focus, click-through, keyboard expansion, hover-open and notification-open are not verified in the actual app.
 - Response-ready, ended, and unknown-with-retained-notice states have no fresh actual-notch evidence.

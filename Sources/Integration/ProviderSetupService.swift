@@ -27,6 +27,15 @@ public struct ProviderSetupInspection: Sendable {
     public let runtimeQualified: Bool
 }
 
+public enum ProviderSetupStage: Equatable, Sendable {
+    case checking, saving, verifying
+}
+
+public struct ProviderSetupResult: Sendable {
+    public let change: ProviderSetupChange
+    public let inspection: ProviderSetupInspection
+}
+
 /// No account methods, transcript reads, config.toml writes, trust grants or agent turns.
 public struct ProviderSetupService: Sendable {
     // Deliberately empty until release qualification is authorized and recorded.
@@ -39,6 +48,10 @@ public struct ProviderSetupService: Sendable {
     }
 
     public func check(_ context: ProviderSetupContext) async -> ProviderSetupInspection {
+        await check(context, preflight: nil)
+    }
+
+    func check(_ context: ProviderSetupContext, preflight: ProviderSetupInspection?) async -> ProviderSetupInspection {
         let safety = Task.detached(priority: .utility) {
             guard !Task.isCancelled else { return false }
             do {
@@ -56,23 +69,40 @@ public struct ProviderSetupService: Sendable {
                 configuration: .unavailable(.unsupportedShape)), ownership: .conflict,
                 installationUnavailable: .unsafePath, policy: .unverified, runtimeQualified: false)
         }
-        let health = await IntegrationHealthProbe.inspect(agent: context.agent, executableURL: context.executableURL,
+        var health = await IntegrationHealthProbe.inspect(agent: context.agent,
+            executableURL: preflight == nil ? context.executableURL : nil,
             configurationURL: context.configurationDirectory.appendingPathComponent(ProviderHookPolicy.configurationName(context.agent)),
             helperURL: context.helperURL)
+        // Only reuse evidence within this operation. Configuration and ownership are always read again.
+        if let preflight { health.version = preflight.health.version }
         let worker = Task.detached(priority: .utility) {
             Self.inspectOwnership(context)
         }
         let ownership = await withTaskCancellationHandler(operation: { await worker.value }, onCancel: { worker.cancel() })
-        let support = await inspectSupport(context, health: health)
+        let support: (ProviderSetupFailure?, ProviderHookEnablement, Bool)
+        if let preflight {
+            support = (health.helper == .available ? preflight.installationUnavailable : .helperUnavailable,
+                       preflight.policy, preflight.runtimeQualified)
+        } else {
+            support = await inspectSupport(context, health: health)
+        }
         return ProviderSetupInspection(health: health, ownership: ownership, installationUnavailable: support.0,
                                        policy: support.1, runtimeQualified: support.2)
     }
 
     public func execute(_ operation: ProviderSetupOperation, context: ProviderSetupContext) async throws -> ProviderSetupChange {
+        try await executeAndInspect(operation, context: context).change
+    }
+
+    public func executeAndInspect(_ operation: ProviderSetupOperation, context: ProviderSetupContext,
+                                 progress: @Sendable (ProviderSetupStage) async -> Void = { _ in }) async throws -> ProviderSetupResult {
         try Task.checkCancellation()
         let support: HookSetupSupport
+        let preflight: ProviderSetupInspection?
         if operation == .connect {
+            await progress(.checking)
             let inspection = await check(context)
+            preflight = inspection
             try Task.checkCancellation()
             if let failure = inspection.installationUnavailable { throw failure }
             guard case .reported(let version) = inspection.health.version else {
@@ -84,11 +114,19 @@ public struct ProviderSetupService: Sendable {
         } else {
             // Safe removal must remain available when the CLI disappears or policy changes.
             support = .unverified
+            preflight = nil
         }
+        try Task.checkCancellation()
+        await progress(.saving)
         let worker = Task.detached(priority: .utility) {
             try ProviderHookTransaction(agent: context.agent, scope: context.scope).run(operation, context: context, support: support)
         }
-        return try await withTaskCancellationHandler(operation: { try await worker.value }, onCancel: { worker.cancel() })
+        let change = try await withTaskCancellationHandler(operation: { try await worker.value }, onCancel: { worker.cancel() })
+        try Task.checkCancellation()
+        await progress(.verifying)
+        let inspection = await check(context, preflight: preflight)
+        try Task.checkCancellation()
+        return ProviderSetupResult(change: change, inspection: inspection)
     }
 
     private func inspectSupport(_ context: ProviderSetupContext, health: IntegrationHealthEvidence)

@@ -37,10 +37,6 @@ struct NotchSessionView: View {
         ZStack(alignment: .top) {
             IslandShape(spec: windowState.shape(sessions: sessions))
                 .fill(.black)
-                .overlay {
-                    IslandShape(spec: windowState.shape(sessions: sessions))
-                        .stroke(.white.opacity(expanded ? 0 : 0.1), lineWidth: 1)
-                }
                 .shadow(color: .black.opacity(expanded ? 0.35 : 0), radius: 8, y: 8)
                 .animation(motion, value: windowState.shape(sessions: sessions))
 

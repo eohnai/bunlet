@@ -296,7 +296,7 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
     }
 
     private func windowFrame(on screen: NSScreen) -> CGRect? {
-        IslandGeometry.windowFrame(screen: screen.frame, safeTop: screen.safeAreaInsets.top,
+        IslandGeometry.windowFrame(screen: screen.frame, safeTop: screen.safeAreaInsets.top, backingScale: screen.backingScaleFactor,
                                    panelMaxHeight: settings.panelMaxHeight)
     }
 
@@ -310,6 +310,7 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         let notch = cutoutWidth(screen)
         state.hasNotch = screen.safeAreaInsets.top > 0 && notch > 0
         state.notchWidth = notch
+        state.backingScale = screen.backingScaleFactor
         state.screenWidth = screen.frame.width
         state.headerHeight = IslandGeometry.headerHeight(safeTop: screen.safeAreaInsets.top,
                                                          menuBarHeight: screen.frame.maxY - screen.visibleFrame.maxY)
