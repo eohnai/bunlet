@@ -24,7 +24,7 @@ Those skills assume iOS 17, MVVM, and XCTest. This project uses none of those, s
   Other copies are listed in review L1.
 - Keep verification instrumentation in one type with one entry point.
   **Not yet:** it is spread over `ServiceStartLedger`, `PetPanelController`, and `PetAppController`. R5 collects it.
-- Add no package dependency without a recorded decision. The package has none.
+- Add no package dependency without a recorded decision. [Decision 0028](decisions/0028-use-sparkle-for-app-updates.md) enables Sparkle in updater packages.
 
 ## State and observation
 

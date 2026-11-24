@@ -19,6 +19,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         .flatMap { UserDefaults(suiteName: String(cString: $0)) } ?? .standard
     private let sessions = SessionStore()
     private let usage = UsageStore()
+    private let updater = BunletUpdater()
     private let actionStore = ActionStore()
     @ObservationIgnored private lazy var localActions: LocalActionController = LocalActionController(store: actionStore, sessions: sessions, consented: providerMonitoring.actionAgents)
     private(set) var codexSetup: ProviderSetupController?
@@ -92,6 +93,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     private var focusBefore: pid_t = -1
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        updater.start()
         focusBefore = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? -1
         navigation.start()
         tokenObservation = ObservationLoop({ [usage] in usage.observations }) { [weak self] observations in
@@ -101,7 +103,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         petLibrary.start()
         petReactions.start()
         features.start()
-        settings = PetSettingsController(defaults: defaults, features: features, settings: preferences,
+        settings = PetSettingsController(defaults: defaults, features: features, settings: preferences, updater: updater,
             onRemoveAllHooks: { [weak self] in self?.removeAllHooks() }, onSizeChange: { [weak self] size in
             self?.pet?.setSize(size)
         }, onShowPet: { [weak self] in self?.showPet() }, onShowNotch: { [weak self] in self?.showNotch() },

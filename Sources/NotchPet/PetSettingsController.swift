@@ -11,6 +11,7 @@ final class PetSettingsController {
     private let defaults: UserDefaults
     private let features: FeatureSettingsModel
     private let settings: BunletSettings
+    private let updater: BunletUpdater
     private let onRemoveAllHooks: () -> Void
     private let onSizeChange: (Double) -> Void
     private let onShowPet: () -> Void
@@ -28,7 +29,7 @@ final class PetSettingsController {
     private let readTokens: () -> TokenLedger?
     private let readCursor: () -> ProviderSetupController?
 
-    init(defaults: UserDefaults, features: FeatureSettingsModel, settings: BunletSettings,
+    init(defaults: UserDefaults, features: FeatureSettingsModel, settings: BunletSettings, updater: BunletUpdater,
          onRemoveAllHooks: @escaping () -> Void, onSizeChange: @escaping (Double) -> Void,
          onShowPet: @escaping () -> Void, onShowNotch: @escaping () -> Void,
          readHealth: @escaping () -> [IntegrationHealthSnapshot],
@@ -47,6 +48,7 @@ final class PetSettingsController {
         self.defaults = defaults
         self.features = features
         self.settings = settings
+        self.updater = updater
         self.onRemoveAllHooks = onRemoveAllHooks
         self.onSizeChange = onSizeChange
         self.onShowPet = onShowPet
@@ -93,8 +95,8 @@ final class PetSettingsController {
             }, close: { [weak self] in self?.close() }, showPet: onShowPet, returnPet: onReturnPet,
                 showNotch: onShowNotch, health: readHealth,
                 selectPage: { [weak self] page in self?.defaults.set(page.rawValue, forKey: "settings.selectedPane") },
-                removeAllHooks: onRemoveAllHooks, codex: readCodex, claude: readClaude, cursor: readCursor,
-                monitoring: readMonitoring,
+                removeAllHooks: onRemoveAllHooks, updater: updater, codex: readCodex, claude: readClaude,
+                cursor: readCursor, monitoring: readMonitoring,
                 quota: readQuota, localActions: readLocalActions, petLibrary: readPetLibrary, navigation: readNavigation,
                 tokens: readTokens)
             window.contentView = NSHostingView(rootView: PetWindowPlayback(window: window) { [features, settings, defaults] visible, sleeping in
