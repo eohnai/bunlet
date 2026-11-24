@@ -29,7 +29,7 @@ These checks come from "Feature 1: access sessions in the notch" in the source s
 - Every observed state keeps its meaning: working, question, approval, response ready, ended, and unknown. Retained unconfirmed notices stay visible as unconfirmed.
 - Priority is derived once from shared snapshots. Confirmed requests come first, then response-ready notices, and every session stays reachable.
 - The selected session stays selected while updates arrive.
-- The menu bar has no session list. Quit and Show Notch stay available. Settings and Return Pet appear only when they exist.
+- The menu-bar companion menu contains Settings and Quit Bunlet. Display settings provide pet and notch recovery.
 - The real-app check uses fictional events through the bundled helper, not a second mock interface.
   Visual QA is one batched pass and at most one correction pass, with no repeated user screenshot requests.
 
@@ -77,7 +77,7 @@ These are reproduction commands. This retrospective spec ran documentation check
 
 ## Merged source coverage
 
-`CompanionMenu` now contains Show Pet/Return Pet, Show Notch/Open Sessions, provider setup controls,
+At the time of the merged MVP handoff, `CompanionMenu` contained Show Pet/Return Pet, Show Notch/Open Sessions, provider setup controls,
 Settings and Quit as installed features allow; it renders no session rows. Open Sessions explicitly
 opens the retained native panel and enables keyboard input. NotchSessionView owns selected SessionKey
 and renders shared snapshots/cards, requests, navigation and supported action composers. Observable

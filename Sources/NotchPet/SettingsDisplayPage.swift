@@ -19,8 +19,11 @@ struct DisplaySettingsPage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             SettingsGroup(title: "Island Location") {
-                SettingsMenuRow(title: "Display preference", last: true, width: 260, selection: $settings.islandDisplay,
+                SettingsMenuRow(title: "Display preference", width: 260, selection: $settings.islandDisplay,
                                 options: BunletSettings.IslandDisplay.allCases.map { ($0.title, $0) })
+                SettingsRow(title: "Island visibility", last: true) {
+                    Button("Show Notch", action: actions.showNotch)
+                }
             }
             SettingsFootnote(settings.islandDisplay == .main
                              ? "The island stays on the main display, where the menu bar is."

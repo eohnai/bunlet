@@ -16,14 +16,19 @@ final class LocalActionController: AppFeatureService {
     @ObservationIgnored private var observation: ObservationLoop<[SessionSnapshot]>?
     @ObservationIgnored private var timer: DispatchSourceTimer?
     @ObservationIgnored private var runtimeActive = false
-    @ObservationIgnored private var consentEnabled: Bool
+    /// Agents the user chose to answer in Bunlet. Offers from any other agent are closed at once, so its own
+    /// terminal prompt appears without waiting.
+    @ObservationIgnored private var consented: Set<Agent>
 
-    init(store: ActionStore, sessions: SessionStore, endpoint: BridgeEndpoint = .standard, consentEnabled: Bool = false) {
+    init(store: ActionStore, sessions: SessionStore, endpoint: BridgeEndpoint = .standard, consented: Set<Agent> = []) {
         self.store = store
         self.sessions = sessions
         transport = ActionTransport(endpoint: endpoint)
-        self.consentEnabled = consentEnabled
+        self.consented = consented
     }
+
+    /// Monitored agents that also have consent.
+    private var answering: Set<Agent> { providers.intersection(consented) }
 
     func start() {
         runtimeActive = true
@@ -60,7 +65,7 @@ final class LocalActionController: AppFeatureService {
                                 onClose: { inbox.receive(.closed($0, $1)) },
                                 onCapacity: { inbox.receive(.capacity) })
             store.setReceiverAvailable(true)
-            status = "Documented Claude hook channel listening; runtime support unverified."
+            status = "Documented hook channel listening; runtime support unverified."
             observation = ObservationLoop({ [sessions] in sessions.sessions }) { [weak self] _ in self?.refreshEvidence() }
             refreshEvidence()
         } catch {
@@ -93,22 +98,23 @@ final class LocalActionController: AppFeatureService {
         refreshEvidence()
     }
 
-    func setConsent(_ enabled: Bool) {
-        consentEnabled = enabled
+    func setConsent(_ agents: Set<Agent>) {
+        consented = agents
         updateAvailability()
+        refreshEvidence()
     }
 
     private func updateAvailability() {
-        if runtimeActive && consentEnabled && providers.contains(.claude) {
+        if runtimeActive && !answering.isEmpty {
             startReceiver()
         } else {
             stopReceiver()
-            status = consentEnabled ? "Local responses paused with Claude monitoring." : "Local responses disabled. Connect actions to opt in."
+            status = consented.isEmpty ? "Local responses disabled. Connect actions to opt in." : "Local responses paused with agent monitoring."
         }
     }
 
     func refreshEvidence() {
-        let allowed = generation == nil ? Set<Agent>() : providers
+        let allowed = generation == nil ? Set<Agent>() : answering
         let close = store.reconcile(sessions: sessions.sessions, providers: allowed, nowNs: nowNs())
         for link in close { transport.close(link: link) }
         scheduleExpiry()

@@ -46,7 +46,7 @@ final class BunletSettings {
             case .approve: "Allow once"
             case .allowAlways: "Always allow"
             case .deny: "Deny"
-            case .jump: "Jump to terminal"
+            case .jump: "Return to session"
             case .switchSession: "Switch session"
             }
         }
@@ -112,7 +112,7 @@ final class BunletSettings {
         func bool(_ key: String, _ fallback: Bool) -> Bool {
             (defaults.object(forKey: key) as? NSNumber).map { CFGetTypeID($0) == CFBooleanGetTypeID() ? $0.boolValue : fallback } ?? fallback
         }
-        expandOnSessionEnd = bool(Key.expandOnSessionEnd, false)
+        expandOnSessionEnd = bool(Key.expandOnSessionEnd, true)
         expandOnActionNeeded = bool(Key.expandOnActionNeeded, true)
         focusAwareSuppression = bool(Key.focusAware, true)
         hapticFeedback = bool(Key.haptic, true)

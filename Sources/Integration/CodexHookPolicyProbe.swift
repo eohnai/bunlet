@@ -33,7 +33,7 @@ enum CodexHookPolicyProbe {
         process.executableURL = executable
         process.arguments = ["app-server", "-c", "analytics.enabled=false", "-c", "feedback.enabled=false"]
         process.currentDirectoryURL = configuration
-        var environment = ProcessInfo.processInfo.environment
+        var environment = Agent.codex.launchEnvironment(for: executable)
         environment["CODEX_HOME"] = configuration.path
         process.environment = environment
         process.standardInput = input

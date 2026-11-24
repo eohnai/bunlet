@@ -47,7 +47,7 @@ The user chose Bunlet on 2026-11-06 to emphasize the pet, including desktop use.
 
 ## Goal
 
-Show when Codex CLI or Claude Code needs attention on the user's M2 MacBook Air, without requiring Otty.
+Show when Codex or Claude Code needs attention on the user's M2 MacBook Air, including local desktop coding sessions under [decision 0027](../decisions/0027-support-local-desktop-coding-sessions.md).
 Let a customizable pet move between the notch and desktop while sharing the same session state.
 Show reported usage limits and reset times so the user can monitor available allowance.
 Let the user approve or deny local agent requests, answer structured questions, and send follow-up replies from the app through verified agent-specific channels.
@@ -102,7 +102,7 @@ The historical sprite-sheet proposal below retains its acceptance checks. The la
 ## Out of scope
 
 - Simulated terminal keystrokes or clipboard submission as an automatic approval/reply fallback, unattended approvals, or broad permission-policy changes.
-- Codex desktop and other coding apps in the first release.
+- Additional desktop coding apps beyond the [accepted desktop scope](sessions/desktop-coding-sessions.md).
 - Guaranteed exact-pane navigation in every terminal, IDE, multiplexer, or remote environment.
 - SSH hosts, remote computers, and cloud-agent integrations in the first release; these remain optional future work below.
 - A cloud backend, user accounts, synchronization, searchable session history, or a pet marketplace.

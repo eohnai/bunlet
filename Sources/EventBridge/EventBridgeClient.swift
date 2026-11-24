@@ -37,8 +37,9 @@ public enum HookHelper {
             defer { _ = fcntl(STDIN_FILENO, F_SETFL, flags) }
             let raw = try readBounded(STDIN_FILENO, limit: HookEnvelopeV1.rawHookLimit,
                                       until: deadline(after: 50, total: total), framed: false)
-            let envelope = try HookEnvelopeV1.project(rawHook: raw, agent: agent,
-                                                     paneSelector: environment["OTTY_PANE_ID"], deadline: total)
+            let terminal = TerminalDetection.terminal(environment: environment, tty: { TerminalDetection.ancestorTTY() },
+                                                     host: { TerminalDetection.hostApplication() })
+            let envelope = try HookEnvelopeV1.project(rawHook: raw, agent: agent, terminal: terminal, deadline: total)
             try EventBridgeClient().send(envelope, until: total)
             try checkDeadline(total)
         } catch {

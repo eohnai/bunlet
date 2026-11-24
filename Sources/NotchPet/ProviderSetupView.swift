@@ -7,96 +7,55 @@ import Usage
 @MainActor
 struct ProviderSetupView: View {
     let controller: ProviderSetupController
-    let features: FeatureSettingsModel
     let health: IntegrationHealthSnapshot?
     let monitoring: ProviderMonitoringModel
     let quota: UsageStore?
     let localActions: LocalActionController?
-    let showFeatures: () -> Void
-    let showNotch: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(controller.providerName).font(.headline)
-            Text("Connect adds this app’s lifecycle hooks. Finish other configuration edits before connecting or removing hooks.")
-                .font(.callout).foregroundStyle(.secondary)
-            Text("Documented integration; runtime verification has not run. Setup does not enable hooks, change permissions or grant trust.")
-                .font(.callout).foregroundStyle(.secondary)
-            HStack {
-                Button("Connect…") { controller.requestConfirmation(.connect) }
-                Button("Check") { controller.start(.check) }
-                Button("Repair…") { controller.requestConfirmation(.repair) }
-                Button("Remove hooks…") { controller.requestConfirmation(.remove) }
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 if controller.operation != nil {
                     ProgressView().controlSize(.small)
                 }
-            }
-            .disabled(controller.operation != nil)
-            HStack {
-                Button(isMonitoring ? "Pause" : "Resume") {
-                    let resume = !isMonitoring
-                    monitoring.setEnabled(resume, for: controller.agent)
-                }
-                Button("Disconnect…") { controller.requestConfirmation(.disconnect) }
-                Text(isMonitoring ? "Monitoring enabled" : "Monitoring paused")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            .disabled(controller.operation != nil)
-            if monitoring.writeIssue == controller.agent {
-                Text("Monitoring is paused for this run; its preference could not be saved. Retry before reopening.")
-                    .font(.caption).foregroundStyle(.red)
+                Text(controller.message)
+                    .font(.callout).foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             if controller.operation != nil {
                 Button("Cancel", action: controller.cancel)
-            }
-            Text(controller.message).font(.callout).textSelection(.enabled)
-            if let inspection = controller.inspection {
-                LabeledContent("Version", value: version(inspection.health.version))
-                LabeledContent("Configuration", value: configuration(inspection.health.configuration))
-                LabeledContent("Helper", value: helper(inspection.health.helper))
-                LabeledContent("Owned hooks", value: ownership(inspection.ownership))
-                LabeledContent("Hook policy", value: policy(inspection.policy))
-                LabeledContent("Runtime qualification", value: inspection.runtimeQualified ? "Recorded" : "Not run")
-                if let reason = inspection.installationUnavailable {
-                    Text(ProviderSetupController.explanation(reason, agent: controller.agent)).font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            LabeledContent("Receiver", value: receiver)
-            LabeledContent("Last delivery", value: health?.lastDelivery.map {
-                Date(timeIntervalSince1970: Double($0.wallMs) / 1000).formatted(date: .abbreviated, time: .shortened)
-            } ?? "Not observed")
-            Text("Installation does not grant hook/workspace trust or prove that an event arrived.")
-                .font(.caption).foregroundStyle(.secondary)
-            if controller.agent == .claude, let quota {
-                Text("Quota forwarding").font(.subheadline.weight(.semibold))
+            } else {
                 HStack {
-                    Button("Connect quota…") { controller.requestConfirmation(.connectQuota) }
-                    Button("Check quota") { controller.start(.checkQuota) }
-                    Button("Remove forwarding…") { controller.requestConfirmation(.removeQuota) }
-                }
-                .disabled(controller.operation != nil)
-                Text("Wraps your existing status line and preserves its output. Lifecycle hooks are separate.")
-                    .font(.caption).foregroundStyle(.secondary)
-                if let inspection = controller.quotaInspection {
-                    LabeledContent("Owned forwarding", value: ownership(inspection.ownership))
-                    LabeledContent("Status-line helper", value: helper(inspection.health.helper))
-                    if let reason = inspection.installationUnavailable {
-                        Text(ProviderSetupController.explanation(reason, agent: .claude))
-                            .font(.caption).foregroundStyle(.secondary)
+                    if readyToConnect {
+                        Button("Connect…") { controller.requestConfirmation(.connect) }
+                    } else {
+                        Button("Check again") { controller.start(.check) }
                     }
-                }
-                LabeledContent("Quota receiver", value: quota.receiverState == .listening ? "Listening" :
-                    (quota.receiverState == .unavailable ? "Unavailable; pause and resume to retry" : "Stopped"))
-                LabeledContent("Last quota receipt", value: quota.lastClaudeReceiptMs.map {
-                    Date(timeIntervalSince1970: Double($0) / 1000).formatted(date: .abbreviated, time: .shortened)
-                } ?? "Not observed")
-                if quota.intakeLost || quota.capacityReached || quota.invalidIntake {
-                    Text("Quota intake rejected or lost data. A later valid reading is needed.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Menu("Manage") {
+                        if !readyToConnect {
+                            Button("Connect…") { controller.requestConfirmation(.connect) }
+                        } else {
+                            Button("Check again") { controller.start(.check) }
+                        }
+                        Button("Repair…") { controller.requestConfirmation(.repair) }
+                        Divider()
+                        Button("Remove hooks…", role: .destructive) { controller.requestConfirmation(.remove) }
+                        Button("Disconnect…", role: .destructive) { controller.requestConfirmation(.disconnect) }
+                    }
+                    .fixedSize()
                 }
             }
-            if controller.agent == .claude { responseControls }
-            Button("Show Notch", action: showNotch)
+            DisclosureGroup("Connection details") { connectionDetails.padding(.top, 6) }
+                .font(.callout)
+            if controller.agent == .claude {
+                if let quota {
+                    DisclosureGroup("Usage forwarding") { quotaControls(quota).padding(.top, 6) }
+                        .font(.callout)
+                }
+                DisclosureGroup("Local responses") { responseControls.padding(.top, 6) }
+                    .font(.callout)
+            }
         }
         .alert("\(confirmationTitle) \(controller.providerName)?",
                isPresented: confirmation) {
@@ -107,25 +66,85 @@ struct ProviderSetupView: View {
                 }
             }
         } message: {
-            if controller.confirmation?.scope == .claudeActions {
-                Text(removing
-                     ? "Disable local responses and remove only unchanged owned interactive hooks. Lifecycle monitoring and quota forwarding stay configured. Pending responses fall back to the terminal."
-                     : "Add three owned interactive hooks and enable local responses. Each finished response can wait up to 60 seconds for follow-up feedback in the same prompt, including while you open Settings. Nothing is sent without your explicit decision. Normal trust/policy applies; runtime support is unverified.")
-            } else if controller.confirmation?.scope == .claudeQuota {
-                Text(removing
-                     ? "Restore the exact original status-line value only if the owned wrapper is unchanged. Lifecycle hooks stay in place."
-                     : "Wrap the existing status-line command while preserving its input and output, or install a silent forwarder if none exists. Creating a status line may hide Claude’s built-in footer hints. Runtime compatibility is unverified.")
-            } else if removing {
-                Text("Only unchanged, uniquely owned entries can be removed. Finish other configuration edits first. Disconnect pauses this provider before removal; retained requests stay unconfirmed.")
-            } else {
-                Text("This installs or checks seven owned hooks and resumes monitoring after success. Repair recovers only known saved states and preserves conflicting edits. Finish other configuration edits first. Runtime support is unverified and normal trust review still applies.")
+            confirmationMessage
+        }
+    }
+
+    private var readyToConnect: Bool {
+        guard let inspection = controller.inspection else { return false }
+        return inspection.ownership == .notOwned && inspection.installationUnavailable == nil
+    }
+
+    private var connectionDetails: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let inspection = controller.inspection {
+                LabeledContent("Version", value: version(inspection.health.version))
+                LabeledContent("Configuration", value: configuration(inspection.health.configuration))
+                LabeledContent("Helper", value: helper(inspection.health.helper))
+                LabeledContent("Owned hooks", value: ownership(inspection.ownership))
+                LabeledContent("Hook policy", value: policy(inspection.policy))
+                LabeledContent("Runtime qualification", value: inspection.runtimeQualified ? "Recorded" : "Not run")
             }
+            LabeledContent("Receiver", value: receiver)
+            LabeledContent("Last delivery", value: health?.lastDelivery.map {
+                Date(timeIntervalSince1970: Double($0.wallMs) / 1000).formatted(date: .abbreviated, time: .shortened)
+            } ?? "Not observed")
+        }
+        .font(.caption)
+    }
+
+    private func quotaControls(_ quota: UsageStore) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Button("Connect quota…") { controller.requestConfirmation(.connectQuota) }
+                Button("Check quota") { controller.start(.checkQuota) }
+                Button("Remove forwarding…") { controller.requestConfirmation(.removeQuota) }
+            }
+            .disabled(controller.operation != nil)
+            Text("Wraps your existing status line and preserves its output. Lifecycle hooks are separate.")
+                .font(.caption).foregroundStyle(.secondary)
+            if let inspection = controller.quotaInspection {
+                LabeledContent("Owned forwarding", value: ownership(inspection.ownership))
+                LabeledContent("Status-line helper", value: helper(inspection.health.helper))
+                if let reason = inspection.installationUnavailable {
+                    Text(ProviderSetupController.explanation(reason, agent: .claude))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            LabeledContent("Quota receiver", value: quota.receiverState == .listening ? "Listening" :
+                (quota.receiverState == .unavailable ? "Unavailable; pause and resume to retry" : "Stopped"))
+            LabeledContent("Last quota receipt", value: quota.lastClaudeReceiptMs.map {
+                Date(timeIntervalSince1970: Double($0) / 1000).formatted(date: .abbreviated, time: .shortened)
+            } ?? "Not observed")
+            if quota.intakeLost || quota.capacityReached || quota.invalidIntake {
+                Text("Quota intake rejected or lost data. A later valid reading is needed.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var confirmationMessage: Text {
+        if controller.confirmation?.scope == .claudeActions, controller.agent == .codex {
+            Text(removing
+                 ? "Codex asks in its own terminal again. Lifecycle monitoring stays configured."
+                 : "Add one owned PermissionRequest hook. Codex then waits for Allow once or Deny in Bunlet instead of asking in the terminal. Normal trust review applies; runtime support is unverified.")
+        } else if controller.confirmation?.scope == .claudeActions {
+            Text(removing
+                 ? "Disable local responses and remove only unchanged owned interactive hooks. Lifecycle monitoring and quota forwarding stay configured. Pending responses fall back to the terminal."
+                 : "Add three owned interactive hooks and enable local responses. Each finished response can wait up to 60 seconds for follow-up feedback in the same prompt, including while you open Settings. Nothing is sent without your explicit decision. Normal trust/policy applies; runtime support is unverified.")
+        } else if controller.confirmation?.scope == .claudeQuota {
+            Text(removing
+                 ? "Restore the exact original status-line value only if the owned wrapper is unchanged. Lifecycle hooks stay in place."
+                 : "Wrap the existing status-line command while preserving its input and output, or install a silent forwarder if none exists. Creating a status line may hide Claude’s built-in footer hints. Runtime compatibility is unverified.")
+        } else if removing {
+            Text("Only unchanged, uniquely owned entries can be removed. Finish other configuration edits first. Disconnect pauses this provider before removal; retained requests stay unconfirmed.")
+        } else {
+            Text("This installs or checks Bunlet's owned lifecycle hooks and resumes monitoring after success. Repair recovers only known saved states and preserves conflicting edits. Finish other configuration edits first. Runtime support is unverified and normal trust review still applies.")
         }
     }
 
     private var responseControls: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Local responses").font(.subheadline.weight(.semibold))
             HStack {
                 Button("Connect actions…") { controller.requestConfirmation(.connectActions) }
                 Button("Check actions") { controller.start(.checkActions) }
@@ -163,7 +182,6 @@ struct ProviderSetupView: View {
         }
     }
 
-    private var isMonitoring: Bool { features.monitoringEnabled && monitoring.isEnabled(controller.agent) }
     private var removing: Bool { controller.confirmation?.removes == true }
     private var confirmationTitle: String {
         switch controller.confirmation {
@@ -194,7 +212,7 @@ struct ProviderSetupView: View {
     }
 
     private var receiver: String {
-        guard isMonitoring else { return "Monitoring paused" }
+        guard monitoring.isEnabled(controller.agent) else { return "Paused" }
         switch health?.receiver {
         case .listening: return "Ready"
         case .failed: return "Unavailable"
@@ -205,7 +223,8 @@ struct ProviderSetupView: View {
     private func version(_ evidence: IntegrationVersionEvidence) -> String {
         switch evidence {
         case .notChecked: "Not checked"
-        case .reported(let version): version
+        case .reported(let version):
+            ProviderHookPolicy.testedVersions(controller.agent).contains(version) ? version : "\(version) (untested)"
         case .unavailable: "Unavailable"
         }
     }

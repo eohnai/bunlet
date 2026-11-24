@@ -10,6 +10,8 @@ public enum SessionRequestKind: String, Sendable {
 public enum SessionEventKind: Sendable {
     case sessionStarted, turnSubmitted, toolObserved, toolFinished, responseReady, sessionEnded
     case requestOpened(SessionRequestKind)
+    /// Decision 0025: a count under the parent session, never lifecycle evidence for the parent.
+    case subagentStarted, subagentStopped
 }
 
 public struct SessionObservationV1: Sendable {
@@ -38,6 +40,8 @@ public struct SessionObservationV1: Sendable {
         case .postToolUse: kind = .toolFinished
         case .stop: kind = .responseReady
         case .sessionEnd: kind = .sessionEnded
+        case .subagentStart: kind = .subagentStarted
+        case .subagentStop: kind = .subagentStopped
         }
     }
 }
@@ -151,4 +155,8 @@ public struct SessionSnapshot: Equatable, Sendable, Identifiable {
     public var lastReply: String? = nil
     /// The tool most recently observed in the current turn; cleared at submit and stop.
     public var currentTool: String? = nil
+    /// Where the agent last reported running (decision 0025). An unverified hint for navigation and follow-ups.
+    public var terminal: HookEnvelopeV1.Terminal? = nil
+    /// Subagents started in the current turn and not yet stopped (decision 0025).
+    public var runningSubagents: Int = 0
 }

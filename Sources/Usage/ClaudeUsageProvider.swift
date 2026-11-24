@@ -35,7 +35,9 @@ public enum ClaudeUsageProvider {
             let five_hour: Window?
             let seven_day: Window?
         }
-        struct Payload: Decodable { let rate_limits: Limits? }
+        struct Payload: Decodable {
+            let rate_limits: Limits?
+        }
         let payload: Payload
         do { payload = try JSONDecoder().decode(Payload.self, from: input) }
         catch { throw UsageProviderError.malformed }
@@ -57,8 +59,10 @@ public enum ClaudeUsageProvider {
             return UsageWindow(id: id, usedPercent: value.used_percentage,
                                durationMinutes: duration, resetsAtMs: reset)
         }
-        return UsageObservation(provider: "claude", sourceID: sourceID, accountID: nil,
-                                receivedAtMs: receivedAtMs, measuredAtMs: nil,
-                                windows: windows, failure: windows.isEmpty ? .awaitingSource : nil)
+        let observation = UsageObservation(provider: "claude", sourceID: sourceID, accountID: nil,
+                                           receivedAtMs: receivedAtMs, measuredAtMs: nil,
+                                           windows: windows, failure: windows.isEmpty ? .awaitingSource : nil)
+        // Session totals (decision 0025). An odd value drops only the totals, never the allowance reading.
+        return observation
     }
 }
