@@ -18,6 +18,7 @@ struct NotchSessionView: View {
     var navigation: TerminalNavigation? = nil
     var actions: LocalActionController? = nil
     var replies: TerminalReplyController? = nil
+    var tokens: TokenLedger? = nil
     var beginInput: () -> Void = {}
     var endInput: () -> Void = {}
     var onOpenSettings: () -> Void = {}
@@ -139,8 +140,15 @@ struct NotchSessionView: View {
         HStack(spacing: 0) {
             Group {
                 if expanded && isVisible && !isSleeping {
-                    NotchAllowanceStrip(store: usageStore, activeProviders: shownLimitProviders,
-                                        showsUsed: settings?.usageValue == .used)
+                    HStack(spacing: 10) {
+                        NotchAllowanceStrip(store: usageStore, activeProviders: shownLimitProviders,
+                                            showsUsed: settings?.usageValue == .used)
+                        if settings?.showTokenCount ?? true, let today = tokens?.total(on: .now), today > 0 {
+                            IslandChip(text: "\(StatisticsSettingsPage.format(today)) today", size: 11, monospaced: true)
+                                .help("Claude Code tokens today")
+                                .accessibilityLabel("\(StatisticsSettingsPage.format(today)) Claude Code tokens today")
+                        }
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

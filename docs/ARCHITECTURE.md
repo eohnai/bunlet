@@ -114,6 +114,7 @@ Missing terminal identity or navigation support does not block event receipt or 
 Since [decision 0025](decisions/0025-adopt-more-reference-behavior.md) the observer also reports where the agent runs
 (`TerminalDetection`: tmux, Otty, Apple Terminal or an editor), Claude subagent IDs, and Cursor CLI events.
 `TerminalTargets` jumps to that place and, only for Otty and tmux panes at a finished turn, types an explicit one-line follow-up.
+`TokenLedger` turns Claude status-line totals into daily statistics.
 [Decision 0026](decisions/0026-any-agent-version-and-any-terminal.md) adds iTerm2, WezTerm and kitty panes, and otherwise
 reports the app the agent runs in, found by walking its parent processes; jumps fall back to activating that app.
 
