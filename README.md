@@ -40,7 +40,7 @@ The command prints the app bundle's path. Build output goes to stderr. Quit the 
 ## Connect your agents
 
 1. Install ChatGPT or Claude. Open Claude's **Code** tab once to download its local runtime.
-2. Open Bunlet. **Settings > Agents** shows whether each installed agent connected. If you initialized Claude after launching Bunlet, select **Connect** there.
+2. Open Bunlet. It connects when the local runtime becomes available, including when Claude finishes its first Code download while Bunlet is running.
 3. Complete normal workspace and hook review. For ChatGPT desktop, review Bunlet's hook through **Settings > Hooks** or the prompt in the composer.
 4. Start a new local coding session in ChatGPT, Claude's **Code** tab, or your terminal. Bunlet follows coding events from that session.
 
@@ -48,7 +48,7 @@ Session monitoring starts on for all three agents. Each switch shows your monito
 
 Setup works with any Claude Code or Cursor CLI version and Codex `0.129.0` or newer. Versions Bunlet has not been tested with show as "untested" in Settings.
 
-Each provider has Check, Repair, Pause/Resume and Disconnect controls. Pause stops monitoring while keeping the setup in place. Disconnect removes the app-managed integration. Setup preserves unrelated hooks and settings, including an existing Claude status line.
+Use **Settings > Agents** to turn monitoring on or off for each agent. Approval preferences and troubleshooting are under **Advanced**.
 
 Claude follow-up feedback is available during the waiting Stop hook's 60-second window. After that window, continue in the terminal. Local response controls are currently available for Claude Code.
 

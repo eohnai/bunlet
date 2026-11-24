@@ -2,10 +2,10 @@ import EventBridge
 import Integration
 import SwiftUI
 
-/// Each row shows the monitoring choice and the connection state.
+/// The switches control monitoring. Setup and approval controls are available under Advanced.
 struct AgentsSettingsPage: View {
     let actions: AppSettingsActions
-    @State private var confirmConnect: Agent?
+    @State private var advanced = false
     @State private var expanded: Set<Agent> = []
     private let agents: [Agent] = [.claude, .codex, .cursor]
 
@@ -14,12 +14,28 @@ struct AgentsSettingsPage: View {
             SettingsGroup(title: "Session Monitoring") {
                 ForEach(agents, id: \.self) { agent in
                     if let setup = controller(agent), let monitoring = actions.monitoring() {
-                        AgentRow(setup: setup, monitoring: monitoring, health: health(agent), last: agent == agents.last) {
-                            confirmConnect = agent
-                        }
+                        AgentRow(setup: setup, monitoring: monitoring, health: health(agent), last: agent == agents.last)
                     }
                 }
             }
+            SettingsGroup {
+                SettingsBlock(last: true) {
+                    DisclosureGroup("Advanced", isExpanded: $advanced) {
+                        advancedSettings.padding(.top, 12)
+                    }
+                    .font(.system(size: 14))
+                    .foregroundStyle(.white)
+                }
+            }
+        }
+        .onChange(of: advanced) { _, open in
+            guard open else { return }
+            for agent in agents where controller(agent)?.inspection == nil { controller(agent)?.start(.check) }
+        }
+    }
+
+    private var advancedSettings: some View {
+        VStack(alignment: .leading, spacing: 16) {
             if let codex = actions.codex(), let monitoring = actions.monitoring() {
                 SettingsGroup(title: "Approvals") {
                     SettingsMenuRow(title: "Codex approval location",
@@ -39,18 +55,6 @@ struct AgentsSettingsPage: View {
                     }
                 }
             }
-        }
-        .onAppear {
-            for agent in agents where controller(agent)?.inspection == nil { controller(agent)?.start(.check) }
-        }
-        .alert("Connect \(confirmConnect?.displayName ?? "agent")?",
-               isPresented: Binding(get: { confirmConnect != nil }, set: { if !$0 { confirmConnect = nil } })) {
-            Button("Cancel", role: .cancel) {}
-            Button("Connect") {
-                if let agent = confirmConnect { controller(agent)?.start(.connect) }
-            }
-        } message: {
-            Text("Bunlet installs hooks for session monitoring. Codex may ask you to review its hooks.")
         }
     }
 
@@ -89,7 +93,6 @@ private struct AgentRow: View {
     let monitoring: ProviderMonitoringModel
     let health: IntegrationHealthSnapshot?
     let last: Bool
-    let requestConnect: () -> Void
 
     private var connected: Bool {
         if case .owned = setup.inspection?.ownership { return true }
@@ -100,7 +103,9 @@ private struct AgentRow: View {
         if monitoring.writeIssue == setup.agent { return "Preference could not be saved" }
         if !monitoring.isEnabled(setup.agent) { return "Paused" }
         if setup.operation?.scope == .lifecycle { return "Checking setup…" }
-        if setup.inspection?.installationUnavailable == .executableNotFound { return "Agent not found" }
+        if setup.inspection?.installationUnavailable == .executableNotFound {
+            return setup.agent.desktopBundleIdentifier == nil ? "Agent not found" : "Waiting for local coding runtime"
+        }
         if connected {
             if case .failed = health?.receiver { return "Receiver unavailable" }
             return health?.lastDelivery == nil ? "Waiting for a session" : "Receiving sessions"
@@ -111,13 +116,7 @@ private struct AgentRow: View {
     var body: some View {
         SettingsToggleRow(title: setup.providerName, subtitle: status, last: last, isOn: Binding(
             get: { monitoring.isEnabled(setup.agent) },
-            set: { on in
-                if !on || connected {
-                    monitoring.setEnabled(on, for: setup.agent)
-                } else {
-                    requestConnect()
-                }
-            }))
+            set: { monitoring.setEnabled($0, for: setup.agent) }))
             .disabled(setup.operation != nil)
     }
 }
