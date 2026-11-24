@@ -6,6 +6,7 @@ public enum AgentPathLocator {
     private static let searchComponentLimit = 64
     private static let configurationDirectoryByteLimit = 4_096
     private static let nvmVersionLimit = 32
+    private static let desktopRuntimeLimit = 32
 
     // Keep the existing caller policies until a separate behavior change is approved.
     public enum ExecutablePolicy: Sendable {
@@ -25,7 +26,8 @@ public enum AgentPathLocator {
         searchPath: String?,
         homeDirectory: URL,
         isExecutable: (String) -> Bool = { FileManager.default.isExecutableFile(atPath: $0) },
-        listDirectory: (String) -> [String] = { (try? FileManager.default.contentsOfDirectory(atPath: $0)) ?? [] }
+        listDirectory: (String) -> [String] = { (try? FileManager.default.contentsOfDirectory(atPath: $0)) ?? [] },
+        desktopApplication: (String) -> URL? = { _ in nil }
     ) -> ExecutableLookup {
         let defaultPath: String
         let omitsEmptyComponents: Bool
@@ -45,10 +47,44 @@ public enum AgentPathLocator {
         // Search the usual per-user install locations after PATH so Connect and quota find the same agent the terminal runs.
         directories.append(contentsOf: userInstallDirectories(home: homeDirectory, listDirectory: listDirectory))
         for directory in directories where directory.hasPrefix("/") {
-            let candidate = URL(fileURLWithPath: directory).appendingPathComponent(agent.rawValue)
+            let candidate = URL(fileURLWithPath: directory).appendingPathComponent(agent.executableName)
             if isExecutable(candidate.path) { return .found(candidate) }
         }
+        guard let identifier = agent.desktopBundleIdentifier, let application = desktopApplication(identifier),
+              application.isFileURL else { return .notFound }
+        if let executable = desktopExecutable(agent: agent, application: application, home: homeDirectory,
+                                              isExecutable: isExecutable, listDirectory: listDirectory) {
+            return .found(executable)
+        }
         return .notFound
+    }
+
+    private static func desktopExecutable(agent: Agent, application: URL, home: URL,
+                                          isExecutable: (String) -> Bool, listDirectory: (String) -> [String]) -> URL? {
+        switch agent {
+        case .codex:
+            let resources = application.appendingPathComponent("Contents/Resources", isDirectory: true)
+            return ["codex-cli/bin/codex", "codex"].lazy.map { resources.appendingPathComponent($0) }
+                .first { isExecutable($0.path) }
+        case .claude:
+            // Claude downloads its local Code runtime the first time Code is used.
+            let root = home.appendingPathComponent("Library/Application Support/Claude/claude-code", isDirectory: true)
+            let versions = listDirectory(root.path).filter { agent.isVersion($0) }
+                .sorted { ProviderHookPolicy.compare($0, $1) == .orderedDescending }.prefix(desktopRuntimeLimit)
+            for version in versions {
+                let directory = root.appendingPathComponent(version, isDirectory: true)
+                let builds = listDirectory(directory.path).filter { name in
+                    (12...64).contains(name.utf8.count) && name.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) }
+                }.sorted().prefix(desktopRuntimeLimit)
+                for build in builds {
+                    let executable = directory.appendingPathComponent("\(build)/claude.app/Contents/MacOS/claude")
+                    if isExecutable(executable.path) { return executable }
+                }
+            }
+            return nil
+        case .cursor:
+            return nil
+        }
     }
 
     /// Native installers, Homebrew, and Node version managers, in that order. Newest nvm version first.
@@ -78,6 +114,6 @@ public enum AgentPathLocator {
             guard override.hasPrefix("/"), override.utf8.count <= configurationDirectoryByteLimit else { return nil }
             return URL(fileURLWithPath: override)
         }
-        return homeDirectory.appendingPathComponent(agent == .codex ? ".codex" : ".claude")
+        return homeDirectory.appendingPathComponent(agent.configurationFolder)
     }
 }

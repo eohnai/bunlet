@@ -39,6 +39,22 @@ struct AgentPathLocatorTests {
         #expect(lookup(.claude, executables: [], nvm: ["v24.18.0"]) == .notFound)
     }
 
+    @Test func findsDesktopAgentsWithoutStandaloneExecutables() {
+        let codex = "/fictional/apps/ChatGPT.app/Contents/Resources/codex-cli/bin/codex"
+        let claudeRoot = "/fictional/home/Library/Application Support/Claude/claude-code"
+        let build = "abcdef012345"
+        let claude = "\(claudeRoot)/2.1.325/\(build)/claude.app/Contents/MacOS/claude"
+        let folders = [claudeRoot: ["2.1.99", "2.1.326", "2.1.325"], "\(claudeRoot)/2.1.325": [build]]
+        let apps = ["com.openai.codex": "/fictional/apps/ChatGPT.app",
+                    "com.anthropic.claudefordesktop": "/fictional/apps/Claude.app"]
+        for (agent, executable) in [(Agent.codex, codex), (.claude, claude)] {
+            let result = AgentPathLocator.executable(agent: agent, policy: .health, searchPath: "/usr/bin:/bin",
+                homeDirectory: home, isExecutable: { $0 == executable }, listDirectory: { folders[$0] ?? [] },
+                desktopApplication: { apps[$0].map { URL(fileURLWithPath: $0) } })
+            #expect(result == .found(URL(fileURLWithPath: executable)))
+        }
+    }
+
     @Test func nvmEntriesAreBoundedAndOrdered() {
         let names = (0..<40).map { "v\($0).0.0" } + ["not-a-version", "v1/../../escape"]
         let directories = AgentPathLocator.userInstallDirectories(home: home, listDirectory: { _ in names })

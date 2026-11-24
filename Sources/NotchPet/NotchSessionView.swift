@@ -17,6 +17,8 @@ struct NotchSessionView: View {
     let isSleeping: Bool
     var navigation: TerminalNavigation? = nil
     var actions: LocalActionController? = nil
+    var replies: TerminalReplyController? = nil
+    var tokens: TokenLedger? = nil
     var beginInput: () -> Void = {}
     var endInput: () -> Void = {}
     var onOpenSettings: () -> Void = {}
@@ -77,8 +79,11 @@ struct NotchSessionView: View {
     /// Display → Top Info Items hides a provider's limits without affecting tracking.
     private var shownLimitProviders: Set<Agent> {
         NotchPresentation.activeProviders(sessions).filter { provider in
-            guard let settings else { return true }
-            return provider == .codex ? settings.showCodexLimits : settings.showClaudeLimits
+            switch provider {
+            case .codex: settings?.showCodexLimits ?? true
+            case .claude: settings?.showClaudeLimits ?? true
+            case .cursor: false // Cursor CLI reports no usage limits to Bunlet.
+            }
         }
     }
 
@@ -135,8 +140,15 @@ struct NotchSessionView: View {
         HStack(spacing: 0) {
             Group {
                 if expanded && isVisible && !isSleeping {
-                    NotchAllowanceStrip(store: usageStore, activeProviders: shownLimitProviders,
-                                        showsUsed: settings?.usageValue == .used)
+                    HStack(spacing: 10) {
+                        NotchAllowanceStrip(store: usageStore, activeProviders: shownLimitProviders,
+                                            showsUsed: settings?.usageValue == .used)
+                        if settings?.showTokenCount ?? true, let today = tokens?.total(on: .now), today > 0 {
+                            IslandChip(text: "\(StatisticsSettingsPage.format(today)) today", size: 11, monospaced: true)
+                                .help("Claude Code tokens today")
+                                .accessibilityLabel("\(StatisticsSettingsPage.format(today)) Claude Code tokens today")
+                        }
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -235,10 +247,21 @@ struct NotchSessionView: View {
                                 LocalActionView(snapshot: action, controller: actions, beginInput: beginInput)
                             }
                         }
+                        // Claude's own Stop-hook reply wins while it is open (decision 0025).
+                        if let replies, selection == snapshot.key, replies.canReply(snapshot), !hasOpenFollowUp(snapshot.key) {
+                            TerminalReplyView(session: snapshot, controller: replies, beginInput: beginInput)
+                        }
                     }
                 }
             }
         }
+    }
+
+    private func hasOpenFollowUp(_ key: SessionKey) -> Bool {
+        actions?.store.snapshots.contains {
+            $0.offer.kind == .followUp && $0.phase == .available &&
+                SessionKey(agent: $0.offer.provider, sessionID: $0.offer.sessionID) == key
+        } == true
     }
 
     /// A row click returns to the session's terminal, then collapse. Without a known target, show setup instead.

@@ -75,21 +75,6 @@ public enum ClaudeHookActionAdapter {
 
     /// Silent fallback on any failure. A successful receipt attests only to stdout write completion.
     public static func run(endpoint: BridgeEndpoint = .standard) {
-        do {
-            let raw = try ActionSocketIO.readHookInput()
-            guard let offer = try offer(raw: raw, nowMs: Int64(Date().timeIntervalSince1970 * 1000)) else { return }
-            let fd = try ActionSocketIO.connect(endpoint: endpoint)
-            defer { close(fd) }
-            try ActionSocketIO.write(fd, frame: ActionProtocol.frame(offer))
-            let frame = try ActionSocketIO.read(fd, timeoutMs: ActionSocketIO.waitMs)
-            let decision = try ActionProtocol.decode(frame, as: ActionDecision.self)
-            guard let output = try providerOutput(for: decision, offer: offer) else { return }
-            try ActionSocketIO.writeProviderOutput(output)
-            let receipt = ActionWriteReceipt(version: 1, requestID: offer.id,
-                decisionID: decision.decisionID, wroteProviderOutput: true)
-            try ActionSocketIO.write(fd, frame: ActionProtocol.frame(receipt))
-        } catch {
-            // No failure path emits a decision, diagnostic content or automatic retry.
-        }
+        ActionHookRunner.run(endpoint: endpoint, offer: offer(raw:nowMs:), output: providerOutput(for:offer:))
     }
 }

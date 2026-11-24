@@ -21,13 +21,107 @@ public struct HookEnvelopeV1: Encodable, Sendable {
     public let promptPreview: String?
     /// Display-only preview of the agent's last reply (decision 0019). Present only on Stop.
     public let replyPreview: String?
+    /// The subagent's identifier (decision 0025). Present only on SubagentStart and SubagentStop.
+    public var agentID: String? = nil
 
-    public struct Terminal: Encodable, Sendable {
-        public let kind: String
+    /// Where the agent runs, reported by the hook's own environment (decision 0025). A hint, never proof of a pane.
+    public struct Terminal: Encodable, Equatable, Sendable {
+        public enum Kind: String, Encodable, Sendable {
+            /// `pane_selector` is Otty's `OTTY_PANE_ID`.
+            case otty
+            /// `pane_selector` is `TMUX_PANE` (`%N`); `socket` is the server socket; `app` is the outer terminal.
+            case tmux
+            /// `pane_selector` is the tab's tty, such as `/dev/ttys003`.
+            case appleTerminal = "apple_terminal"
+            /// `pane_selector` is the session's unique id from `ITERM_SESSION_ID` (decision 0026).
+            case iterm
+            /// `pane_selector` is `WEZTERM_PANE`, a number.
+            case wezterm
+            /// `pane_selector` is `KITTY_WINDOW_ID`, a number; `socket` is the path from `KITTY_LISTEN_ON`.
+            case kitty
+            /// `pane_selector` is the editor's bundle identifier; navigation opens the project folder in it.
+            case editor
+            /// `pane_selector` is the bundle identifier of the app the agent runs in; only the app is known.
+            case app
+
+            /// The app that shows this kind of terminal, when the kind alone names it.
+            public var bundleIdentifier: String? {
+                switch self {
+                case .otty: "io.appmakes.otty"
+                case .appleTerminal: "com.apple.Terminal"
+                case .iterm: "com.googlecode.iterm2"
+                case .wezterm: "com.github.wez.wezterm"
+                case .kitty: "net.kovidgoyal.kitty"
+                case .tmux, .editor, .app: nil
+                }
+            }
+        }
+        public let kind: Kind
         public let paneSelector: String
+        public let socket: String?
+        public let app: String?
+
+        public init(kind: Kind, paneSelector: String, socket: String? = nil, app: String? = nil) {
+            self.kind = kind
+            self.paneSelector = paneSelector
+            self.socket = socket
+            self.app = app
+        }
+
         enum CodingKeys: String, CodingKey {
-            case kind
+            case kind, socket, app
             case paneSelector = "pane_selector"
+        }
+
+        public static let socketLimit = 1_024
+        public static let bundleLimit = 128
+
+        /// Each kind accepts only its own selector shape, so a hint can never name a different kind of target.
+        public var isValid: Bool {
+            if let app, !Self.bundleIdentifier(app) { return false }
+            switch kind {
+            case .otty:
+                return socket == nil && app == nil && HookEnvelopeV1.validString(paneSelector, limit: 256)
+            case .tmux:
+                guard let socket, Self.socketPath(socket), paneSelector.hasPrefix("%") else { return false }
+                return Self.digits(paneSelector.dropFirst())
+            case .appleTerminal:
+                guard socket == nil, app == nil, paneSelector.hasPrefix("/dev/ttys") else { return false }
+                let digits = paneSelector.dropFirst("/dev/ttys".count)
+                return (1...4).contains(digits.count) && digits.allSatisfy { $0.isASCII && $0.isNumber }
+            case .iterm:
+                return socket == nil && app == nil && UUID(uuidString: paneSelector) != nil && paneSelector.utf8.count == 36
+            case .wezterm:
+                return socket == nil && app == nil && Self.digits(Substring(paneSelector))
+            case .kitty:
+                guard let socket, Self.socketPath(socket), app == nil else { return false }
+                return Self.digits(Substring(paneSelector))
+            case .editor, .app:
+                return socket == nil && app == nil && Self.bundleIdentifier(paneSelector)
+            }
+        }
+
+        /// The app to bring forward when the exact pane cannot be selected.
+        public var hostApp: String? {
+            switch kind {
+            case .tmux: app
+            case .editor, .app: paneSelector
+            default: kind.bundleIdentifier
+            }
+        }
+
+        private static func digits(_ value: Substring) -> Bool {
+            (1...9).contains(value.count) && value.allSatisfy { $0.isASCII && $0.isNumber }
+        }
+
+        private static func socketPath(_ value: String) -> Bool {
+            value.hasPrefix("/") && HookEnvelopeV1.validString(value, limit: socketLimit)
+        }
+
+        static func bundleIdentifier(_ value: String) -> Bool {
+            !value.isEmpty && value.utf8.count <= bundleLimit && value.contains(".") && value.unicodeScalars.allSatisfy {
+                ("a"..."z").contains($0) || ("A"..."Z").contains($0) || ("0"..."9").contains($0) || $0 == "." || $0 == "-"
+            }
         }
     }
 
@@ -37,6 +131,7 @@ public struct HookEnvelopeV1: Encodable, Sendable {
         case hookEventName = "hook_event_name", observedAtMs = "observed_at_ms"
         case turnID = "turn_id", toolUseID = "tool_use_id", toolName = "tool_name"
         case promptPreview = "prompt_preview", replyPreview = "reply_preview"
+        case agentID = "agent_id"
     }
 
     /// Previews are cut to this many characters, then to the byte limit.
@@ -57,7 +152,7 @@ public struct HookEnvelopeV1: Encodable, Sendable {
         guard case .object(let fields) = value else { throw BridgeError.invalidMessage }
         let required: Set<String> = ["version", "event_id", "agent", "session_id", "hook_event_name", "observed_at_ms"]
         let optional: Set<String> = ["turn_id", "tool_use_id", "tool_name", "cwd", "terminal",
-                                     "prompt_preview", "reply_preview"]
+                                     "prompt_preview", "reply_preview", "agent_id"]
         guard required.isSubset(of: Set(fields.keys)),
               Set(fields.keys).isSubset(of: required.union(optional)),
               fields["version"]?.integer == 1,
@@ -94,21 +189,31 @@ public struct HookEnvelopeV1: Encodable, Sendable {
         guard promptPreview == nil || hook == .userPromptSubmit, replyPreview == nil || hook == .stop else {
             throw BridgeError.invalidMessage
         }
+        // Subagent events must name their subagent; no other event may carry one.
+        let agentID = try string("agent_id", 256, required: hook.isSubagent)
+        guard agentID == nil || hook.isSubagent else { throw BridgeError.invalidMessage }
         let cwd = try string("cwd", 4096)
         if let cwd, !cwd.hasPrefix("/") { throw BridgeError.invalidMessage }
         var terminal: Terminal?
         if let value = fields["terminal"] {
             guard case .object(let fields) = value,
-                  Set(fields.keys) == ["kind", "pane_selector"],
-                  fields["kind"]?.string == "otty",
-                  let selector = fields["pane_selector"]?.string,
-                  validString(selector, limit: 256) else { throw BridgeError.invalidMessage }
-            terminal = Terminal(kind: "otty", paneSelector: selector)
+                  Set(fields.keys).isSuperset(of: ["kind", "pane_selector"]),
+                  Set(fields.keys).isSubset(of: ["kind", "pane_selector", "socket", "app"]),
+                  let kind = fields["kind"]?.string.flatMap(Terminal.Kind.init(rawValue:)),
+                  let selector = fields["pane_selector"]?.string else { throw BridgeError.invalidMessage }
+            func optional(_ name: String) throws -> String? {
+                guard let value = fields[name] else { return nil }
+                guard let text = value.string else { throw BridgeError.invalidMessage }
+                return text
+            }
+            let candidate = Terminal(kind: kind, paneSelector: selector, socket: try optional("socket"), app: try optional("app"))
+            guard candidate.isValid else { throw BridgeError.invalidMessage }
+            terminal = candidate
         }
         return Self(version: 1, eventID: eventID, agent: agent, sessionID: session,
                     hookEventName: hook, observedAtMs: timestamp, turnID: turn,
                     toolUseID: toolID, toolName: tool, cwd: cwd, terminal: terminal,
-                    promptPreview: promptPreview, replyPreview: replyPreview)
+                    promptPreview: promptPreview, replyPreview: replyPreview, agentID: agentID)
     }
 
     public func frame() throws -> Data {
@@ -122,16 +227,30 @@ public struct HookEnvelopeV1: Encodable, Sendable {
 
     /// Only projects allowlisted fields. Never reads transcripts or invokes an agent.
     public static func project(rawHook: Data, agent: Agent, paneSelector: String? = nil) throws -> Self {
-        try project(rawHook: rawHook, agent: agent, paneSelector: paneSelector, deadline: nil)
+        try project(rawHook: rawHook, agent: agent, terminal: ottyTerminal(paneSelector), deadline: nil)
+    }
+
+    public static func project(rawHook: Data, agent: Agent, terminal: Terminal?) throws -> Self {
+        try project(rawHook: rawHook, agent: agent, terminal: terminal, deadline: nil)
     }
 
     static func project(rawHook: Data, agent: Agent, paneSelector: String?, deadline: UInt64?) throws -> Self {
+        try project(rawHook: rawHook, agent: agent, terminal: ottyTerminal(paneSelector), deadline: deadline)
+    }
+
+    static func project(rawHook: Data, agent: Agent, terminal: Terminal?, deadline: UInt64?) throws -> Self {
         switch agent {
         case .codex:
-            return try CodexEventAdapter.project(rawHook: rawHook, paneSelector: paneSelector, deadline: deadline)
+            return try CodexEventAdapter.project(rawHook: rawHook, terminal: terminal, deadline: deadline)
         case .claude:
-            return try ClaudeEventAdapter.project(rawHook: rawHook, paneSelector: paneSelector, deadline: deadline)
+            return try ClaudeEventAdapter.project(rawHook: rawHook, terminal: terminal, deadline: deadline)
+        case .cursor:
+            return try CursorEventAdapter.project(rawHook: rawHook, terminal: terminal, deadline: deadline)
         }
+    }
+
+    static func ottyTerminal(_ paneSelector: String?) -> Terminal? {
+        paneSelector.map { Terminal(kind: .otty, paneSelector: $0) }
     }
 
     static func rawFields(_ rawHook: Data, deadline: UInt64?) throws -> [String: JSONValue] {
@@ -142,14 +261,18 @@ public struct HookEnvelopeV1: Encodable, Sendable {
     }
 
     static func projected(_ sourceFields: [String: JSONValue], agent: Agent, observedAtMs: Int64,
-                          paneSelector: String?) throws -> Self {
+                          terminal: Terminal?) throws -> Self {
         var fields = sourceFields
         fields["version"] = .number("1")
         fields["event_id"] = .string(UUID().uuidString.lowercased())
         fields["agent"] = .string(agent.rawValue)
         fields["observed_at_ms"] = .number(String(observedAtMs))
-        if let paneSelector {
-            fields["terminal"] = .object(["kind": .string("otty"), "pane_selector": .string(paneSelector)])
+        if let terminal {
+            var object: [String: JSONValue] = ["kind": .string(terminal.kind.rawValue),
+                                               "pane_selector": .string(terminal.paneSelector)]
+            if let socket = terminal.socket { object["socket"] = .string(socket) }
+            if let app = terminal.app { object["app"] = .string(app) }
+            fields["terminal"] = .object(object)
         }
         return try validate(.object(fields))
     }

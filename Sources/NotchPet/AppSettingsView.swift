@@ -4,7 +4,7 @@ import Usage
 
 /// Settings pages from decision 0021. Raw values are saved as the last selected page.
 enum AppSettingsPage: String, Hashable, CaseIterable {
-    case general, agents, display, sound, shortcuts, about
+    case general, agents, display, sound, shortcuts, statistics, about
 
     var title: String {
         switch self {
@@ -13,6 +13,7 @@ enum AppSettingsPage: String, Hashable, CaseIterable {
         case .display: "Display"
         case .sound: "Sound"
         case .shortcuts: "Shortcuts"
+        case .statistics: "Statistics"
         case .about: "About"
         }
     }
@@ -24,6 +25,7 @@ enum AppSettingsPage: String, Hashable, CaseIterable {
         case .display: "🖥️"
         case .sound: "🔊"
         case .shortcuts: "⌨️"
+        case .statistics: "📊"
         case .about: "ℹ️"
         }
     }
@@ -35,18 +37,19 @@ struct AppSettingsActions {
     var showPet: () -> Void
     var returnPet: () -> Void
     var showNotch: () -> Void
-    var openSessions: () -> Void
     var health: () -> [IntegrationHealthSnapshot]
     var selectPage: (AppSettingsPage) -> Void
     var removeAllHooks: () -> Void
     var updater: BunletUpdater
     var codex: () -> ProviderSetupController? = { nil }
     var claude: () -> ProviderSetupController? = { nil }
+    var cursor: () -> ProviderSetupController? = { nil }
     var monitoring: () -> ProviderMonitoringModel? = { nil }
     var quota: () -> UsageStore? = { nil }
     var localActions: () -> LocalActionController? = { nil }
     var petLibrary: () -> PetLibraryModel? = { nil }
     var navigation: () -> TerminalNavigation? = { nil }
+    var tokens: () -> TokenLedger? = { nil }
 }
 
 struct AppSettingsView: View {
@@ -110,6 +113,7 @@ struct AppSettingsView: View {
             ForEach([AppSettingsPage.general, .agents, .display, .sound], id: \.self, content: navItem)
             sectionHeader("Advanced")
             navItem(.shortcuts)
+            navItem(.statistics)
             sectionHeader("Bunlet")
             navItem(.about)
             Spacer()
@@ -137,10 +141,11 @@ struct AppSettingsView: View {
     @ViewBuilder private var content: some View {
         switch page {
         case .general: GeneralSettingsPage(settings: settings, actions: actions)
-        case .agents: AgentsSettingsPage(features: features, actions: actions)
+        case .agents: AgentsSettingsPage(actions: actions)
         case .display: DisplaySettingsPage(settings: settings, defaults: defaults, actions: actions)
         case .sound: SoundSettingsPage(settings: settings)
         case .shortcuts: ShortcutsSettingsPage(settings: settings)
+        case .statistics: StatisticsSettingsPage(ledger: actions.tokens())
         case .about: AboutSettingsPage(updater: actions.updater)
         }
     }

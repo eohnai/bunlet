@@ -13,6 +13,20 @@ public struct UsageWindow: Codable, Equatable, Sendable {
     public let resetsAtMs: Int64?
 }
 
+/// A session's cumulative token totals as its agent reports them (decision 0025). Never an allowance.
+public struct TokenTotals: Codable, Equatable, Sendable {
+    public let input: Int64
+    public let output: Int64
+
+    public init(input: Int64, output: Int64) {
+        self.input = input
+        self.output = output
+    }
+
+    public static let limit: Int64 = 1_000_000_000_000
+    var isValid: Bool { (0...Self.limit).contains(input) && (0...Self.limit).contains(output) }
+}
+
 /// Source identity distinguishes anonymous observations; it never asserts account identity.
 public struct UsageObservation: Codable, Equatable, Sendable {
     public let provider: String
@@ -22,6 +36,8 @@ public struct UsageObservation: Codable, Equatable, Sendable {
     public let measuredAtMs: Int64?
     public let windows: [UsageWindow]
     public let failure: UsageFailure?
+    /// Claude status-line session totals only. Absent for Codex, which reports none to Bunlet.
+    public var tokens: TokenTotals? = nil
 }
 
 public struct UsageSnapshot: Equatable, Sendable {

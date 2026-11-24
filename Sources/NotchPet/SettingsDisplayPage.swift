@@ -19,8 +19,11 @@ struct DisplaySettingsPage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             SettingsGroup(title: "Island Location") {
-                SettingsMenuRow(title: "Display preference", last: true, width: 260, selection: $settings.islandDisplay,
+                SettingsMenuRow(title: "Display preference", width: 260, selection: $settings.islandDisplay,
                                 options: BunletSettings.IslandDisplay.allCases.map { ($0.title, $0) })
+                SettingsRow(title: "Island visibility", last: true) {
+                    Button("Show Notch", action: actions.showNotch)
+                }
             }
             SettingsFootnote(settings.islandDisplay == .main
                              ? "The island stays on the main display, where the menu bar is."
@@ -28,6 +31,8 @@ struct DisplaySettingsPage: View {
             SettingsGroup(title: "Top Info Items") {
                 SettingsToggleRow(title: "Claude Code usage limits", isOn: $settings.showClaudeLimits)
                 SettingsToggleRow(title: "Codex usage limits", isOn: $settings.showCodexLimits)
+                SettingsToggleRow(title: "Today's tokens", subtitle: "Claude Code only. Codex does not report token counts to Bunlet.",
+                                  isOn: $settings.showTokenCount)
                 SettingsMenuRow(title: "Usage shown as", subtitle: "Colors always follow the percent left.",
                                 last: true, width: 160, selection: $settings.usageValue,
                                 options: BunletSettings.UsageValue.allCases.map { ($0.title, $0) })
