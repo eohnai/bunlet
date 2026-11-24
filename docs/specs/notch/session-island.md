@@ -90,14 +90,15 @@ I1/N3–N5 source implementation is merged; their remaining actual-app checks ar
 [Decision 0017](../../decisions/0017-match-reference-island-ui.md) replaced the click-to-expand panel described in the evidence below.
 The [island UI reference](../../notes/reference-ui.md) holds the exact values; this summary is enough to read the code.
 
-- One fixed transparent window, 740 wide and up to 572 tall, sits at the top center of the notched screen. `IslandGeometry`
+- One fixed transparent window, 740 points wide and up to 312 points tall at the default panel height, sits at the top center of the notched screen. `IslandGeometry`
   (in `SessionState`) computes it; `NotchPlacement` no longer exists. Only the black shape inside the window takes the pointer.
 - Closed, the shape is a pill as tall as the notch: phase icon, a label on screens without a notch, and the session count.
 - Hovering the pill for 200 ms opens it; leaving the open island for 300 ms closes it, unless the user is typing.
   Clicking the pill also opens it. Escape collapses it.
 - New approvals, questions and completions open the island without taking keyboard focus. Completions, and requests
   with no local reply channel, close again after 5 seconds unless the pointer is inside.
-- Open, the panel is 680–704 points wide (46% of the screen width, clamped) and grows with its content up to 540 tall.
+- Open, the panel is 680–704 points wide (46% of the screen width, clamped) and grows with its content up to 280 points by default.
+  Longer content scrolls, and a saved maximum height takes precedence.
 - Pressing the closed pill and dragging down more than 50 points pulls the pet out, when Pet is installed.
 
 The **Done when** checks above still apply. Hover-open and notification-open are additions; neither takes keyboard focus.

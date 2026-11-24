@@ -122,7 +122,7 @@ final class BunletSettings {
         let reminder = defaults.integer(forKey: Key.reminderSeconds)
         reminderSeconds = Self.reminderChoices.contains(reminder) ? reminder : 5
         let height = defaults.double(forKey: Key.panelMaxHeight)
-        panelMaxHeight = Self.panelHeightRange.contains(height) ? height : 540
+        panelMaxHeight = Self.panelHeightRange.contains(height) ? height : Double(IslandMetrics.panelMaxHeight)
         islandDisplay = defaults.string(forKey: Key.islandDisplay).flatMap(IslandDisplay.init(rawValue:)) ?? .main
         showClaudeLimits = bool(Key.showClaudeLimits, true)
         showCodexLimits = bool(Key.showCodexLimits, true)

@@ -36,7 +36,7 @@ struct NotchPresentationTests {
     @Test func windowIsFixedAtTopCenter() throws {
         let frame = try #require(IslandGeometry.windowFrame(screen: CGRect(x: 0, y: 0, width: 1470, height: 956),
                                                             safeTop: 38))
-        #expect(frame == CGRect(x: 365, y: 384, width: 740, height: 572))
+        #expect(frame == CGRect(x: 365, y: 644, width: 740, height: 312))
     }
 
     @Test(arguments: [CGFloat(1), CGFloat(2)])
