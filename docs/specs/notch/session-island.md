@@ -114,6 +114,8 @@ The **Done when** checks above still apply. Hover-open and notification-open are
 The user approved removing the visible seam and aligning the closed island to display pixels.
 The black shape has no light outline. Window placement and closed width use the selected display's backing scale.
 Cutout width and header height still come from AppKit, rather than fixed MacBook model dimensions.
+On a notched screen the header extends toward a taller menu bar, by at most 1 pt below the safe-area inset. The hardware
+cutout reaches slightly below the safe area, so an island exactly that tall shows a step where the cutout meets the wings.
 The extra width holds the status icon and session count. It remains intentional.
 The correction costs the decorative border. It avoids model-specific dimensions that fail under display scaling.
 Actual appearance on the user's M2 Air remains unverified. No screen captures were taken.

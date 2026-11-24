@@ -30,6 +30,8 @@ public enum IslandMetrics {
     public static let shadowMargin: CGFloat = 32
     public static let minimumNotchWidth: CGFloat = 126
     public static let fallbackHeaderHeight: CGFloat = 24
+    /// How far the closed island may extend below the notch's safe area to hide the cutout's edge.
+    public static let maxNotchOverlap: CGFloat = 1
     public static let hoverOpenDelay: Duration = .milliseconds(200)
     public static let leaveCloseDelay: Duration = .milliseconds(300)
     public static let completionPopupDuration: Duration = .seconds(5)
@@ -89,11 +91,17 @@ public enum IslandGeometry {
         return (width * scale / 2).rounded(.up) * 2 / scale
     }
 
-    /// Header height follows the physical notch, else a plausible menu bar, else a fixed fallback.
+    /// Header height covers the physical notch, else follows a plausible menu bar, else a fixed fallback.
     public static func headerHeight(safeTop: CGFloat, menuBarHeight: CGFloat) -> CGFloat {
-        if safeTop > 0, safeTop.isFinite { return safeTop }
-        if menuBarHeight > 0, menuBarHeight < 40 { return menuBarHeight }
-        return IslandMetrics.fallbackHeaderHeight
+        let menuBar = menuBarHeight > 0 && menuBarHeight < 40 ? menuBarHeight : nil
+        if safeTop > 0, safeTop.isFinite {
+            // The hardware cutout reaches slightly below the reported safe area (32 pt on a 13-inch
+            // MacBook Air, whose menu bar is 33 pt). An island exactly safeTop tall leaves the
+            // cutout's bottom edge visible as a step, so extend toward a taller menu bar. Cap the
+            // extension so models with a much taller menu bar keep an island close to the notch.
+            return max(safeTop, min(menuBar ?? 0, safeTop + IslandMetrics.maxNotchOverlap))
+        }
+        return menuBar ?? IslandMetrics.fallbackHeaderHeight
     }
 
     public static func pillBodyWidth(notchWidth: CGFloat, hasNotch: Bool, visibleCount: Int,

@@ -15,9 +15,23 @@ Built with SwiftUI and AppKit. Agent monitoring uses local hooks. The pet can be
 
 ## Install the app
 
-Unzip the macOS app package, move **Bunlet.app** to **Applications**, and open it from there. Keep it in that location so the installed hooks can find their helpers. The Apple silicon build requires macOS 14 or later.
+Bunlet needs an Apple silicon Mac with macOS 14 or later.
 
-Update-enabled packages check for newer releases from **Settings > About > Check for Updates**. See [Software updates](docs/specs/settings/software-updates.md) for release packaging.
+1. Open the [latest release](https://github.com/eohnai/bunlet/releases/latest). Under **Assets**, download `Bunlet-<version>-<build>-macOS-arm64.zip`.
+2. Unzip it and move **Bunlet.app** to **Applications**. Keep it there, because the hooks Bunlet installs run helper programs from inside the app.
+3. Open Bunlet from **Applications**.
+
+With the GitHub CLI, this command downloads the ZIP from the latest release into the current folder:
+
+```bash
+gh release download --repo eohnai/bunlet --pattern '*.zip'
+```
+
+The app has no Apple Developer ID signature, so macOS blocks the first launch. Open **System Settings > Privacy & Security**, scroll down, and click **Open Anyway** next to the Bunlet message. Then open Bunlet again. macOS asks again after each manual install of a new version.
+
+Bunlet has no Dock icon and no main window. Look for it in the notch at the top of the screen.
+
+To update, open **Settings > About > Check for Updates**. Version 0.1.2 crashes at launch and can't update itself, so download the latest release by hand if you have it. See [Software updates](docs/specs/settings/software-updates.md) for how releases are built.
 
 ## Run from source
 
