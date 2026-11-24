@@ -1,0 +1,131 @@
+name: Package Bunlet release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bunlet-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: macos-26
+    timeout-minutes: 30
+    environment: release
+    permissions:
+      contents: write
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.5.app/Contents/Developer
+      BUNLET_ENABLE_SPARKLE: '1'
+      BUNLET_BUILD_CONFIGURATION: release
+      SPARKLE_PUBLIC_KEY: PvnCTFBxYX4Lhsm8TGqLBhcgkbjLGhx0ytOxHUouwmc=
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate the release source
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Use a release tag in vX.Y.Z format."
+            exit 1
+          fi
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "$GITHUB_SHA^{commit}")"
+          git merge-base --is-ancestor HEAD refs/remotes/origin/main
+          test "$(uname -m)" = arm64
+          test "$(xcodebuild -version)" = $'Xcode 26.5\nBuild version 17F42'
+          # Bunlet 0.1.1 shipped as build 2. A re-run keeps its original run number.
+          printf 'BUNLET_BUILD_DIRECTORY=%s\nBUNLET_VERSION=%s\nBUNLET_BUILD_NUMBER=%s\n' \
+            "$RUNNER_TEMP/bunlet-build" "${GITHUB_REF_NAME#v}" "$((GITHUB_RUN_NUMBER + 2))" >> "$GITHUB_ENV"
+
+      - name: Test and build the Sparkle app
+        run: |
+          swift test --scratch-path "$BUNLET_BUILD_DIRECTORY/build"
+          bash scripts/run.sh --build-only
+
+      - name: Download the pinned Sparkle tools
+        run: |
+          pin="$(swift package dump-package | python3 -c '
+          import json, sys
+          target = next(target for target in json.load(sys.stdin)["targets"] if target["name"] == "Sparkle")
+          print(target["url"], target["checksum"], sep="\t")
+          ')"
+          IFS=$'\t' read -r url checksum <<< "$pin"
+          archive="$RUNNER_TEMP/Sparkle-for-Swift-Package-Manager.zip"
+          curl --fail --silent --show-error --location --retry 3 --max-time 120 --output "$archive" "$url"
+          printf '%s  %s\n' "$checksum" "$archive" | shasum -a 256 --check
+          ditto -x -k "$archive" "$RUNNER_TEMP/sparkle"
+
+      - name: Sign and verify the release
+        env:
+          SPARKLE_SIGNING_KEY: ${{ secrets.BUNLET_SPARKLE_SIGNING_KEY }}
+        run: |
+          if [[ -z "$SPARKLE_SIGNING_KEY" ]]; then
+            echo "::error::Set BUNLET_SPARKLE_SIGNING_KEY in the release environment."
+            exit 1
+          fi
+          umask 077
+          key_file="$(mktemp "$RUNNER_TEMP/bunlet-key.XXXXXX")"
+          trap 'rm -f "$key_file"' EXIT
+          printf '%s\n' "$SPARKLE_SIGNING_KEY" > "$key_file"
+          unset SPARKLE_SIGNING_KEY
+          assets="$RUNNER_TEMP/bunlet-release"
+          tools="$RUNNER_TEMP/sparkle/bin"
+          releases="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases"
+          python3 scripts/package-update.py \
+            --app "$BUNLET_BUILD_DIRECTORY/Bunlet.app" --output "$assets" \
+            --version "$BUNLET_VERSION" --build "$BUNLET_BUILD_NUMBER" \
+            --feed-url "$releases/latest/download/appcast.xml" \
+            --download-prefix "$releases/download/$GITHUB_REF_NAME/" \
+            --public-key "$SPARKLE_PUBLIC_KEY" --generate-appcast "$tools/generate_appcast" --key-file "$key_file"
+          "$tools/sign_update" --verify --ed-key-file "$key_file" "$assets/appcast.xml"
+
+          # Verify the enclosure against the public key already installed in Bunlet 0.1.1.
+          signature="$(python3 -c '
+          import sys, xml.etree.ElementTree as xml
+          enclosure = xml.parse(sys.argv[1]).find("./channel/item/enclosure")
+          print(enclosure.attrib["{http://www.andymatuschak.org/xml-namespaces/sparkle}edSignature"])
+          ' "$assets/appcast.xml")"
+          swift - "$SPARKLE_PUBLIC_KEY" "$signature" "$assets/Bunlet-$BUNLET_VERSION-$BUNLET_BUILD_NUMBER-macOS-arm64.zip" <<'SWIFT'
+          import CryptoKit
+          import Foundation
+
+          let arguments = CommandLine.arguments
+          guard let publicKey = Data(base64Encoded: arguments[1]),
+                let signature = Data(base64Encoded: arguments[2]) else {
+              print("The Sparkle signature or public key is invalid.")
+              exit(1)
+          }
+          let key = try Curve25519.Signing.PublicKey(rawRepresentation: publicKey)
+          let archive = try Data(contentsOf: URL(fileURLWithPath: arguments[3]))
+          guard key.isValidSignature(signature, for: archive) else {
+              print("The Sparkle signature does not match the public key in the installed app.")
+              exit(1)
+          }
+          SWIFT
+
+      - name: Create or refresh the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          assets="$RUNNER_TEMP/bunlet-release"
+          zip="$assets/Bunlet-$BUNLET_VERSION-$BUNLET_BUILD_NUMBER-macOS-arm64.zip"
+          if draft="$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)"; then
+            if [[ "$draft" != true ]]; then
+              echo "::error::This tag already has a published release."
+              exit 1
+            fi
+            gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber "$zip" "$assets/appcast.xml"
+          else
+            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+              --verify-tag --draft --generate-notes "$zip" "$assets/appcast.xml"
+          fi

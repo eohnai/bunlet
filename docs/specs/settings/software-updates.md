@@ -16,7 +16,15 @@ Publish the archive and appcast together. Mark a release as latest only when it 
 
 [Bunlet 0.1.1](https://github.com/eohnai/bunlet/releases/tag/v0.1.1)
 
-## Prepare a release
+## Package a tagged release in GitHub Actions
+
+Set `BUNLET_SPARKLE_SIGNING_KEY` in the GitHub Actions `release` environment to the private key for the existing Bunlet signing account. The workflow verifies the generated ZIP against the public key already installed in Bunlet.
+
+Push a version tag such as `v0.1.2` on the tested commit in `main`. GitHub Actions tests and builds that commit with Sparkle enabled on Apple silicon. It uses the workflow run number plus two for the bundle build number, so the first run starts after the published build 2. Re-running keeps the same build number.
+
+Review the draft and its two assets, then publish it as Latest to make it available through **Check for Updates**. The ZIP uses the versioned tag URL. The appcast uses the same stable URL across releases. To ship previous code to users who already upgraded, package that code again with a new tag and a higher build number.
+
+## Prepare a release locally
 
 On Apple silicon, use a fresh build directory and build the update-enabled app:
 
