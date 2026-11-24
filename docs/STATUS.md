@@ -2,6 +2,13 @@
 
 ## Now
 
+Released Bunlet 0.1.2 traps at launch on any Mac but the build runner. SwiftPM's `Bundle.module` looks beside the
+`.app` and at the runner's absolute build path, but packaging puts resource bundles in `Contents/Resources`. Uncommitted:
+`AppResourceDirectory` resolves the pet artwork and provider logos from the app's own `Contents/Resources` (missing
+artwork returns nil instead of trapping), and `package-update.py` refuses an app without both bundles. Fixture-app tests
+cover the release layout. A fixed release (0.1.3) still needs a tag, and 0.1.2 users must download it manually because
+0.1.2 cannot launch to check for updates. The fixed app was not launched from a packaged build.
+
 Decision 0030, uncommitted, adopts four behaviors from the 2026-11-24 reference sweep: a completion no longer opens the
 island while another session waits for the user; focus-aware suppression checks the session's own app; Claude's
 `StopFailure` hook ends a failed turn with a **Failed** label and a new Task fails sound (on by default, existing users

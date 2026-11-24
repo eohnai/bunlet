@@ -59,6 +59,10 @@ def package(args):
         framework = contents / "Frameworks" / "Sparkle.framework"
         if not (framework / "Sparkle").is_file():
             raise ValueError("Build Bunlet with BUNLET_ENABLE_SPARKLE=1 before packaging.")
+        # The app resolves its SwiftPM resource bundles only from Contents/Resources.
+        for name in ("NotchPet_Pet.bundle", "NotchPet_NotchPet.bundle"):
+            if not (contents / "Resources" / name).is_dir():
+                raise ValueError(f"The app is missing Contents/Resources/{name}.")
         info = contents / "Info.plist"
         with info.open("rb") as stream:
             metadata = plistlib.load(stream)
