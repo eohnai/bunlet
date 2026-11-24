@@ -4,10 +4,14 @@ import Foundation
 /// Interactive coverage and hook installation are separate verification and setup tasks.
 public enum CodexEventAdapter {
     public static func project(rawHook: Data, paneSelector: String? = nil) throws -> HookEnvelopeV1 {
-        try project(rawHook: rawHook, paneSelector: paneSelector, deadline: nil)
+        try project(rawHook: rawHook, terminal: HookEnvelopeV1.ottyTerminal(paneSelector), deadline: nil)
     }
 
     static func project(rawHook: Data, paneSelector: String?, deadline: UInt64?) throws -> HookEnvelopeV1 {
+        try project(rawHook: rawHook, terminal: HookEnvelopeV1.ottyTerminal(paneSelector), deadline: deadline)
+    }
+
+    static func project(rawHook: Data, terminal: HookEnvelopeV1.Terminal?, deadline: UInt64?) throws -> HookEnvelopeV1 {
         let observed = wallMilliseconds()
         let source = try HookEnvelopeV1.rawFields(rawHook, deadline: deadline)
         var fields: [String: JSONValue] = [:]
@@ -22,6 +26,6 @@ public enum CodexEventAdapter {
         default: break
         }
         return try HookEnvelopeV1.projected(fields, agent: .codex, observedAtMs: observed,
-                                            paneSelector: paneSelector)
+                                            terminal: terminal)
     }
 }

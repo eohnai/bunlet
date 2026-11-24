@@ -104,7 +104,10 @@ public enum ActionProtocol {
     }
 
     public static func valid(_ offer: ActionOffer, nowMs: Int64) -> Bool {
-        guard offer.version == 1, offer.provider == .claude, offer.capturedAtMs >= 0, nowMs >= 0, nowMs <= Int64.max - futureSkewMs,
+        // Codex offers approvals only (decision 0025); questions and follow-ups stay Claude's.
+        guard offer.version == 1, offer.provider == .claude || (offer.provider == .codex && offer.kind == .permission),
+              offer.provider == .claude || offer.permissionSuggestions == nil,
+              offer.capturedAtMs >= 0, nowMs >= 0, nowMs <= Int64.max - futureSkewMs,
               offer.capturedAtMs <= nowMs + futureSkewMs, nowMs - offer.capturedAtMs <= offerAgeMs,
               identity(offer.sessionID), identity(offer.turnID),
               offer.toolUseID.map(identity) ?? true,

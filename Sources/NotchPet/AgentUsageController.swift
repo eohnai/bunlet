@@ -1,3 +1,4 @@
+import AppKit
 import Darwin
 import EventBridge
 import Foundation

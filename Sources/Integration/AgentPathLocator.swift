@@ -45,7 +45,7 @@ public enum AgentPathLocator {
         // Search the usual per-user install locations after PATH so Connect and quota find the same agent the terminal runs.
         directories.append(contentsOf: userInstallDirectories(home: homeDirectory, listDirectory: listDirectory))
         for directory in directories where directory.hasPrefix("/") {
-            let candidate = URL(fileURLWithPath: directory).appendingPathComponent(agent.rawValue)
+            let candidate = URL(fileURLWithPath: directory).appendingPathComponent(agent.executableName)
             if isExecutable(candidate.path) { return .found(candidate) }
         }
         return .notFound
@@ -78,6 +78,6 @@ public enum AgentPathLocator {
             guard override.hasPrefix("/"), override.utf8.count <= configurationDirectoryByteLimit else { return nil }
             return URL(fileURLWithPath: override)
         }
-        return homeDirectory.appendingPathComponent(agent == .codex ? ".codex" : ".claude")
+        return homeDirectory.appendingPathComponent(agent.configurationFolder)
     }
 }

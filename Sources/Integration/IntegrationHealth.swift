@@ -94,12 +94,8 @@ public enum IntegrationHealth {
         case .unavailable(let reason):
             version = .unavailable(reason)
         case .reported(let value):
-            let parts = value.split(separator: ".", omittingEmptySubsequences: false)
-            let isVersion = value.utf8.count <= 32 && parts.count == 3 && parts.allSatisfy {
-                !$0.isEmpty && $0.utf8.allSatisfy { (48...57).contains($0) }
-            }
-            let recorded = evidence.agent == .codex ? ["0.163.0", "0.164.0"] : ["2.1.306"]
-            if !isVersion {
+            let recorded = ProviderHookPolicy.testedVersions(evidence.agent)
+            if !evidence.agent.isVersion(value) {
                 version = .unavailable(.invalidOutput)
             } else if recorded.contains(value) {
                 version = .recordedCompatibility(value)
@@ -125,7 +121,7 @@ public enum IntegrationHealthProbe {
             guard !Task.isCancelled else { return IntegrationHealthEvidence(agent: agent) }
             let version = readVersion(agent: agent, executableURL: executableURL)
             guard !Task.isCancelled else { return IntegrationHealthEvidence(agent: agent) }
-            let configuration = readConfiguration(configurationURL)
+            let configuration = readConfiguration(configurationURL, agent: agent)
             let helper: IntegrationHelperAvailability
             if let helperURL, helperURL.isFileURL {
                 var info = stat()
@@ -160,6 +156,7 @@ public enum IntegrationHealthProbe {
         guard fcntl(fd, F_SETFL, O_NONBLOCK) == 0 else { return .unavailable(.launchFailed) }
         process.executableURL = executableURL
         process.arguments = ["--version"]
+        process.environment = agent.launchEnvironment(for: executableURL)
         process.standardInput = FileHandle.nullDevice
         process.standardOutput = output
         process.standardError = output
@@ -210,15 +207,15 @@ public enum IntegrationHealthProbe {
                 return .unavailable(.invalidOutput)
             }
             version = String(words[0])
+        case .cursor:
+            guard words.count == 1 else { return .unavailable(.invalidOutput) }
+            version = String(words[0])
         }
-        let parts = version.split(separator: ".", omittingEmptySubsequences: false)
-        guard version.utf8.count <= 32, parts.count == 3, parts.allSatisfy({
-            !$0.isEmpty && $0.utf8.allSatisfy { (48...57).contains($0) }
-        }) else { return .unavailable(.invalidOutput) }
+        guard agent.isVersion(version) else { return .unavailable(.invalidOutput) }
         return .reported(version)
     }
 
-    private static func readConfiguration(_ url: URL?) -> IntegrationConfigurationEvidence {
+    private static func readConfiguration(_ url: URL?, agent: Agent) -> IntegrationConfigurationEvidence {
         guard let url else { return .notChecked }
         guard url.isFileURL else { return .unavailable(.unsupportedShape) }
         let fd = open(url.path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK)
@@ -255,6 +252,12 @@ public enum IntegrationHealthProbe {
         var commands = 0
         for rawGroups in hooks.values {
             guard let groups = rawGroups as? [[String: Any]] else { return .unavailable(.unsupportedShape) }
+            // Cursor lists plain `{"command": …}` entries instead of matcher groups.
+            if agent == .cursor {
+                guard groups.allSatisfy({ $0["command"] is String }) else { return .unavailable(.unsupportedShape) }
+                commands += groups.count
+                continue
+            }
             for group in groups {
                 guard group["matcher"] == nil || group["matcher"] is String,
                       let handlers = group["hooks"] as? [[String: Any]] else {

@@ -20,6 +20,8 @@ struct BunletSettingsTests {
         #expect(!settings.alwaysHide && !settings.hideWhenNoSessions)
         #expect(settings.usageValue == .remaining)
         #expect(settings.sessionCleanupMinutes == 10_080)
+        // Decision 0025: matches the reference island.
+        #expect(settings.expandOnSessionEnd && settings.expandOnActionNeeded)
     }
 
     @Test func rebindingChangesLabelAndPersists() {

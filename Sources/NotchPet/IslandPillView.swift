@@ -17,6 +17,7 @@ enum IslandPalette {
     static let unknown = Color.orange
     static let claude = Color(red: 0xDA / 255, green: 0x72 / 255, blue: 0x50 / 255)
     static let codex = Color(red: 0x8E / 255, green: 0xA1 / 255, blue: 0xFF / 255)
+    static let cursor = Color(red: 0xD4 / 255, green: 0xD4 / 255, blue: 0xD8 / 255)
 }
 
 /// Bunlet's own phase artwork. Running animates only when motion is allowed.

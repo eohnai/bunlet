@@ -1,4 +1,5 @@
 import Darwin
+import EventBridge
 import Foundation
 
 public enum CodexUsageConnection {
@@ -32,6 +33,7 @@ public enum CodexUsageConnection {
                   fcntl(writeFD, F_SETNOSIGPIPE, 1) == 0 else { throw UsageProviderError.malformed }
             process.executableURL = executableURL
             process.arguments = ["app-server", "-c", "analytics.enabled=false", "-c", "feedback.enabled=false"]
+            process.environment = Agent.codex.launchEnvironment(for: executableURL)
             process.standardInput = input
             process.standardOutput = output
             process.standardError = FileHandle.nullDevice

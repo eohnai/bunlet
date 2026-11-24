@@ -8,10 +8,9 @@ import Testing
 struct AgentDefaultsTests {
     private func defaults() -> UserDefaults { UserDefaults(suiteName: "bunlet-agent-defaults-\(UUID().uuidString)")! }
 
-    @Test func bothAgentsStartOn() {
+    @Test func allAgentsStartOn() {
         let model = ProviderMonitoringModel(defaults: defaults(), onChange: { _ in })
-        #expect(model.isEnabled(.claude))
-        #expect(model.isEnabled(.codex))
+        #expect(model.enabledProviders == Set(Agent.allCases))
     }
 
     @Test func pausingOneAgentSurvivesRelaunch() {
@@ -46,4 +45,6 @@ struct AutoConnectRulesTests {
         model.setQuotaAutoConnect(false)
         #expect(!ProviderMonitoringModel(defaults: defaults, onChange: { _ in }).quotaAutoConnect)
     }
+
+
 }

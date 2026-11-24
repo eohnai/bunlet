@@ -55,12 +55,12 @@ private final class IntegrationHealthController {
         case .notFound, .invalidSearchPath:
             executable = nil
         }
-        let directoryOverride = getenv(agent == .codex ? "CODEX_HOME" : "CLAUDE_CONFIG_DIR")
+        let directoryOverride = agent.configurationOverrideVariable.flatMap { getenv($0) }
             .map { String(cString: $0) }
         let configurationDirectory = AgentPathLocator.configurationDirectory(
             agent: agent, override: directoryOverride, homeDirectory: manager.homeDirectoryForCurrentUser)
         let configuration = configurationDirectory?
-            .appendingPathComponent(agent == .codex ? "hooks.json" : "settings.json")
+            .appendingPathComponent(agent.hookConfigurationName)
         let helper = Bundle.main.executableURL?.deletingLastPathComponent()
             .appendingPathComponent("NotchPetHook")
         let result = await IntegrationHealthProbe.inspect(agent: agent, executableURL: executable,
@@ -314,28 +314,6 @@ private struct CompanionMenu: View {
     let controller: PetAppController
 
     var body: some View {
-        if controller.installed.contains(.pet) {
-            Button("Show Pet", action: controller.showPet)
-            Button("Return Pet", action: controller.returnPet)
-        }
-        if controller.installed.contains(.notch) {
-            Button("Show Notch", action: controller.showNotch)
-            Button("Open Sessions", action: controller.openSessions).keyboardShortcut("n", modifiers: [.command, .shift])
-        }
-        if controller.installed.contains(.agents) {
-            ForEach(Agent.allCases, id: \.self) { agent in
-                Menu(agent == .codex ? "Codex" : "Claude Code") {
-                    Button("Connect…") { controller.requestSetup(.connect, agent: agent) }
-                    Button("Check") { controller.requestSetup(.check, agent: agent) }
-                    Button("Repair…") { controller.requestSetup(.repair, agent: agent) }
-                    Button("Remove owned hooks…") { controller.requestSetup(.remove, agent: agent) }
-                    Button(controller.monitoringEnabled && controller.providerMonitoring.isEnabled(agent) ? "Pause" : "Resume") {
-                        controller.toggleProviderMonitoring(agent)
-                    }
-                    Button("Disconnect…") { controller.requestSetup(.disconnect, agent: agent) }
-                }
-            }
-        }
         Button("Settings…", action: controller.showSettings)
             .keyboardShortcut(",")
         Divider()

@@ -20,15 +20,17 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     private let sessions = SessionStore()
     private let usage = UsageStore()
     private let actionStore = ActionStore()
-    @ObservationIgnored private lazy var localActions: LocalActionController = LocalActionController(store: actionStore, sessions: sessions, consentEnabled: providerMonitoring.actionsEnabled)
+    @ObservationIgnored private lazy var localActions: LocalActionController = LocalActionController(store: actionStore, sessions: sessions, consented: providerMonitoring.actionAgents)
     private(set) var codexSetup: ProviderSetupController?
     private(set) var claudeSetup: ProviderSetupController?
+    private(set) var cursorSetup: ProviderSetupController?
     @ObservationIgnored private(set) lazy var providerMonitoring: ProviderMonitoringModel = ProviderMonitoringModel(defaults: defaults) { [weak self] enabled in
         guard let self else { return }
         self.agents?.setEnabledProviders(enabled)
-        self.localActions.setConsent(self.providerMonitoring.actionsEnabled)
+        self.localActions.setConsent(self.providerMonitoring.actionAgents)
     }
     @ObservationIgnored private lazy var navigation = TerminalNavigation(defaults: defaults, sessions: sessions)
+    @ObservationIgnored private lazy var replies = TerminalReplyController(sessions: sessions)
     @ObservationIgnored private lazy var petLibrary = PetLibraryModel(defaults: defaults) { [weak self] presentation in
         self?.pet?.setArtwork(presentation)
     }
@@ -71,7 +73,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             guard let self else { return nil }
             let panel = NotchPanelController(sessionStore: self.sessions, usageStore: self.usage,
                 features: self.features, onOpenFeatures: { [weak self] in self?.showFeatures() }, actions: self.localActions, navigation: self.navigation,
-                settings: self.preferences, onOpenSettings: { [weak self] in self?.showSettings() },
+                replies: self.replies, settings: self.preferences, onOpenSettings: { [weak self] in self?.showSettings() },
                 onPillDragOut: { [weak self] in self?.pet?.beginPointerDrag() ?? false })
             self.notch = panel
             return panel
@@ -99,12 +101,12 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             readHealth: { [weak self] in self?.healthSnapshots ?? [] },
             readCodex: { [weak self] in self?.codexSetup },
             readClaude: { [weak self] in self?.claudeSetup },
+            readCursor: { [weak self] in self?.cursorSetup },
             readMonitoring: { [weak self] in self?.providerMonitoring },
             readQuota: { [weak self] in self?.usage },
             readLocalActions: { [weak self] in self?.localActions },
             onReturnPet: { [weak self] in self?.returnPet() },
             readPetLibrary: { [weak self] in self?.petLibrary },
-            onOpenSessions: { [weak self] in self?.openSessions() },
             readNavigation: { [weak self] in self?.navigation })
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
             guard let self else { return }
@@ -126,29 +128,36 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         notch?.show()
     }
 
-    func openSessions() {
-        islandHiddenForPet = false
-        notch?.openSessions()
+    /// The setup controller for each agent, while agent services are installed.
+    func setup(for agent: Agent) -> ProviderSetupController? {
+        switch agent {
+        case .codex: codexSetup
+        case .claude: claudeSetup
+        case .cursor: cursorSetup
+        }
     }
+
+    private var allSetups: [ProviderSetupController] { Agent.allCases.compactMap(setup(for:)) }
 
     private func applyRuntimes(_ installed: Set<AppFeature>, monitoring: Bool) -> Set<AppFeature> {
         if runtimeMonitoring && !monitoring {
-            codexSetup?.cancel()
-            claudeSetup?.cancel()
+            for setup in allSetups { setup.cancel() }
         }
         runtimeMonitoring = monitoring && installed.contains(.agents)
         if installed.contains(.agents) {
             if codexSetup == nil { codexSetup = makeProviderSetup(.codex) }
             if claudeSetup == nil { claudeSetup = makeProviderSetup(.claude) }
+            if cursorSetup == nil { cursorSetup = makeProviderSetup(.cursor) }
             if monitoring {
-                if providerMonitoring.isEnabled(.codex) { codexSetup?.connectAutomatically() }
-                if providerMonitoring.isEnabled(.claude) { claudeSetup?.connectAutomatically() }
+                for agent in Agent.allCases where providerMonitoring.isEnabled(agent) {
+                    setup(for: agent)?.connectAutomatically()
+                }
             }
         } else {
-            codexSetup?.cancel()
-            claudeSetup?.cancel()
+            for setup in allSetups { setup.cancel() }
             codexSetup = nil
             claudeSetup = nil
+            cursorSetup = nil
         }
         var active = installed
         if !monitoring { active.remove(.agents) }
@@ -165,7 +174,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         }, onPaused: { [weak self] in
             self?.providerMonitoring.setEnabled(false, for: agent)
         }, onActionsConsent: { [weak self] enabled in
-            self?.providerMonitoring.setActionsEnabled(enabled)
+            self?.providerMonitoring.setActionsEnabled(enabled, for: agent)
         }, onQuotaChoice: { [weak self] on in
             self?.providerMonitoring.setQuotaAutoConnect(on)
         }, quotaAutomatic: { [weak self] in
@@ -175,35 +184,22 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         })
     }
 
-    func requestSetup(_ action: ProviderSetupAction, agent: Agent) {
-        settings?.show(page: .agents)
-        let setup = agent == .codex ? codexSetup : claudeSetup
-        if action.isCheck { setup?.start(action) }
-        else { setup?.requestConfirmation(action) }
-    }
-
-    func toggleProviderMonitoring(_ agent: Agent) {
-        let resume = !providerMonitoring.isEnabled(agent)
-        if !resume { (agent == .codex ? codexSetup : claudeSetup)?.cancel() }
-        providerMonitoring.setEnabled(resume, for: agent)
-    }
-
     func showSettings() {
         settings?.show()
     }
 
     func showFeatures() { settings?.show(page: .agents) }
 
-    /// General → Remove all hook configuration: disconnect both providers, which removes every hook scope Bunlet owns.
+    /// General → Remove all hook configuration: disconnect every provider, which removes every hook scope Bunlet owns.
     private func removeAllHooks() {
-        for setup in [codexSetup, claudeSetup] { setup?.start(.disconnect) }
+        for setup in allSetups { setup.start(.disconnect) }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        codexSetup?.cancel()
-        claudeSetup?.cancel()
+        for setup in allSetups { setup.cancel() }
         let pet = self.pet
         navigation.stop()
+        replies.stop()
         petLibrary.cancel()
         petReactions.stop()
         runtimes.apply([])

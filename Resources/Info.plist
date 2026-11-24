@@ -25,7 +25,7 @@
     <key>LSUIElement</key>
     <true/>
     <key>NSAppleEventsUsageDescription</key>
-    <string>Focus an existing terminal pane that you explicitly link. Bunlet does not read terminal contents or send terminal input.</string>
+    <string>Return to an existing Terminal or iTerm2 session when you select it in Bunlet.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
 </dict>

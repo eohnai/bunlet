@@ -111,6 +111,11 @@ The session store applies the event once and publishes updated presentation stat
 The notch reflects that state through pure presentation rules. PetSessionAdapter projects snapshots into optional pet moods and deduplicated response-ready cues.
 Navigation uses an app-owned TerminalNavigation capability independently of provider services.
 Missing terminal identity or navigation support does not block event receipt or session presentation.
+Since [decision 0025](decisions/0025-adopt-more-reference-behavior.md) the observer also reports where the agent runs
+(`TerminalDetection`: tmux, Otty, Apple Terminal or an editor), Claude subagent IDs, and Cursor CLI events.
+`TerminalTargets` jumps to that place and, only for Otty and tmux panes at a finished turn, types an explicit one-line follow-up.
+[Decision 0026](decisions/0026-any-agent-version-and-any-terminal.md) adds iTerm2, WezTerm and kitty panes, and otherwise
+reports the app the agent runs in, found by walking its parent processes; jumps fall back to activating that app.
 
 Usage providers send source snapshots to a separate usage store.
 They do not create agent lifecycle events or start agent turns.
@@ -180,9 +185,9 @@ Menu commands open Agents settings; `ProviderSetupView` renders separate version
 policy, receiver, delivery and Claude quota evidence. Opening a view does not probe or install anything.
 `PetAppController` owns both controllers only while Agents is installed and cancels them on removal.
 
-`ProviderSetupService` distinguishes documented bindings from runtime qualification. Codex 0.164.0 and
-Claude Code 2.1.306 have documented bindings under the user's explicit verification waiver. The qualified
-registry remains empty. `CodexHookPolicyProbe` uses bounded initialize/config/read/configRequirements/read;
+`ProviderSetupService` distinguishes documented bindings from runtime qualification. Since decision 0026 the
+documented binding is any well-formed version at or above a floor (Codex 0.129.0; none for Claude Code or Cursor CLI);
+versions without recorded evidence show as untested. The qualified registry remains empty. `CodexHookPolicyProbe` uses bounded initialize/config/read/configRequirements/read;
 Claude user settings expose known disabled flags but cannot establish project/managed enablement.
 Unknown policy stays unverified; known disabled/managed-only policy blocks installation. No policy,
 permissions or trust are changed. Removal needs exact content ownership and file safety, without a CLI.
@@ -477,7 +482,7 @@ packaged build/helper checks, 194 existing tests and coverage reporting at `ab2a
 checks ran for this documentation update. Native/provider qualification remains deferred; see the
 [merged handoff](specs/notch-companion.md#merged-mvp-handoff-2026-11-06).
 
-Documented provider candidates are Codex 0.164.0 and Claude Code 2.1.306; the runtime qualification
+Documented setup accepts any well-formed version above the floors in decision 0026; the runtime qualification
 registry remains empty. Claude supplies approve-once/deny, structured answers and bounded Stop-hook
 feedback; arbitrary-time input and Codex local actions are unsupported. Exact terminal pane focus is
 optional, explicitly user-linked and currently limited to the iTerm2 adapter; application/manual return

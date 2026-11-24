@@ -1,3 +1,4 @@
+import AppKit
 import CryptoKit
 import Darwin
 import EventBridge
@@ -27,7 +28,7 @@ enum ProviderSetupAction: Equatable {
 @Observable
 final class ProviderSetupController {
     let agent: Agent
-    var providerName: String { agent == .codex ? "Codex" : "Claude Code" }
+    var providerName: String { agent.displayName }
     private(set) var operation: ProviderSetupAction?
     private(set) var inspection: ProviderSetupInspection?
     private(set) var quotaInspection: ProviderSetupInspection?
@@ -109,8 +110,9 @@ final class ProviderSetupController {
         // Removing quota forwarding is a choice to stop, so the next launch must not add it back.
         if action == .removeQuota { onQuotaChoice(false) }
         if action == .connectQuota { onQuotaChoice(true) }
-        if action == .removeActions || (action == .disconnect && agent == .claude) { onActionsConsent(false) }
-        let targetName = action.scope == .claudeQuota ? "quota forwarding" : (action.scope == .claudeActions ? "interactive hooks" : "lifecycle hooks")
+        if action == .removeActions || action == .disconnect { onActionsConsent(false) }
+        let actionsName = agent == .codex ? "approval hook" : "interactive hooks"
+        let targetName = action.scope == .claudeQuota ? "quota forwarding" : (action.scope == .claudeActions ? actionsName : "lifecycle hooks")
         message = action.isCheck ? "Checking \(providerName) \(targetName)…" : "Updating owned \(providerName) \(targetName)…"
         task = Task { @MainActor [weak self] in
             guard let self else { return }
@@ -136,14 +138,16 @@ final class ProviderSetupController {
                     if action.scope == .lifecycle { self.inspection = nil }
                     else if action.scope == .claudeQuota { self.quotaInspection = nil }
                     else { self.actionInspection = nil }
-                    if action == .disconnect, self.agent == .claude {
+                    if action == .disconnect, ProviderSetupScope.claudeActions.applies(to: self.agent) {
                         self.actionInspection = nil
                         let actionContext = try self.context(needsExecutable: false, scope: .claudeActions)
                         let removedActions = try await self.service.executeAndInspect(.remove, context: actionContext)
-                        disconnectedScopes.append("local responses")
+                        disconnectedScopes.append(self.agent == .codex ? "island approvals" : "local responses")
                         try Task.checkCancellation()
                         self.actionInspection = removedActions.inspection
                         try Task.checkCancellation()
+                    }
+                    if action == .disconnect, self.agent == .claude {
                         self.quotaInspection = nil
                         let quotaContext = try self.context(needsExecutable: false, scope: .claudeQuota)
                         let removedQuota = try await self.service.executeAndInspect(.remove, context: quotaContext)
@@ -225,7 +229,7 @@ final class ProviderSetupController {
 
     private func context(needsExecutable: Bool, scope: ProviderSetupScope = .lifecycle) throws -> ProviderSetupContext {
         let manager = FileManager.default
-        let override = try environmentValue(agent == .codex ? "CODEX_HOME" : "CLAUDE_CONFIG_DIR", limit: 4096)
+        let override = try agent.configurationOverrideVariable.flatMap { try environmentValue($0, limit: 4096) }
         let executable: URL?
         if needsExecutable {
             let searchPath = try environmentValue("PATH", limit: 16_384)
@@ -245,7 +249,7 @@ final class ProviderSetupController {
         }
         let identity = SHA256.hash(data: Data(directory.path.utf8)).map { String(format: "%02x", $0) }.joined()
         return ProviderSetupContext(configurationDirectory: directory,
-            ownershipDirectory: support.appendingPathComponent(agent == .codex ? "NotchPet/Integrations/Codex" : "NotchPet/Integrations/Claude").appendingPathComponent(identity),
+            ownershipDirectory: support.appendingPathComponent(Self.ownershipFolder(agent)).appendingPathComponent(identity),
             helperURL: executableDirectory.appendingPathComponent(scope == .lifecycle ? "NotchPetHook" : (scope == .claudeQuota ? "NotchPetStatusLine" : "NotchPetActionHook")),
             executableURL: executable, agent: agent, scope: scope)
     }
@@ -269,13 +273,29 @@ final class ProviderSetupController {
         }
     }
 
+    /// Existing records keep their folders; Cursor gets its own.
+    static func ownershipFolder(_ agent: Agent) -> String {
+        switch agent {
+        case .codex: "NotchPet/Integrations/Codex"
+        case .claude: "NotchPet/Integrations/Claude"
+        case .cursor: "NotchPet/Integrations/Cursor"
+        }
+    }
+
     static func explanation(_ failure: ProviderSetupFailure, agent: Agent = .codex) -> String {
-        let name = agent == .codex ? "Codex" : "Claude Code"
+        let name = agent.displayName
         switch failure {
         case .executableNotFound:
-            return "Couldn't find \(name). Bunlet looked in your PATH, ~/.local/bin, Homebrew and nvm. Configuration was not changed."
+            switch agent {
+            case .codex: return "Install Codex CLI, then check again."
+            case .claude: return "Install Claude Code CLI, then check again."
+            case .cursor: return "Install Cursor CLI, then check again."
+            }
         case .unqualifiedVersion:
-            return "This \(name) version has no documented setup binding. Configuration was not changed."
+            if let floor = ProviderHookPolicy.minimumVersion(agent) {
+                return "Bunlet needs \(name) \(floor) or newer, and couldn't read a version at or above it. Configuration was not changed."
+            }
+            return "Bunlet couldn't read the \(name) version. Configuration was not changed."
         case .enablementUnverified:
             return "Effective \(name) hook policy could not be established for this setup binding."
         case .hooksDisabled:

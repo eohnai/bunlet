@@ -180,7 +180,7 @@ public enum IslandAutoOpen {
     /// Terminals and editors where agents usually run. Focus-aware suppression treats them as "the session's terminal".
     public static let terminalBundleIDs: Set<String> = [
         "com.apple.Terminal", "com.googlecode.iterm2", "dev.warp.Warp-Stable", "com.mitchellh.ghostty",
-        "net.kovidgoyal.kitty", "org.alacritty", "com.github.wez.wezterm", "co.zeit.hyper",
+        "net.kovidgoyal.kitty", "org.alacritty", "com.github.wez.wezterm", "co.zeit.hyper", "io.appmakes.otty",
         "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92"
     ]
 

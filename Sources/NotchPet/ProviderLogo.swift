@@ -22,8 +22,12 @@ enum ProviderLogo {
         } else {
             directory = Bundle.module.resourceURL
         }
-        let name = provider == .codex ? "codex.svg" : "claude-code.svg"
-        guard let url = directory?.appendingPathComponent(name),
+        let file: String? = switch provider {
+        case .codex: "codex.svg"
+        case .claude: "claude-code.svg"
+        case .cursor: nil // No bundled artwork; the name is shown as text.
+        }
+        guard let name = file, let url = directory?.appendingPathComponent(name),
               let image = NSImage(contentsOf: url), image.isValid else { return nil }
         return image
     }

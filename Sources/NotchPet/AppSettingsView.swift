@@ -35,12 +35,12 @@ struct AppSettingsActions {
     var showPet: () -> Void
     var returnPet: () -> Void
     var showNotch: () -> Void
-    var openSessions: () -> Void
     var health: () -> [IntegrationHealthSnapshot]
     var selectPage: (AppSettingsPage) -> Void
     var removeAllHooks: () -> Void
     var codex: () -> ProviderSetupController? = { nil }
     var claude: () -> ProviderSetupController? = { nil }
+    var cursor: () -> ProviderSetupController? = { nil }
     var monitoring: () -> ProviderMonitoringModel? = { nil }
     var quota: () -> UsageStore? = { nil }
     var localActions: () -> LocalActionController? = { nil }
@@ -136,7 +136,7 @@ struct AppSettingsView: View {
     @ViewBuilder private var content: some View {
         switch page {
         case .general: GeneralSettingsPage(settings: settings, actions: actions)
-        case .agents: AgentsSettingsPage(features: features, actions: actions)
+        case .agents: AgentsSettingsPage(actions: actions)
         case .display: DisplaySettingsPage(settings: settings, defaults: defaults, actions: actions)
         case .sound: SoundSettingsPage(settings: settings)
         case .shortcuts: ShortcutsSettingsPage(settings: settings)

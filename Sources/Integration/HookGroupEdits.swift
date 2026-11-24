@@ -9,7 +9,6 @@ public enum HookPlanningFailure: String, Error, Equatable, Sendable {
 /// Provider setup policy plus pure planning; file validation/application belongs to the installer.
 public enum HookSetupPlanner {
     public static func plan(_ input: HookSetupInput, interactive: Bool = false) -> HookSetupPlan {
-        guard !interactive || input.agent == .claude else { return .unavailable(.unsupportedProvider) }
         if let failure = ProviderHookPolicy.installationFailure(input.support, agent: input.agent) { return .unavailable(failure) }
         do {
             try validateTarget(input.target)
@@ -19,7 +18,8 @@ public enum HookSetupPlanner {
                 let owner = try validatedOwnership(record, target: input.target, agent: input.agent, interactive: interactive)
                 guard owner.installationID == input.installationID else { throw HookPlanningFailure.ownershipConflict }
                 try verifyInstalled(document.data, ownership: record, target: input.target, agent: input.agent, interactive: interactive)
-                return .unchanged
+                if owner.groups == groups { return .unchanged }
+                return try upgrade(input, owner: owner, record: record, groups: groups, interactive: interactive)
             }
             let candidate = try HookGroupEdits.initialConfiguration(input.configuration, groups: groups,
                 helperName: URL(fileURLWithPath: input.target.helperPath).lastPathComponent)
@@ -33,6 +33,32 @@ public enum HookSetupPlanner {
         } catch let failure as HookPlanningFailure {
             return failure == .resourceLimit ? .unavailable(failure) : .conflict(failure)
         } catch { return .conflict(.malformedConfiguration) }
+    }
+
+    /// An owned install from an earlier, smaller hook set (decision 0025 adds Claude's subagent events).
+    /// Removes exactly the recorded groups, then adds the current set, so the user's own entries are untouched.
+    private static func upgrade(_ input: HookSetupInput, owner: HookSetupOwnership, record: Data,
+                                groups: [String: Data], interactive: Bool) throws -> HookSetupPlan {
+        guard case .update(let cleaned, _) = remove(configuration: input.configuration, ownership: record, target: input.target,
+                                                    agent: input.agent, interactive: interactive) else {
+            throw HookPlanningFailure.ownershipConflict
+        }
+        let candidate = try HookGroupEdits.initialConfiguration(cleaned, groups: groups,
+            helperName: URL(fileURLWithPath: input.target.helperPath).lastPathComponent)
+        let base = try HookConfigurationJSON(data: cleaned)
+        let createdContainer = base.range(at: [.key("hooks")]) == nil
+        let next = HookSetupOwnership(version: 1, agent: input.agent, installationID: input.installationID,
+            target: input.target, groups: groups, createdConfiguration: owner.createdConfiguration && createdContainer,
+            createdHooksContainer: createdContainer,
+            createdEvents: groups.keys.sorted().filter { base.range(at: [.key("hooks"), .key($0)]) == nil })
+        let data = try JSONEncoder().encode(next)
+        guard data.count <= HookEnvelopeV1.rawHookLimit else { throw HookPlanningFailure.resourceLimit }
+        return .update(configuration: candidate, ownership: data)
+    }
+
+    /// A record matches the current definitions, or an earlier subset of them with identical groups.
+    static func acceptedGroups(_ recorded: [String: Data], current: [String: Data]) -> Bool {
+        !recorded.isEmpty && recorded.allSatisfy { current[$0.key] == $0.value }
     }
 
     /// Removal depends on exact content ownership, never on the installed CLI or its current policy.
@@ -50,8 +76,9 @@ public enum HookSetupPlanner {
             let owner = try validatedOwnership(ownership, target: target, agent: agent, interactive: interactive)
             try verifyInstalled(configuration, ownership: ownership, target: target, agent: agent, interactive: interactive)
             var candidate = configuration
-            for event in groups.keys.sorted() {
-                guard let encoded = groups[event] else { throw HookPlanningFailure.ownershipConflict }
+            // Remove what the record owns, which may be an earlier subset of the current definitions.
+            for event in owner.groups.keys.sorted() {
+                guard let encoded = owner.groups[event] else { throw HookPlanningFailure.ownershipConflict }
                 let expected = try JSONDecoder().decode(HookManagedGroup.self, from: encoded)
                 let current = try HookConfigurationJSON(data: candidate)
                 let path: [JSONPathComponent] = [.key("hooks"), .key(event)]
@@ -73,9 +100,17 @@ public enum HookSetupPlanner {
         } catch { return .conflict(.ownershipConflict) }
     }
 
+    /// Lifecycle events per agent, and the interactive events each agent can answer through Bunlet.
+    static func events(agent: Agent, interactive: Bool) -> [String] {
+        if interactive {
+            // Codex: approvals only (decision 0025). Claude: approvals, AskUserQuestion and Stop feedback.
+            return agent == .codex ? ["PermissionRequest"] : ["PermissionRequest", "PreToolUse", "Stop"]
+        }
+        return HookEvent.lifecycle(for: agent).map(\.rawValue).sorted()
+    }
+
     static func definitions(_ helper: String, agent: Agent, interactive: Bool) throws -> [String: Data] {
-        guard !interactive || agent == .claude else { throw HookPlanningFailure.unsupportedProvider }
-        let events = interactive ? ["PermissionRequest", "PreToolUse", "Stop"] : HookEvent.allCases.map(\.rawValue).sorted()
+        let events = events(agent: agent, interactive: interactive)
         let command = "'" + helper.replacingOccurrences(of: "'", with: "'\"'\"'") + "' --agent " + agent.rawValue
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
@@ -96,28 +131,25 @@ public enum HookSetupPlanner {
         guard Set(document.members(at: []) ?? []) == Set(keys.map(JSONPathComponent.key)),
               Set(document.members(at: [.key("target")]) ?? []) == Set(["configurationPath", "parentDevice", "parentInode", "helperPath"].map(JSONPathComponent.key)),
               document.rawValue(at: [.key("version")]) == Data("1".utf8), owner.version == 1,
-              owner.agent == agent, owner.target == target, owner.groups == groups,
+              owner.agent == agent, owner.target == target, acceptedGroups(owner.groups, current: groups),
               owner.createdEvents.count == Set(owner.createdEvents).count,
-              Set(owner.createdEvents).isSubset(of: Set(groups.keys)),
-              !owner.createdHooksContainer || Set(owner.createdEvents) == Set(groups.keys),
+              Set(owner.createdEvents).isSubset(of: Set(owner.groups.keys)),
+              !owner.createdHooksContainer || Set(owner.createdEvents) == Set(owner.groups.keys),
               !owner.createdConfiguration || owner.createdHooksContainer else { throw HookPlanningFailure.ownershipConflict }
         return owner
     }
 
     static func verifyInstalled(_ configuration: Data, ownership: Data, target: HookSetupTarget,
                                 agent: Agent = .codex, interactive: Bool = false) throws {
-        _ = try validatedOwnership(ownership, target: target, agent: agent, interactive: interactive)
-        let groups = try definitions(target.helperPath, agent: agent, interactive: interactive)
-            .mapValues { try JSONDecoder().decode(HookManagedGroup.self, from: $0) }
+        let owner = try validatedOwnership(ownership, target: target, agent: agent, interactive: interactive)
+        let groups = try owner.groups.mapValues { try JSONDecoder().decode(HookManagedGroup.self, from: $0) }
         try HookGroupEdits.verifyOwnedConfiguration(HookConfigurationJSON(data: configuration), expected: groups,
             helperName: URL(fileURLWithPath: target.helperPath).lastPathComponent)
     }
 
     static func validateTarget(_ target: HookSetupTarget) throws {
         for path in [target.configurationPath, target.helperPath] {
-            guard path.hasPrefix("/"), !path.hasSuffix("/"), path.utf8.count <= 4096,
-                  !path.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }),
-                  URL(fileURLWithPath: path).standardizedFileURL.path == path else { throw HookPlanningFailure.unsafeTarget }
+            guard path != "/", HookFileDirectory.validAbsolutePath(path) else { throw HookPlanningFailure.unsafeTarget }
         }
         guard target.parentDevice > 0, target.parentInode > 0 else { throw HookPlanningFailure.unsafeTarget }
     }

@@ -11,7 +11,18 @@ public enum ProviderSetupChange: Equatable, Sendable {
 }
 
 public enum ProviderSetupScope: CaseIterable, Equatable, Sendable {
+    /// `claudeActions` keeps its name for existing records; Codex uses it for approvals since decision 0025.
     case lifecycle, claudeQuota, claudeActions
+
+    public func applies(to agent: Agent) -> Bool {
+        switch self {
+        case .lifecycle: true
+        case .claudeQuota: agent == .claude
+        case .claudeActions: agent == .claude || agent == .codex
+        }
+    }
+
+    public static func scopes(for agent: Agent) -> [ProviderSetupScope] { allCases.filter { $0.applies(to: agent) } }
 
     var ownershipName: String {
         switch self {
@@ -78,7 +89,7 @@ struct ProviderHookTransaction {
     func run(_ operation: ProviderSetupOperation, context: ProviderSetupContext,
              support: HookSetupSupport) throws -> ProviderSetupChange {
         try Task.checkCancellation()
-        guard context.agent == agent, context.scope == scope, scope == .lifecycle || agent == .claude else { throw ProviderSetupFailure.ownershipConflict }
+        guard context.agent == agent, context.scope == scope, scope.applies(to: agent) else { throw ProviderSetupFailure.ownershipConflict }
         if operation == .remove, !(try HookFileDirectory.exists(context.configurationDirectory)) {
             if try HookFileDirectory.exists(context.ownershipDirectory) {
                 let records = try HookFileDirectory(context.ownershipDirectory, privateDirectory: true)
@@ -103,10 +114,9 @@ struct ProviderHookTransaction {
             _ = flock(lock, LOCK_UN)
             close(lock)
         }
-        if agent == .claude {
-            for otherScope in ProviderSetupScope.allCases where otherScope != scope {
-                try ProviderHookTransaction(agent: agent, scope: otherScope).recover(configuration: configuration, records: records)
-            }
+        // Every scope of one agent edits the same configuration file, so finish their interrupted saves first.
+        for otherScope in ProviderSetupScope.scopes(for: agent) where otherScope != scope {
+            try ProviderHookTransaction(agent: agent, scope: otherScope).recover(configuration: configuration, records: records)
         }
         try recover(configuration: configuration, records: records)
         try Task.checkCancellation()
@@ -197,25 +207,19 @@ struct ProviderHookTransaction {
     }
 
     private func makePlan(_ input: HookSetupInput) -> HookSetupPlan {
-        scope == .claudeQuota ? ClaudeStatusLinePlanner.plan(input)
-            : HookSetupPlanner.plan(input, interactive: scope == .claudeActions)
+        ProviderSetupPlanners.plan(input, scope: scope)
     }
 
     private func remove(configuration: Data?, ownership: Data?, target: HookSetupTarget) -> HookSetupPlan {
-        scope == .claudeQuota ? ClaudeStatusLinePlanner.remove(configuration: configuration, ownership: ownership, target: target)
-            : HookSetupPlanner.remove(configuration: configuration, ownership: ownership, target: target, agent: agent,
-                                      interactive: scope == .claudeActions)
+        ProviderSetupPlanners.remove(configuration: configuration, ownership: ownership, target: target, agent: agent, scope: scope)
     }
 
     private func validateOwner(_ data: Data, target: HookSetupTarget) throws -> UUID {
-        if scope == .claudeQuota { return try ClaudeStatusLinePlanner.validatedOwnership(data, target: target).installationID }
-        return try HookSetupPlanner.validatedOwnership(data, target: target, agent: agent, interactive: scope == .claudeActions).installationID
+        try ProviderSetupPlanners.validatedOwner(data, target: target, agent: agent, scope: scope)
     }
 
     private func verifyInstalled(_ configuration: Data, ownership: Data, target: HookSetupTarget) throws {
-        if scope == .claudeQuota { try ClaudeStatusLinePlanner.verifyInstalled(configuration, ownership: ownership, target: target) }
-        else { try HookSetupPlanner.verifyInstalled(configuration, ownership: ownership, target: target, agent: agent,
-                                                    interactive: scope == .claudeActions) }
+        try ProviderSetupPlanners.verifyInstalled(configuration, ownership: ownership, target: target, agent: agent, scope: scope)
     }
 
     private func target(_ directory: HookFileDirectory, helper: String) -> HookSetupTarget {
