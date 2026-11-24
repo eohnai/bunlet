@@ -12,7 +12,7 @@ Status: in progress
 
 ## Workflow
 
-Launch Claude's Code tab once to download its runtime, then launch Bunlet. Settings → Agents shows the setup state. Complete any provider hook review and start a new local coding session from each desktop app. When possible, Bunlet shows the session and opens the matching desktop target on click. An unavailable Codex thread falls back to app activation when macOS rejects the open request. Monitoring and alerts use hooks independently of navigation availability.
+Open Claude's Code tab once to download its runtime. Bunlet detects it after download even if Bunlet is already open. Settings → Agents shows the monitoring choice and setup status, with approvals and repair under Advanced. Complete Codex's hook review and start a fresh local coding session. When possible, Bunlet shows the session and opens the matching desktop target on click. An unavailable Codex thread falls back to app activation when macOS rejects the open request. See [decision 0029](../../decisions/0029-automate-desktop-agent-setup.md).
 
 ## Verification on 2026-11-24
 
