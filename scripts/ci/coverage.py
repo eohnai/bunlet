@@ -69,12 +69,6 @@ def production_sources() -> set[Path]:
 
 def declaration_only_sources(sources: set[Path]) -> set[Path]:
     # LLVM emits no coverage mapping for this declaration. Any source change must be reviewed again.
-    agent = ROOT / "Sources/EventBridge/Agent.swift"
-    require(agent in sources, "missing agent declaration")
-    expected = (b"public enum Agent: String, Codable, CaseIterable, Sendable {\n"
-                b"    case codex, claude\n}\n")
-    require(read_regular(agent, MAX_FILE) == expected,
-            "agent declaration changed; review its coverage classification")
     feature = ROOT / "Sources/NotchPet/AppFeature.swift"
     require(feature in sources, "missing feature declaration")
     expected = ("/// The runtimes Bunlet starts. All always run (decision 0020); the split only orders start and stop.\n"
@@ -82,7 +76,7 @@ def declaration_only_sources(sources: set[Path]) -> set[Path]:
                 "    case pet, notch, agents\n}\n").encode()
     require(read_regular(feature, MAX_FILE) == expected,
             "feature declaration changed; review its coverage classification")
-    return {agent, feature}
+    return {feature}
 
 
 def validated_metric(value: dict) -> tuple[int, int]:
