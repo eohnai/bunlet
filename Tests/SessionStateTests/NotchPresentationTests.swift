@@ -67,7 +67,8 @@ struct NotchPresentationTests {
         #expect(IslandGeometry.windowFrame(screen: CGRect(x: 0, y: 0, width: 1200, height: 800), safeTop: -1) == nil)
     }
 
-    @Test(arguments: [(CGFloat(38), CGFloat(24), CGFloat(38)), (0, 24, 24), (0, 0, 24), (0, 60, 24)])
+    @Test(arguments: [(CGFloat(38), CGFloat(24), CGFloat(38)), (32, 33, 33), (32, 38, 33), (32, 0, 32), (32, 60, 32),
+                      (0, 24, 24), (0, 0, 24), (0, 60, 24)])
     func headerFollowsNotchThenMenuBar(safeTop: CGFloat, menuBar: CGFloat, expected: CGFloat) {
         #expect(IslandGeometry.headerHeight(safeTop: safeTop, menuBarHeight: menuBar) == expected)
     }
