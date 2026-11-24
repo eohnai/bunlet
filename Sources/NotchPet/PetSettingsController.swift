@@ -95,8 +95,8 @@ final class PetSettingsController {
             }, close: { [weak self] in self?.close() }, showPet: onShowPet, returnPet: onReturnPet,
                 showNotch: onShowNotch, health: readHealth,
                 selectPage: { [weak self] page in self?.defaults.set(page.rawValue, forKey: "settings.selectedPane") },
-                removeAllHooks: onRemoveAllHooks, updater: updater, codex: readCodex, claude: readClaude, cursor: readCursor,
-                monitoring: readMonitoring,
+                removeAllHooks: onRemoveAllHooks, updater: updater, codex: readCodex, claude: readClaude,
+                cursor: readCursor, monitoring: readMonitoring,
                 quota: readQuota, localActions: readLocalActions, petLibrary: readPetLibrary, navigation: readNavigation,
                 tokens: readTokens)
             window.contentView = NSHostingView(rootView: PetWindowPlayback(window: window) { [features, settings, defaults] visible, sleeping in
