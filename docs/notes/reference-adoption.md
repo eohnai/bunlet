@@ -307,6 +307,41 @@ The user reaffirmed pet-first startup with optional agent services and accepted 
 The accepted behavior is recorded in [pets area decisions](../specs/pets/area.md#decisions).
 Its implementation remains with `detachable-pet`; the comparison itself changed no BP or source task checkbox.
 
+## Feature sweep for undocumented behavior, 2026-11-24
+
+The installed app is still version `0.1.25` with the same archive SHA-256 recorded above.
+The archive was extracted with REA 6.10.1 into a session scratch directory outside this repository for read-only inspection.
+The complete IPC channel table (`out/preload/chunks/ipc-EeO4Po2v.js`) and `DEFAULT_SETTINGS` (`out/main/index.js:25272`)
+were compared one by one with `BunletSettings`, the decisions and these notes. No app launch, configuration or credential read,
+or code reuse occurred. Everything below is packaged-source observation; none of it was observed at runtime.
+
+Most of the reference's settings already have Bunlet counterparts: hover to open, collapse on mouse leave, hide when fullscreen,
+always hide, hide with no sessions, expand on completion or action needed, focus-aware suppression, haptics, panel height,
+display choice, per-event sounds and volume, usage percent used/left, token count, and the seven rebindable shortcuts.
+The following behaviors have no Bunlet counterpart and are candidates for a decision. None is accepted by this note.
+
+| Behavior in the reference | Trigger and result | Unavailable or limiting cases | Bunlet today |
+| --- | --- | --- | --- |
+| **Delete one session** | A trash button appears on a session row only while the pointer hovers it (`.session-row:hover .session-delete-btn`). Clicking removes that session from the list immediately (`deleteSessions`, `out/main/index.js:60241`). | Removal is local state only; a later event from the same session brings it back. | Sessions leave only through idle clean-up. |
+| **Clear all sessions** | A broom button in the panel's top row, shown when at least one session is visible, removes every visible session (`handleClearSessions`, `IslandPanel-DSRHjja3.js:393`). | Same as above. No confirmation. | None. |
+| **Error sound** | A separate `taskError` sound plays when Claude Code reports `StopFailure` (`ClaudeAdapter`, line 26654), a Cursor `stop` carries status `error` or `timeout` (line 28453), or Kimi and Copilot CLI report a failure. Codex has no error sound in the reference. | Uses the same sound switches and volume as other events. | Bunlet installs no `StopFailure` hook and its envelope has no Cursor stop status, so a failed turn plays nothing. |
+| **Completion waits behind requests** | A completion does not open the panel while any other session still needs approval or an answer (`hasBlockingSession`, line 60815), so a pending request is not covered. | Requests still open the panel. | A completion opens the panel and focuses the completed session even when another session is waiting. |
+| **Completion skips non-results** | No auto-open for a user interrupt (`isInterrupt`), a session end, or a loop iteration (line 60778). | Rows still update. | Not checked; depends on whether these reach `responseReady`. |
+| **Per-session focus check** | Suppression applies only when the frontmost app is *that session's* host app, and, when its tab can be identified, only when that tab is focused (line 60785). | Falls back to app-level matching when the tab is unknown. | Suppresses for any session whenever any known terminal or editor is frontmost, so a completion in another terminal window is hidden. |
+| **Status hint in the island** | When a connection breaks, an icon with a short title appears in the panel's top row; clicking it opens the matching Settings tab and hides the hint (`STATUS_HINT_*`, `IslandPanel-DSRHjja3.js:190`). | The reference's hints cover its own remote and sign-in services. | Hook drift is repaired at launch and shown only in Settings. |
+| **Replaceable sound files** | Each sound event plays a file from a user sounds folder that is seeded from bundled defaults; Settings can open the folder and preview a sound (`settings:open-sounds-dir`, `settings:preview-sound`). | Playback uses `afplay`. | Fixed macOS system sounds. |
+| **First-launch welcome** | A separate welcome window on first launch, recorded by `firstLaunchAt` and `hasCompletedOnboarding`; the island can expand an onboarding state (`island:onboarding-expand`). | Debug can reset it. | None. |
+| **Debug scenario window** | A hidden debug window lists scenarios that push simulated sessions into the island (`debug:trigger-scenario`, `debug:push-to-island`) and shows hook status per agent. | Off by default (`showDebugWindow`). | None. This would help the on-screen checks listed as blocked in `docs/STATUS.md`. |
+| **Interface language** | Settings can switch the interface language (`locale:get`, `locale:set`); the renderer ships a 1 MB string table. | — | English only. |
+
+Declared but with no behavior found in the main process: the `disableClaudeTerminalTitle` setting and the `contextLimit` and
+`rapidCommit` sound events. They may be unfinished or used only by the renderer.
+
+Not candidates, because they depend on the reference vendor's own services: Feishu notification binding and its meeting-aware mute,
+the sign-in providers and cloud agents (plan confirmation exists only for one of these), usage-statistics upload and telemetry,
+and the forced-update dialog (Bunlet uses Sparkle). Remote SSH profiles, host discovery and remote hook deployment remain
+optional future work, as recorded under [Existing choices to retain](#existing-choices-to-retain).
+
 ## Planning outcome
 
 The spec retains the user's existing single-spec layout and completed foundation tasks.
