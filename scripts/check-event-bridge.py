@@ -149,6 +149,13 @@ def main() -> None:
             assert boundary["session_id"] == "fictional" and boundary["agent"] == agent
         print("PASS raw stdin accepted at exactly 262144 bytes for both agents")
 
+        for agent in ("codex", "claude"):
+            frame = receive_one(helper, minimal, agent, pane="invalid\npane")
+            assert frame["agent"] == agent and frame["hook_event_name"] == "SessionStart"
+            assert frame["session_id"] == "fictional"
+            assert frame.get("terminal", {}).get("kind") in (None, "app")
+        print("PASS unusable Otty pane metadata does not drop valid lifecycle events")
+
         with socket.socket(socket.AF_UNIX) as listener:
             listener.bind(str(ENDPOINT))
             os.chmod(ENDPOINT, 0o600)
@@ -159,9 +166,10 @@ def main() -> None:
                     for raw in [b"{}", b"[", b"\xff", b" " * 262145,
                                 b'{"session_id":"a","session_id":"b","hook_event_name":"SessionStart"}']:
                         invoke(helper, raw, agent)
-                    for hook in ("Interrupt", "StopFailure", "Notification", "Elicitation", "ElicitationResult"):
+                    # Claude reports failed turns through StopFailure (decision 0030); Codex has no such hook.
+                    unsupported = ("Interrupt", "Notification", "Elicitation", "ElicitationResult")
+                    for hook in unsupported + (("StopFailure",) if agent == "codex" else ()):
                         invoke(helper, json.dumps({"session_id": "a", "hook_event_name": hook}).encode(), agent)
-                    invoke(helper, minimal, agent, pane="invalid\npane")
                 invoke(helper, minimal, "unsupported")
                 try:
                     listener.accept()
@@ -170,7 +178,7 @@ def main() -> None:
                     pass
             finally:
                 ENDPOINT.unlink()
-        print("PASS malformed, oversized, unsupported, and invalid-pane input dropped before connection")
+        print("PASS malformed, oversized, and unsupported input dropped before connection")
 
         environment = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"),
                        "LLVM_PROFILE_FILE": os.environ["LLVM_PROFILE_FILE"]}
