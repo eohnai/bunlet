@@ -152,26 +152,57 @@ private extension Double {
 struct IslandAutoOpenTests {
     private let key = SessionKey(agent: .claude, sessionID: "fictional")
 
+    private func session(_ id: String = "fictional", status: SessionStatus = .working,
+                         terminal: HookEnvelopeV1.Terminal? = nil) -> SessionSnapshot {
+        var snapshot = SessionSnapshot(key: SessionKey(agent: .claude, sessionID: id), status: status,
+                                       reason: nil, currentTurnID: nil, turnStartedAtMs: nil,
+                                       responseReadyAtMs: nil, pendingRequests: [],
+                                       captureWatermarkMs: nil, receiptWallMs: nil, receiptMonotonicNs: nil,
+                                       expiryMonotonicNs: nil, projectPath: "/fictional/project", paneSelector: nil,
+                                       hasTerminalRestriction: false)
+        snapshot.terminal = terminal
+        return snapshot
+    }
+
+    private func open(_ notification: IslandNotification, sessions: [SessionSnapshot] = [], action: Bool = true,
+                      end: Bool = true, suppress: Bool = false, frontmost: String? = nil) -> Bool {
+        IslandAutoOpen.shouldOpen(notification, sessions: sessions, expandOnActionNeeded: action,
+                                  expandOnSessionEnd: end, focusAwareSuppression: suppress,
+                                  frontmostBundleID: frontmost)
+    }
+
     @Test func behaviorSwitchesGateEachKind() {
-        func open(_ notification: IslandNotification, action: Bool, end: Bool) -> Bool {
-            IslandAutoOpen.shouldOpen(notification, expandOnActionNeeded: action, expandOnSessionEnd: end,
-                                      focusAwareSuppression: false, frontmostBundleID: nil)
-        }
         #expect(open(.attention(key), action: true, end: false))
         #expect(!open(.attention(key), action: false, end: true))
         #expect(open(.completed(key), action: false, end: true))
         #expect(!open(.completed(key), action: true, end: false))
     }
 
-    @Test func focusAwareSuppressionOnlyAppliesToTerminals() {
-        func open(_ frontmost: String?, suppress: Bool) -> Bool {
-            IslandAutoOpen.shouldOpen(.attention(key), expandOnActionNeeded: true, expandOnSessionEnd: true,
-                                      focusAwareSuppression: suppress, frontmostBundleID: frontmost)
-        }
-        #expect(!open("com.googlecode.iterm2", suppress: true))
-        #expect(open("com.googlecode.iterm2", suppress: false))
-        #expect(open("com.apple.Safari", suppress: true))
-        #expect(open(nil, suppress: true))
+    @Test(arguments: [SessionStatus.approvalNeeded, .questionNeeded])
+    func completionWaitsWhileAnotherSessionNeedsTheUser(_ waiting: SessionStatus) {
+        let sessions = [session(status: .responseReady), session("other", status: waiting)]
+        #expect(!open(.completed(key), sessions: sessions))
+        // The waiting request itself still opens the island.
+        #expect(open(.attention(sessions[1].key), sessions: sessions))
+    }
+
+    @Test func completionOpensWhenOtherSessionsAreOnlyWorkingOrDone() {
+        let sessions = [session(status: .responseReady), session("b"), session("c", status: .responseReady)]
+        #expect(open(.completed(key), sessions: sessions))
+    }
+
+    @Test func unknownAppKeepsTheAnyTerminalRule() {
+        #expect(!open(.attention(key), suppress: true, frontmost: "com.googlecode.iterm2"))
+        #expect(open(.attention(key), suppress: false, frontmost: "com.googlecode.iterm2"))
+        #expect(open(.attention(key), suppress: true, frontmost: "com.apple.Safari"))
+        #expect(open(.attention(key), suppress: true, frontmost: nil))
+    }
+
+    @Test func knownAppQuietsOnlyWhenThatAppIsInFront() {
+        let sessions = [session(terminal: .init(kind: .appleTerminal, paneSelector: "/dev/ttys001"))]
+        #expect(!open(.attention(key), sessions: sessions, suppress: true, frontmost: "com.apple.Terminal"))
+        // Another terminal in front no longer hides this session's notification.
+        #expect(open(.attention(key), sessions: sessions, suppress: true, frontmost: "com.googlecode.iterm2"))
     }
 
     @Test func panelHeightSettingSizesTheWindow() throws {
@@ -179,5 +210,32 @@ struct IslandAutoOpenTests {
         #expect(try #require(IslandGeometry.windowFrame(screen: screen, safeTop: 38, panelMaxHeight: 300)).height == 332)
         #expect(try #require(IslandGeometry.windowFrame(screen: screen, safeTop: 38, panelMaxHeight: 700)).height == 732)
         #expect(try #require(IslandGeometry.windowFrame(screen: screen, safeTop: 38, panelMaxHeight: 50)).height == 232)
+    }
+}
+
+/// Decision 0030: removed rows stay hidden until their session reports new activity.
+struct RemovedSessionTests {
+    private func session(_ id: String, receipt: UInt64?) -> SessionSnapshot {
+        SessionSnapshot(key: SessionKey(agent: .claude, sessionID: id), status: .responseReady,
+                        reason: nil, currentTurnID: nil, turnStartedAtMs: nil, responseReadyAtMs: nil,
+                        pendingRequests: [], captureWatermarkMs: nil, receiptWallMs: nil,
+                        receiptMonotonicNs: receipt, expiryMonotonicNs: nil, projectPath: "/fictional/project",
+                        paneSelector: nil, hasTerminalRestriction: false)
+    }
+
+    @Test func removedSessionsStayHiddenUntilNewActivity() {
+        let a = session("a", receipt: 10)
+        let b = session("b", receipt: 20)
+        let removed: [SessionKey: UInt64?] = [a.key: .some(10)]
+        #expect(NotchPresentation.withoutRemoved([a, b], removed: removed).map(\.key) == [b.key])
+        let refreshed = session("a", receipt: 11)
+        #expect(NotchPresentation.withoutRemoved([refreshed, b], removed: removed).map(\.key) == [refreshed.key, b.key])
+    }
+
+    @Test func aSessionWithNoReceiptReturnsOnItsFirstOne() {
+        let quiet = session("a", receipt: nil)
+        let removed: [SessionKey: UInt64?] = [quiet.key: UInt64?.none]
+        #expect(NotchPresentation.withoutRemoved([quiet], removed: removed).isEmpty)
+        #expect(NotchPresentation.withoutRemoved([session("a", receipt: 5)], removed: removed).count == 1)
     }
 }

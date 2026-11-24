@@ -184,16 +184,26 @@ public enum IslandAutoOpen {
         "com.microsoft.VSCode", "com.todesktop.230313mzl4w4u92"
     ]
 
-    public static func shouldOpen(_ notification: IslandNotification, expandOnActionNeeded: Bool,
-                                  expandOnSessionEnd: Bool, focusAwareSuppression: Bool,
-                                  frontmostBundleID: String?) -> Bool {
-        let wanted: Bool = switch notification {
-        case .attention: expandOnActionNeeded
-        case .completed: expandOnSessionEnd
+    /// `sessions` are the listed sessions after the notification's change.
+    public static func shouldOpen(_ notification: IslandNotification, sessions: [SessionSnapshot],
+                                  expandOnActionNeeded: Bool, expandOnSessionEnd: Bool,
+                                  focusAwareSuppression: Bool, frontmostBundleID: String?) -> Bool {
+        let key: SessionKey
+        switch notification {
+        case .attention(let attention):
+            guard expandOnActionNeeded else { return false }
+            key = attention
+        case .completed(let completed):
+            guard expandOnSessionEnd else { return false }
+            // Decision 0030: opening for a completion would replace a request that is still waiting on the user.
+            let waiting = sessions.contains { $0.key != completed && IslandPhase.dominant([$0]) == .attention }
+            guard !waiting else { return false }
+            key = completed
         }
-        guard wanted else { return false }
-        if focusAwareSuppression, let frontmostBundleID, terminalBundleIDs.contains(frontmostBundleID) { return false }
-        return true
+        guard focusAwareSuppression, let frontmostBundleID else { return true }
+        // Decision 0030: quiet only when the session's own app is in front. Unknown apps keep the earlier rule.
+        if let host = sessions.first(where: { $0.key == key })?.terminal?.hostApp { return host != frontmostBundleID }
+        return !terminalBundleIDs.contains(frontmostBundleID)
     }
 
     /// Sessions that appeared since the previous snapshot, for the "session starts" sound.

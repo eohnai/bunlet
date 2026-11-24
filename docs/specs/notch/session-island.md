@@ -100,6 +100,12 @@ The [island UI reference](../../notes/reference-ui.md) holds the exact values; t
 - Open, the panel is 680–704 points wide (46% of the screen width, clamped) and grows with its content up to 280 points by default.
   Longer content scrolls, and a saved maximum height takes precedence.
 - Pressing the closed pill and dragging down more than 50 points pulls the pet out, when Pet is installed.
+- [Decision 0030](../../decisions/0030-keep-requests-visible-and-report-failures.md): a completion does not open the island
+  while another listed session waits for an approval or answer. Focus-aware suppression applies only when the session's own
+  app is in front, falling back to any known terminal or editor when that app is unknown. A failed Claude turn shows a
+  **Failed** label and plays the Task fails sound.
+- Hovering a row shows **✕**, and the top row has **Clear all sessions**. Removed rows stay hidden in memory until their
+  session reports new activity; the row's accessibility actions include **Remove from list**.
 
 The **Done when** checks above still apply. Hover-open and notification-open are additions; neither takes keyboard focus.
 

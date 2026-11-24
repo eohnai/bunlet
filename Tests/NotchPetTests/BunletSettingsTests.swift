@@ -73,4 +73,16 @@ struct BunletSettingsTests {
     func cleanupLabelsReadNaturally(minutes: Int, label: String) {
         #expect(GeneralSettingsPage.cleanupLabel(minutes) == label)
     }
+
+    /// Decision 0030: the saved list holds only switches that are on, so "Task fails" must not start off for existing users.
+    @Test func taskFailsSoundStartsOnForExistingAndNewUsers() throws {
+        let defaults = try #require(UserDefaults(suiteName: "bunlet-settings-test-\(UUID().uuidString)"))
+        defaults.set(["appLaunch", "taskComplete"], forKey: "sound.events")
+        let existing = BunletSettings(defaults: defaults)
+        #expect(existing.isSoundOn(.taskFailed))
+        #expect(!existing.isSoundOn(.sessionStart))
+        existing.setSound(.taskFailed, on: false)
+        #expect(!BunletSettings(defaults: defaults).isSoundOn(.taskFailed))
+        #expect(settings().isSoundOn(.taskFailed))
+    }
 }

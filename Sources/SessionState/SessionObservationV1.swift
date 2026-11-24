@@ -12,6 +12,8 @@ public enum SessionEventKind: Sendable {
     case requestOpened(SessionRequestKind)
     /// Decision 0025: a count under the parent session, never lifecycle evidence for the parent.
     case subagentStarted, subagentStopped
+    /// Decision 0030: ends the turn like `responseReady`, and marks it failed.
+    case turnFailed
 }
 
 public struct SessionObservationV1: Sendable {
@@ -42,6 +44,7 @@ public struct SessionObservationV1: Sendable {
         case .sessionEnd: kind = .sessionEnded
         case .subagentStart: kind = .subagentStarted
         case .subagentStop: kind = .subagentStopped
+        case .stopFailure: kind = .turnFailed
         }
     }
 }
@@ -159,4 +162,6 @@ public struct SessionSnapshot: Equatable, Sendable, Identifiable {
     public var terminal: HookEnvelopeV1.Terminal? = nil
     /// Subagents started in the current turn and not yet stopped (decision 0025).
     public var runningSubagents: Int = 0
+    /// The latest turn ended in a reported failure (decision 0030). Cleared by the next submit.
+    public var turnFailed: Bool = false
 }

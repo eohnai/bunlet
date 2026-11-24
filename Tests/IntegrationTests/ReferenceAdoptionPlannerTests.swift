@@ -41,7 +41,7 @@ struct ReferenceAdoptionPlannerTests {
     @Test func ownedClaudeHooksFromTheSevenEventSetUpgradeInPlace() throws {
         let id = UUID()
         let current = try HookSetupPlanner.definitions(target().helperPath, agent: .claude, interactive: false)
-        #expect(current.count == 9)
+        #expect(current.count == 10)
         let legacy = current.filter { HookEvent.core.map(\.rawValue).contains($0.key) }
         let user = #"{"model":"fictional","hooks":{"Stop":[{"hooks":[{"type":"command","command":"say done","timeout":5}]}]}}"#
         let installed = try HookGroupEdits.initialConfiguration(Data(user.utf8), groups: legacy, helperName: "NotchPetHook")

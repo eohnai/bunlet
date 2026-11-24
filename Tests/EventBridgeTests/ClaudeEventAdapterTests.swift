@@ -73,7 +73,7 @@ struct ClaudeEventAdapterTests {
         #expect(minimal.toolName == nil && minimal.toolUseID == nil)
     }
 
-    @Test(arguments: ["StopFailure", "Notification", "Elicitation", "ElicitationResult", "Interrupt",
+    @Test(arguments: ["Notification", "Elicitation", "ElicitationResult", "Interrupt",
                       "SubagentStart", "SubagentStop", "PreCompact", "PostCompact", "sessionStart"])
     func unverifiedHooksAreRejected(hook: String) throws {
         let input = try raw(["session_id": "fictional", "hook_event_name": hook])
@@ -140,5 +140,16 @@ struct ClaudeEventAdapterTests {
         #expect(throws: BridgeError.timeout) {
             try HookEnvelopeV1.project(rawHook: input, agent: .claude, paneSelector: nil, deadline: 0)
         }
+    }
+
+    /// Decision 0030: a failed turn keeps its turn identity and forwards no error text.
+    @Test func stopFailureIsProjectedWithoutErrorText() throws {
+        let envelope = try ClaudeEventAdapter.project(rawHook: raw([
+            "session_id": "fictional", "hook_event_name": "StopFailure", "prompt_id": "fictional-turn",
+            "error": "rate_limit", "error_details": "fictional detail",
+        ]))
+        #expect(envelope.hookEventName == .stopFailure)
+        #expect(envelope.turnID == "fictional-turn")
+        #expect(envelope.replyPreview == nil)
     }
 }

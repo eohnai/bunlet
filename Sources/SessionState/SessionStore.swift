@@ -201,12 +201,16 @@ public final class SessionStore {
             record.reason = nil
             record.latestPrompt = event.promptPreview
             record.lastReply = nil
+            record.failed = false
             record.currentTool = nil
             record.subagents.removeAll()
             record.refresh(observation)
             return .applied
 
-        case .responseReady:
+        case .responseReady, .turnFailed:
+            let failed = if case .turnFailed = observation.kind { true } else { false }
+            // A failure without the turn's identity is not evidence about which turn ended, so it changes nothing.
+            if failed, turn == nil { return .conflict }
             guard record.baseline, let turn, turn == record.turn else {
                 record.unknown(.uncorrelatedStop)
                 return .conflict
@@ -220,6 +224,7 @@ public final class SessionStore {
             if record.status == .responseReady { return .repeatedStop }
             record.status = .responseReady
             record.reason = nil
+            record.failed = failed
             record.lastReply = event.replyPreview
             record.currentTool = nil
             record.refresh(observation)
@@ -371,6 +376,7 @@ private final class Record {
     var paneSelector: String?
     var location: HookEnvelopeV1.Terminal?
     var subagents: Set<SourceIdentity> = []
+    var failed = false
     var latestPrompt: String?
     var lastReply: String?
     var currentTool: String?
@@ -420,7 +426,7 @@ private final class Record {
                                expiryMonotonicNs: deadlineNs, projectPath: projectPath,
                                paneSelector: paneSelector, hasTerminalRestriction: terminal,
                                latestPrompt: latestPrompt, lastReply: lastReply, currentTool: currentTool,
-                               terminal: location, runningSubagents: subagents.count)
+                               terminal: location, runningSubagents: subagents.count, turnFailed: failed)
     }
 }
 

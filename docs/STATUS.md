@@ -2,6 +2,12 @@
 
 ## Now
 
+Decision 0030, uncommitted, adopts four behaviors from the 2026-11-24 reference sweep: a completion no longer opens the
+island while another session waits for the user; focus-aware suppression checks the session's own app; Claude's
+`StopFailure` hook ends a failed turn with a **Failed** label and a new Task fails sound (on by default, existing users
+included); and rows can be removed one at a time or all at once until they report new activity. All 279 Swift tests passed.
+`StopFailure`'s payload follows the reference's packaged code, not a real Claude failure, and the new controls were not checked on screen.
+
 Decision 0028 adds **Settings → About → Check for Updates** to Sparkle-enabled packages. Bunlet 0.1.1 (build 2)
 is published on GitHub Releases with the signed appcast. Both public downloads matched the original signed artifacts.
 The release script builds
@@ -43,12 +49,14 @@ Historical source work remains uncommitted on this branch. Live provider turns a
 
 1. Verify desktop alerts and return navigation as described in the [desktop spec](specs/sessions/desktop-coding-sessions.md).
 2. Install the update-enabled release on the personal MacBook and check the [hosted feed](specs/settings/software-updates.md) from About.
-3. Review decisions 0025–0028 and the branch before committing or opening a review.
+3. Review decisions 0025–0030 and the branch before committing or opening a review.
 4. When separately authorized, check the deferred Settings, fullscreen and shortcut interactions on screen.
 5. Decide whether to update the superseded pet and feature-management specs.
 
 ## Blockers
 
+- Decision 0030 unverified: Claude Code's `StopFailure` payload (its `prompt_id` in particular) was not checked against a
+  real failed turn. Without a turn identity the failure is ignored and the session keeps working until it expires.
 - Decision 0026 unverified: the parent-process walk, the tmux `list-clients` lookup and the iTerm2, WezTerm and kitty
   pane commands were checked only with fictional data; none of those three terminals is installed here. Codex 0.169.0
   and Claude Code 2.1.318 now connect as untested versions; their hook payloads were not checked against a real run.
