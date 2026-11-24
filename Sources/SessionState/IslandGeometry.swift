@@ -26,7 +26,7 @@ public enum IslandMetrics {
     public static let openTopRadius: CGFloat = 24
     public static let openBottomRadius: CGFloat = 18
     public static let openTopInset: CGFloat = 8
-    public static let panelMaxHeight: CGFloat = 540
+    public static let panelMaxHeight: CGFloat = 280
     public static let shadowMargin: CGFloat = 32
     public static let minimumNotchWidth: CGFloat = 126
     public static let fallbackHeaderHeight: CGFloat = 24
