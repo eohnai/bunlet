@@ -13,6 +13,8 @@ enum IslandPalette {
     static let cardDivider = Color(red: 224 / 255, green: 226 / 255, blue: 242 / 255).opacity(0.1)
     static let divider = Color.white.opacity(0.07)
     static let attention = Color(red: 1, green: 0xD6 / 255, blue: 0x0A / 255)
+    static let workingHare = Color(red: 0x65 / 255, green: 0xAE / 255, blue: 1)
+    static let attentionHare = Color(red: 1, green: 0x9F / 255, blue: 0x43 / 255)
     static let completed = Color(red: 0x42 / 255, green: 0xE8 / 255, blue: 0x6B / 255)
     static let unknown = Color.orange
     static let claude = Color(red: 0xDA / 255, green: 0x72 / 255, blue: 0x50 / 255)
@@ -25,28 +27,22 @@ struct IslandPhaseIcon: View {
     enum Kind: Equatable { case idle, running, attention, completed, unknown, ended }
     let kind: Kind
     let size: CGFloat
-    var animates = true
+    let animates: Bool
+    private var alignment: Alignment = .center
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
             switch kind {
             case .idle:
-                Image(systemName: "hare.fill").resizable().scaledToFit()
-                    .padding(size * 0.2).foregroundStyle(.white.opacity(0.9))
+                hare(.white.opacity(0.9))
             case .running:
-                Circle().stroke(.white.opacity(0.15), lineWidth: size * 0.1)
-                    .padding(size * 0.12)
-                Circle().trim(from: 0, to: 0.3)
-                    .stroke(.white.opacity(0.9), style: StrokeStyle(lineWidth: size * 0.1, lineCap: .round))
-                    .padding(size * 0.12)
-                    .modifier(SpinOnAppear(enabled: animates && !reduceMotion))
+                hare(IslandPalette.workingHare)
+                    .modifier(WorkingHarePulse(enabled: animates && !reduceMotion))
             case .attention:
-                Image(systemName: "exclamationmark.bubble.fill").resizable().scaledToFit()
-                    .padding(size * 0.16).foregroundStyle(IslandPalette.attention)
+                hare(IslandPalette.attentionHare)
             case .completed:
-                Image(systemName: "checkmark.circle.fill").resizable().scaledToFit()
-                    .padding(size * 0.14).foregroundStyle(IslandPalette.completed)
+                hare(IslandPalette.completed)
             case .unknown:
                 Image(systemName: "questionmark.circle").resizable().scaledToFit()
                     .padding(size * 0.14).foregroundStyle(IslandPalette.unknown)
@@ -55,8 +51,16 @@ struct IslandPhaseIcon: View {
                     .padding(size * 0.14).foregroundStyle(IslandPalette.mutedText)
             }
         }
-        .frame(width: size, height: size)
+        .frame(width: size, height: size, alignment: alignment)
         .accessibilityHidden(true)
+    }
+
+    private func hare(_ color: Color) -> some View {
+        Image(systemName: "hare.fill")
+            .resizable()
+            .scaledToFit()
+            .frame(width: size * 0.6, height: size * 0.6)
+            .foregroundStyle(color)
     }
 
     init(kind: Kind, size: CGFloat, animates: Bool = true) {
@@ -65,8 +69,9 @@ struct IslandPhaseIcon: View {
         self.size = size
     }
 
-    init(phase: IslandPhase, size: CGFloat, animates: Bool = true) {
+    init(phase: IslandPhase, size: CGFloat, animates: Bool = true, alignment: Alignment = .center) {
         self.animates = animates
+        self.alignment = alignment
         switch phase {
         case .idle: kind = .idle
         case .running: kind = .running
@@ -94,14 +99,14 @@ struct IslandPhaseIcon: View {
     }
 }
 
-/// Rotates the running arc from the clock so playback pauses when hidden, asleep or Reduce Motion is on (D1).
-private struct SpinOnAppear: ViewModifier {
+/// Keeps the working hare distinguishable in motion while honoring Reduce Motion and visibility.
+private struct WorkingHarePulse: ViewModifier {
     let enabled: Bool
 
     func body(content: Content) -> some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !enabled)) { context in
-            let seconds = context.date.timeIntervalSinceReferenceDate
-            content.rotationEffect(.degrees(enabled ? seconds.truncatingRemainder(dividingBy: 1) * 360 : 0))
+        TimelineView(.animation(minimumInterval: 1.0 / 24, paused: !enabled)) { context in
+            let cycle = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 2)
+            content.opacity(enabled ? 0.9 + 0.1 * cos(cycle * .pi) : 1)
         }
     }
 }
@@ -116,7 +121,7 @@ struct IslandPillView: View {
     var body: some View {
         let phase = IslandPhase.dominant(sessions)
         HStack(spacing: 6) {
-            IslandPhaseIcon(phase: sessions.isEmpty ? .idle : phase, size: 28, animates: animates)
+            IslandPhaseIcon(phase: phase, size: 28, animates: animates, alignment: .leading)
             if let label = label(phase: phase) {
                 label
                     .font(.system(size: 12, weight: .semibold))

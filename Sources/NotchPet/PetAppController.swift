@@ -32,6 +32,9 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     }
     @ObservationIgnored private lazy var navigation = TerminalNavigation(defaults: defaults, sessions: sessions)
     @ObservationIgnored private lazy var replies = TerminalReplyController(sessions: sessions)
+    /// Daily Claude token totals from status-line readings (decision 0025).
+    @ObservationIgnored private lazy var tokens = TokenLedger(defaults: defaults)
+    @ObservationIgnored private var tokenObservation: ObservationLoop<[UsageObservation]>?
     @ObservationIgnored private lazy var petLibrary = PetLibraryModel(defaults: defaults) { [weak self] presentation in
         self?.pet?.setArtwork(presentation)
     }
@@ -74,7 +77,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             guard let self else { return nil }
             let panel = NotchPanelController(sessionStore: self.sessions, usageStore: self.usage,
                 features: self.features, onOpenFeatures: { [weak self] in self?.showFeatures() }, actions: self.localActions, navigation: self.navigation,
-                replies: self.replies, settings: self.preferences, onOpenSettings: { [weak self] in self?.showSettings() },
+                replies: self.replies, tokens: self.tokens, settings: self.preferences, onOpenSettings: { [weak self] in self?.showSettings() },
                 onPillDragOut: { [weak self] in self?.pet?.beginPointerDrag() ?? false })
             self.notch = panel
             return panel
@@ -92,6 +95,10 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         focusBefore = NSWorkspace.shared.frontmostApplication?.processIdentifier ?? -1
         navigation.start()
+        tokenObservation = ObservationLoop({ [usage] in usage.observations }) { [weak self] observations in
+            guard let self else { return }
+            for observation in observations { self.tokens.record(observation) }
+        }
         petLibrary.start()
         petReactions.start()
         features.start()
@@ -108,7 +115,8 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             readLocalActions: { [weak self] in self?.localActions },
             onReturnPet: { [weak self] in self?.returnPet() },
             readPetLibrary: { [weak self] in self?.petLibrary },
-            readNavigation: { [weak self] in self?.navigation })
+            readNavigation: { [weak self] in self?.navigation },
+            readTokens: { [weak self] in self?.tokens })
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
             guard let self else { return }
             self.pet?.writeEvidence(phase: "launched", agentsEnabled: self.monitoringEnabled,
@@ -205,6 +213,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         let pet = self.pet
         navigation.stop()
         replies.stop()
+        tokenObservation?.cancel()
         petLibrary.cancel()
         petReactions.stop()
         runtimes.apply([])

@@ -31,6 +31,8 @@ struct DisplaySettingsPage: View {
             SettingsGroup(title: "Top Info Items") {
                 SettingsToggleRow(title: "Claude Code usage limits", isOn: $settings.showClaudeLimits)
                 SettingsToggleRow(title: "Codex usage limits", isOn: $settings.showCodexLimits)
+                SettingsToggleRow(title: "Today's tokens", subtitle: "Claude Code only. Codex does not report token counts to Bunlet.",
+                                  isOn: $settings.showTokenCount)
                 SettingsMenuRow(title: "Usage shown as", subtitle: "Colors always follow the percent left.",
                                 last: true, width: 160, selection: $settings.usageValue,
                                 options: BunletSettings.UsageValue.allCases.map { ($0.title, $0) })
