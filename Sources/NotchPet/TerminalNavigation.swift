@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import EventBridge
 import Foundation
 import Observation
 import SessionState
@@ -212,7 +213,7 @@ final class TerminalNavigation {
         generation = token
         operationKey = key
         busy = true
-        message = "Checking terminal navigation. Complete normal macOS Automation review if requested."
+        message = "Returning to the session. Complete macOS Automation review if requested."
         task = Task { @MainActor [weak self] in
             let success = await action()
             guard let self, self.generation == token else { return }
@@ -227,10 +228,38 @@ final class TerminalNavigation {
 }
 
 extension TerminalNavigation {
-    /// Returns to a session's terminal: its linked pane, else the preferred app.
-    /// Returns false when neither is set up, so the caller can show terminal setup instead.
+    /// Returns to a session's terminal: the pane its hook reported (decisions 0025, 0026), else that terminal's app,
+    /// else its linked pane, else the preferred app.
+    /// Returns false when none is set up, so the caller can show terminal setup instead.
     @discardableResult
     func jump(to key: SessionKey) -> Bool {
+        if !busy, let session = sessions.sessions.first(where: { $0.key == key }), TerminalPolicy.canJump(session),
+           let terminal = session.terminal {
+            let fallback = hasLinkedPane(key) || preferredName != nil
+            run(for: key) { [weak self] in
+                // The exact pane first; a linked iTerm2 pane beats bringing only an app forward.
+                let result = await TerminalTargets.jump(terminal, session: session.key, projectPath: session.projectPath)
+                guard let self, !Task.isCancelled else { return false }
+                if result == .codexThread {
+                    self.message = "Asked ChatGPT to open the Codex thread."
+                    return true
+                }
+                if result == .exact {
+                    self.message = "Returned to the session's \(Self.name(terminal.kind))."
+                    return true
+                }
+                if result == .application, !self.hasLinkedPane(key) {
+                    self.message = "Brought the session's app forward. Select the session there."
+                    return true
+                }
+                guard fallback else { return false }
+                // The reported pane may be gone; fall back to the manual setup without another prompt.
+                self.busy = false
+                if self.hasLinkedPane(key) { self.focusLinkedPane(for: key) } else { self.activateApplication() }
+                return true
+            }
+            return true
+        }
         if hasLinkedPane(key) {
             focusLinkedPane(for: key)
         } else if preferredName != nil {
@@ -239,5 +268,18 @@ extension TerminalNavigation {
             return false
         }
         return true
+    }
+
+    static func name(_ kind: HookEnvelopeV1.Terminal.Kind) -> String {
+        switch kind {
+        case .otty: "Otty pane"
+        case .tmux: "tmux pane"
+        case .appleTerminal: "Terminal tab"
+        case .iterm: "iTerm2 session"
+        case .wezterm: "WezTerm pane"
+        case .kitty: "kitty window"
+        case .editor: "editor window"
+        case .app: "terminal"
+        }
     }
 }

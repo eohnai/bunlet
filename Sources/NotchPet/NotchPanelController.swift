@@ -39,7 +39,7 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
     init(sessionStore: SessionStore, usageStore: UsageStore,
          features: FeatureSettingsModel, onOpenFeatures: @escaping () -> Void,
          actions: LocalActionController? = nil, navigation: TerminalNavigation? = nil,
-         settings: BunletSettings,
+         replies: TerminalReplyController? = nil, tokens: TokenLedger? = nil, settings: BunletSettings,
          onOpenSettings: @escaping () -> Void = {}, onPillDragOut: @escaping () -> Bool = { false }) {
         self.sessionStore = sessionStore
         self.settings = settings
@@ -64,7 +64,7 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
             NotchSessionView(sessionStore: sessionStore, usageStore: usageStore, features: features,
                 onOpenFeatures: onOpenFeatures, windowState: state,
                 onExpand: { [weak self] expanded in self?.setExpanded(expanded) },
-                isVisible: visible, isSleeping: asleep, navigation: navigation, actions: actions,
+                isVisible: visible, isSleeping: asleep, navigation: navigation, actions: actions, replies: replies, tokens: tokens,
                 beginInput: { [weak self] in self?.beginInput() }, endInput: { [weak self] in self?.endInput() },
                 onOpenSettings: onOpenSettings, settings: settings)
         })

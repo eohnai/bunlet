@@ -2,49 +2,60 @@ import EventBridge
 import Integration
 import SwiftUI
 
-/// Agents: one row per agent, then one collapsed details row per agent for setup, repair and replies.
+/// The switches control monitoring. Setup and approval controls are available under Advanced.
 struct AgentsSettingsPage: View {
-    let features: FeatureSettingsModel
     let actions: AppSettingsActions
-    @State private var confirmConnect: Agent?
+    @State private var advanced = false
     @State private var expanded: Set<Agent> = []
+    private let agents: [Agent] = [.claude, .codex, .cursor]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            SettingsGroup(title: "CLI Hooks") {
-                ForEach(Agent.allCases, id: \.self) { agent in
+            SettingsGroup(title: "Session Monitoring") {
+                ForEach(agents, id: \.self) { agent in
                     if let setup = controller(agent), let monitoring = actions.monitoring() {
-                        AgentRow(setup: setup, monitoring: monitoring, last: agent == Agent.allCases.last) {
-                            confirmConnect = agent
-                        }
+                        AgentRow(setup: setup, monitoring: monitoring, health: health(agent), last: agent == agents.last)
                     }
                 }
             }
-            SettingsFootnote("Connecting adds Bunlet's hooks to the agent's settings and keeps every other hook. Sessions started before connecting are tracked after they restart. Turning a switch off pauses tracking without removing hooks.")
-            SettingsGroup(title: "Setup and diagnostics") {
-                ForEach(Agent.allCases, id: \.self) { agent in
-                    if let setup = controller(agent), let monitoring = actions.monitoring() {
-                        details(agent, setup: setup, monitoring: monitoring, last: agent == Agent.allCases.last)
+            SettingsGroup {
+                SettingsBlock(last: true) {
+                    DisclosureGroup("Advanced", isExpanded: $advanced) {
+                        advancedSettings.padding(.top, 12)
                     }
+                    .font(.system(size: 14))
+                    .foregroundStyle(.white)
                 }
             }
         }
-        .onAppear {
-            // A read-only check, so the rows can say whether each agent is connected.
-            for agent in Agent.allCases where controller(agent)?.inspection == nil { controller(agent)?.start(.check) }
-        }
-        .alert(connectTitle, isPresented: Binding(get: { confirmConnect != nil }, set: { if !$0 { confirmConnect = nil } })) {
-            Button("Cancel", role: .cancel) {}
-            Button("Connect") {
-                if let agent = confirmConnect { controller(agent)?.start(.connect) }
-            }
-        } message: {
-            Text("Bunlet adds its own hooks to this agent's settings so it can track sessions. Existing hooks stay unchanged. Codex may ask you to review the new hook.")
+        .onChange(of: advanced) { _, open in
+            guard open else { return }
+            for agent in agents where controller(agent)?.inspection == nil { controller(agent)?.start(.check) }
         }
     }
 
-    private var connectTitle: String {
-        "Connect \(confirmConnect == .codex ? "Codex" : "Claude Code")?"
+    private var advancedSettings: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let codex = actions.codex(), let monitoring = actions.monitoring() {
+                SettingsGroup(title: "Approvals") {
+                    SettingsMenuRow(title: "Codex approval location",
+                                    subtitle: codex.operation?.scope == .claudeActions ? codex.message : nil, last: true, width: 170,
+                                    selection: Binding(get: { monitoring.actionAgents.contains(.codex) }, set: { inBunlet in
+                                        // The approval hook waits for the user's answer in Bunlet.
+                                        codex.start(inBunlet ? .connectActions : .removeActions)
+                                    }),
+                                    options: [("ChatGPT or terminal", false), ("Bunlet", true)])
+                        .disabled(codex.operation != nil)
+                }
+            }
+            SettingsGroup(title: "Setup") {
+                ForEach(agents, id: \.self) { agent in
+                    if let setup = controller(agent), let monitoring = actions.monitoring() {
+                        details(agent, setup: setup, monitoring: monitoring, last: agent == agents.last)
+                    }
+                }
+            }
+        }
     }
 
     private func details(_ agent: Agent, setup: ProviderSetupController, monitoring: ProviderMonitoringModel,
@@ -53,11 +64,9 @@ struct AgentsSettingsPage: View {
             DisclosureGroup(isExpanded: Binding(get: { expanded.contains(agent) }, set: { open in
                 if open { expanded.insert(agent) } else { expanded.remove(agent) }
             })) {
-                ProviderSetupView(controller: setup, features: features,
-                                  health: actions.health().first { $0.agent == agent },
+                ProviderSetupView(controller: setup, health: health(agent),
                                   monitoring: monitoring, quota: actions.quota(),
-                                  localActions: actions.localActions(),
-                                  showFeatures: {}, showNotch: actions.showNotch)
+                                  localActions: actions.localActions())
                     .padding(.top, 8)
             } label: {
                 Text(setup.providerName).font(.system(size: 14)).foregroundStyle(.white)
@@ -65,54 +74,49 @@ struct AgentsSettingsPage: View {
         }
     }
 
+    private func health(_ agent: Agent) -> IntegrationHealthSnapshot? {
+        actions.health().first { $0.agent == agent }
+    }
+
     private func controller(_ agent: Agent) -> ProviderSetupController? {
-        agent == .codex ? actions.codex() : actions.claude()
+        switch agent {
+        case .codex: actions.codex()
+        case .claude: actions.claude()
+        case .cursor: actions.cursor()
+        }
     }
 }
 
-/// One agent: name, current message as the subtitle, status dot and word, switch.
+/// Monitoring preference and hook status are independent.
 private struct AgentRow: View {
     let setup: ProviderSetupController
     let monitoring: ProviderMonitoringModel
+    let health: IntegrationHealthSnapshot?
     let last: Bool
-    let requestConnect: () -> Void
 
     private var connected: Bool {
         if case .owned = setup.inspection?.ownership { return true }
         return false
     }
 
-    private var status: (word: String, color: Color) {
-        if setup.operation != nil { return ("Working…", .gray) }
-        guard let inspection = setup.inspection else { return ("Checking…", .gray) }
-        if connected { return monitoring.isEnabled(setup.agent) ? ("Active", .green) : ("Paused", .yellow) }
-        if inspection.installationUnavailable == .executableNotFound { return ("Not found", .orange) }
-        return ("Not connected", .gray)
+    private var status: String {
+        if monitoring.writeIssue == setup.agent { return "Preference could not be saved" }
+        if !monitoring.isEnabled(setup.agent) { return "Paused" }
+        if setup.operation?.scope == .lifecycle { return "Checking setup…" }
+        if setup.inspection?.installationUnavailable == .executableNotFound {
+            return setup.agent.desktopBundleIdentifier == nil ? "Agent not found" : "Waiting for local coding runtime"
+        }
+        if connected {
+            if case .failed = health?.receiver { return "Receiver unavailable" }
+            return health?.lastDelivery == nil ? "Waiting for a session" : "Receiving sessions"
+        }
+        return "Setup needed"
     }
 
     var body: some View {
-        let status = status
-        SettingsRow(title: setup.providerName, subtitle: setup.message, last: last) {
-            HStack(spacing: 8) {
-                Circle().fill(status.color).frame(width: 8, height: 8).accessibilityHidden(true)
-                Text(status.word).font(.system(size: 13))
-                    .foregroundStyle(status.color == .gray ? SettingsStyle.subtitle : status.color)
-            }
-            Toggle(setup.providerName, isOn: Binding(
-                get: { connected && monitoring.isEnabled(setup.agent) },
-                set: { on in
-                    if !on {
-                        monitoring.setEnabled(false, for: setup.agent)
-                    } else if connected {
-                        monitoring.setEnabled(true, for: setup.agent)
-                    } else {
-                        requestConnect()
-                    }
-                }))
-                .toggleStyle(.switch).labelsHidden()
-                .disabled(setup.operation != nil)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(status.word)
+        SettingsToggleRow(title: setup.providerName, subtitle: status, last: last, isOn: Binding(
+            get: { monitoring.isEnabled(setup.agent) },
+            set: { monitoring.setEnabled($0, for: setup.agent) }))
+            .disabled(setup.operation != nil)
     }
 }

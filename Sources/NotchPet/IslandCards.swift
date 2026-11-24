@@ -95,7 +95,7 @@ struct NotchRequestCard: View {
                 }
             }
             if let onJump {
-                Button("Jump to terminal", action: onJump).buttonStyle(IslandButtonStyle(kind: .jump))
+                Button("Return to session", action: onJump).buttonStyle(IslandButtonStyle(kind: .jump))
             }
         }
         .accessibilityElement(children: .contain)
@@ -134,7 +134,7 @@ struct CompletionCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             }
             if let onJump {
-                Button("Jump to terminal", action: onJump)
+                Button("Return to session", action: onJump)
                     .buttonStyle(IslandButtonStyle(kind: .jump, cornerRadius: 6))
             }
         }

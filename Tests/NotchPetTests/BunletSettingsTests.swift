@@ -10,6 +10,7 @@ struct BunletSettingsTests {
 
     @Test func defaultsMatchTheShippedBehavior() {
         let settings = settings()
+        #expect(settings.panelMaxHeight == 280)
         #expect(settings.label(for: .toggleIsland) == "⌃I")
         #expect(settings.label(for: .collapse) == "Esc")
         #expect(settings.label(for: .allowAlways) == "⌃A")
@@ -20,6 +21,15 @@ struct BunletSettingsTests {
         #expect(!settings.alwaysHide && !settings.hideWhenNoSessions)
         #expect(settings.usageValue == .remaining)
         #expect(settings.sessionCleanupMinutes == 10_080)
+        // Decision 0025: matches the reference island.
+        #expect(settings.expandOnSessionEnd && settings.expandOnActionNeeded)
+    }
+
+    @Test func aSavedPanelHeightOverridesTheNewDefault() throws {
+        let defaults = try #require(UserDefaults(suiteName: "bunlet-settings-test-\(UUID().uuidString)"))
+        let first = BunletSettings(defaults: defaults)
+        first.panelMaxHeight = 540
+        #expect(BunletSettings(defaults: defaults).panelMaxHeight == 540)
     }
 
     @Test func rebindingChangesLabelAndPersists() {

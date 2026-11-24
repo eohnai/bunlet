@@ -11,6 +11,7 @@ final class PetSettingsController {
     private let defaults: UserDefaults
     private let features: FeatureSettingsModel
     private let settings: BunletSettings
+    private let updater: BunletUpdater
     private let onRemoveAllHooks: () -> Void
     private let onSizeChange: (Double) -> Void
     private let onShowPet: () -> Void
@@ -22,27 +23,32 @@ final class PetSettingsController {
     private let readQuota: () -> UsageStore?
     private var subscriptions: Set<AnyCancellable> = []
     private let readNavigation: () -> TerminalNavigation?
-    private let onOpenSessions: () -> Void
     private let readPetLibrary: () -> PetLibraryModel?
     private let onReturnPet: () -> Void
     private let readLocalActions: () -> LocalActionController?
+    private let readTokens: () -> TokenLedger?
+    private let readCursor: () -> ProviderSetupController?
 
-    init(defaults: UserDefaults, features: FeatureSettingsModel, settings: BunletSettings,
+    init(defaults: UserDefaults, features: FeatureSettingsModel, settings: BunletSettings, updater: BunletUpdater,
          onRemoveAllHooks: @escaping () -> Void, onSizeChange: @escaping (Double) -> Void,
          onShowPet: @escaping () -> Void, onShowNotch: @escaping () -> Void,
          readHealth: @escaping () -> [IntegrationHealthSnapshot],
          readCodex: @escaping () -> ProviderSetupController? = { nil },
          readClaude: @escaping () -> ProviderSetupController? = { nil },
+         readCursor: @escaping () -> ProviderSetupController? = { nil },
          readMonitoring: @escaping () -> ProviderMonitoringModel? = { nil },
          readQuota: @escaping () -> UsageStore? = { nil },
          readLocalActions: @escaping () -> LocalActionController? = { nil },
          onReturnPet: @escaping () -> Void = {},
          readPetLibrary: @escaping () -> PetLibraryModel? = { nil },
-         onOpenSessions: @escaping () -> Void = {},
-         readNavigation: @escaping () -> TerminalNavigation? = { nil }) {
+         readNavigation: @escaping () -> TerminalNavigation? = { nil },
+         readTokens: @escaping () -> TokenLedger? = { nil }) {
+        self.readTokens = readTokens
+        self.readCursor = readCursor
         self.defaults = defaults
         self.features = features
         self.settings = settings
+        self.updater = updater
         self.onRemoveAllHooks = onRemoveAllHooks
         self.onSizeChange = onSizeChange
         self.onShowPet = onShowPet
@@ -55,7 +61,6 @@ final class PetSettingsController {
         self.readLocalActions = readLocalActions
         self.onReturnPet = onReturnPet
         self.readPetLibrary = readPetLibrary
-        self.onOpenSessions = onOpenSessions
         self.readNavigation = readNavigation
         // The sidebar runs under the traffic-light buttons, as in the reference settings window.
         window = PetSettingsWindow(contentRect: NSRect(x: 0, y: 0, width: 760, height: 560),
@@ -88,10 +93,12 @@ final class PetSettingsController {
                 preferences.size = size
                 self.onSizeChange(preferences.size)
             }, close: { [weak self] in self?.close() }, showPet: onShowPet, returnPet: onReturnPet,
-                showNotch: onShowNotch, openSessions: onOpenSessions, health: readHealth,
+                showNotch: onShowNotch, health: readHealth,
                 selectPage: { [weak self] page in self?.defaults.set(page.rawValue, forKey: "settings.selectedPane") },
-                removeAllHooks: onRemoveAllHooks, codex: readCodex, claude: readClaude, monitoring: readMonitoring,
-                quota: readQuota, localActions: readLocalActions, petLibrary: readPetLibrary, navigation: readNavigation)
+                removeAllHooks: onRemoveAllHooks, updater: updater, codex: readCodex, claude: readClaude, cursor: readCursor,
+                monitoring: readMonitoring,
+                quota: readQuota, localActions: readLocalActions, petLibrary: readPetLibrary, navigation: readNavigation,
+                tokens: readTokens)
             window.contentView = NSHostingView(rootView: PetWindowPlayback(window: window) { [features, settings, defaults] visible, sleeping in
                 AppSettingsView(features: features, settings: settings, defaults: defaults, actions: actions, page: page,
                                 isVisible: visible, isSleeping: sleeping)

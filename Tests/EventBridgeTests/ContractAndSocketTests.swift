@@ -85,7 +85,7 @@ struct ContractAndSocketTests {
 
     @Test func rawHookBoundaryPreservesJSONWhitespaceRules() throws {
         let minimal = Data("{\"session_id\":\"fictional\",\"hook_event_name\":\"SessionStart\"}".utf8)
-        for agent in Agent.allCases {
+        for agent in Agent.hookShaped {
             for byte in [UInt8(9), 10, 13, 32] {
                 let padding = Data(repeating: byte, count: HookEnvelopeV1.rawHookLimit - minimal.count)
                 for raw in [minimal + padding, padding + minimal] {

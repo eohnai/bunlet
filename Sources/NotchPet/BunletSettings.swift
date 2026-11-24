@@ -46,7 +46,7 @@ final class BunletSettings {
             case .approve: "Allow once"
             case .allowAlways: "Always allow"
             case .deny: "Deny"
-            case .jump: "Jump to terminal"
+            case .jump: "Return to session"
             case .switchSession: "Switch session"
             }
         }
@@ -92,6 +92,8 @@ final class BunletSettings {
     var islandDisplay: IslandDisplay { didSet { defaults.set(islandDisplay.rawValue, forKey: Key.islandDisplay) } }
     var showClaudeLimits: Bool { didSet { defaults.set(showClaudeLimits, forKey: Key.showClaudeLimits) } }
     var showCodexLimits: Bool { didSet { defaults.set(showCodexLimits, forKey: Key.showCodexLimits) } }
+    /// Today's Claude tokens beside the limits (decision 0025).
+    var showTokenCount: Bool { didSet { defaults.set(showTokenCount, forKey: Key.showTokenCount) } }
     var soundEnabled: Bool { didSet { defaults.set(soundEnabled, forKey: Key.soundEnabled) } }
     var soundVolume: Double { didSet { defaults.set(soundVolume, forKey: Key.soundVolume) } }
     private(set) var soundEvents: Set<SoundEvent>
@@ -112,7 +114,7 @@ final class BunletSettings {
         func bool(_ key: String, _ fallback: Bool) -> Bool {
             (defaults.object(forKey: key) as? NSNumber).map { CFGetTypeID($0) == CFBooleanGetTypeID() ? $0.boolValue : fallback } ?? fallback
         }
-        expandOnSessionEnd = bool(Key.expandOnSessionEnd, false)
+        expandOnSessionEnd = bool(Key.expandOnSessionEnd, true)
         expandOnActionNeeded = bool(Key.expandOnActionNeeded, true)
         focusAwareSuppression = bool(Key.focusAware, true)
         hapticFeedback = bool(Key.haptic, true)
@@ -120,10 +122,11 @@ final class BunletSettings {
         let reminder = defaults.integer(forKey: Key.reminderSeconds)
         reminderSeconds = Self.reminderChoices.contains(reminder) ? reminder : 5
         let height = defaults.double(forKey: Key.panelMaxHeight)
-        panelMaxHeight = Self.panelHeightRange.contains(height) ? height : 540
+        panelMaxHeight = Self.panelHeightRange.contains(height) ? height : Double(IslandMetrics.panelMaxHeight)
         islandDisplay = defaults.string(forKey: Key.islandDisplay).flatMap(IslandDisplay.init(rawValue:)) ?? .main
         showClaudeLimits = bool(Key.showClaudeLimits, true)
         showCodexLimits = bool(Key.showCodexLimits, true)
+        showTokenCount = bool(Key.showTokenCount, true)
         soundEnabled = bool(Key.soundEnabled, false)
         let volume = defaults.object(forKey: Key.soundVolume) as? Double ?? 0.7
         soundVolume = (0...1).contains(volume) ? volume : 0.7
@@ -242,6 +245,7 @@ final class BunletSettings {
         static let islandDisplay = "island.display"
         static let showClaudeLimits = "island.topRow.claudeLimits"
         static let showCodexLimits = "island.topRow.codexLimits"
+        static let showTokenCount = "island.topRow.tokenCount"
         static let soundEnabled = "sound.enabled"
         static let soundVolume = "sound.volume"
         static let soundEvents = "sound.events"

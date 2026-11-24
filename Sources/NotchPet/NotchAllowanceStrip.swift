@@ -36,7 +36,7 @@ struct NotchAllowanceStrip: View {
     }
 
     private func cell(_ entry: NotchAllowanceEntry, nowMs: Int64) -> some View {
-        let name = entry.provider == .codex ? "Codex" : "Claude Code"
+        let name = entry.provider.displayName
         let countdown = NotchAllowancePresentation.countdownText(for: entry.window, at: nowMs)
         let spoken = entry.percentLeft.map {
             showsUsed ? "\(entry.windowLabel), \(100 - $0) percent used, resets in \(countdown)"

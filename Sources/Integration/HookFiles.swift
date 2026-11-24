@@ -35,6 +35,8 @@ struct HookFileSnapshot {
 /// Descriptor-relative I/O keeps symlinks out of every path component. Instances stay on one worker.
 final class HookFileDirectory {
     static let byteLimit = 262_144
+    private static let macOSAdminGroup: gid_t = 80
+    private static let systemProvenanceName = Array("com.apple.provenance".utf8) + [0]
     let descriptor: Int32
     let url: URL
     let device: UInt64
@@ -42,9 +44,7 @@ final class HookFileDirectory {
     private let requiresPrivateDirectory: Bool
 
     init(_ url: URL, create: Bool = false, privateDirectory: Bool = false, allowRootOwner: Bool = false) throws {
-        guard url.isFileURL, url.path.hasPrefix("/"), url.path.utf8.count <= 4096,
-              url.standardizedFileURL.path == url.path,
-              !url.path.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) else {
+        guard url.isFileURL, Self.validAbsolutePath(url.path) else {
             throw ProviderSetupFailure.unsafePath
         }
         var current = open("/", O_RDONLY | O_DIRECTORY | O_CLOEXEC)
@@ -72,7 +72,10 @@ final class HookFileDirectory {
                 let last = index == components.count - 1
                 let trustedOwner = info.st_uid == getuid() || ((!last || allowRootOwner) && info.st_uid == 0)
                 let sharedTemporaryRoot = !last && info.st_uid == 0 && info.st_mode & S_ISVTX != 0
-                guard trustedOwner, info.st_mode & 0o022 == 0 || sharedTemporaryRoot,
+                // On macOS the standard app install folder is root:admin and group-writable.
+                let systemApplications = allowRootOwner && index == 0 && name == "Applications" &&
+                    info.st_uid == 0 && info.st_gid == Self.macOSAdminGroup && info.st_mode & 0o002 == 0
+                guard trustedOwner, info.st_mode & 0o022 == 0 || sharedTemporaryRoot || systemApplications,
                       !last || !privateDirectory || info.st_mode & 0o777 == 0o700 else {
                     close(next)
                     throw ProviderSetupFailure.unsafeMetadata
@@ -107,6 +110,17 @@ final class HookFileDirectory {
 
     deinit { close(descriptor) }
 
+    // Compare path components lexically. Foundation can turn a real directory into a symlink alias
+    // such as /private/tmp → /tmp. openat still rejects symlinks at every component.
+    static func validAbsolutePath(_ path: String) -> Bool {
+        guard path.hasPrefix("/"), path.utf8.count <= 4096,
+              !path.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) else { return false }
+        if path == "/" { return true }
+        return path.dropFirst().split(separator: "/", omittingEmptySubsequences: false).allSatisfy {
+            !$0.isEmpty && $0 != "." && $0 != ".."
+        }
+    }
+
     func recheckIdentity() throws {
         let current = try HookFileDirectory(url, privateDirectory: requiresPrivateDirectory)
         guard current.device == device, current.inode == inode else { throw ProviderSetupFailure.changed }
@@ -125,8 +139,13 @@ final class HookFileDirectory {
         guard fstat(fd, &before) == 0 else { throw ProviderSetupFailure.unreadable }
         try Self.validateFile(before, privateFile: privateFile)
         if privateFile { try Self.requirePrivateACL(fd) }
-        // Replacement cannot preserve unknown extended metadata safely.
-        guard flistxattr(fd, nil, 0, 0) == 0 else { throw ProviderSetupFailure.unsafeMetadata }
+        // macOS may attach its own process provenance to every new file, including staged files.
+        // User metadata still blocks replacement. The kernel manages its provenance attribute.
+        var names = [UInt8](repeating: 0, count: Self.systemProvenanceName.count)
+        let nameCount = names.withUnsafeMutableBytes { flistxattr(fd, $0.baseAddress, $0.count, 0) }
+        guard nameCount == 0 || (nameCount == names.count && names == Self.systemProvenanceName) else {
+            throw ProviderSetupFailure.unsafeMetadata
+        }
         guard before.st_size >= 0, before.st_size <= Self.byteLimit else { throw ProviderSetupFailure.resourceLimit }
         var data = Data()
         var buffer = [UInt8](repeating: 0, count: 8192)

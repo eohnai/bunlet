@@ -6,7 +6,7 @@ import SessionState
 import Testing
 
 struct IntegrationHealthModelTests {
-    @Test(arguments: Agent.allCases)
+    @Test(arguments: Agent.hookShaped)
     func versionAndConfigurationRemainIndependent(agent: Agent) {
         let recorded = agent == .codex ? "0.164.0" : "2.1.306"
         var evidence = IntegrationHealthEvidence(agent: agent, version: .reported(recorded))
@@ -71,7 +71,7 @@ struct IntegrationHealthModelTests {
         #expect(IntegrationHealth.evaluate(evidence).lastDelivery == receipt)
     }
 
-    @Test(arguments: Agent.allCases)
+    @Test(arguments: Agent.hookShaped)
     func configurationAndReceiptNeverPromoteSupport(agent: Agent) {
         let receipt = IntegrationDeliveryReceipt(wallMs: 1_000, monotonicNs: 2_000)
         let evidence = IntegrationHealthEvidence(
@@ -93,7 +93,7 @@ struct IntegrationHealthModelTests {
 // Keep fresh fictional executable launches from competing for the process deadline.
 @Suite(.serialized)
 struct IntegrationHealthProbeTests {
-    @Test(arguments: Agent.allCases)
+    @Test(arguments: Agent.hookShaped)
     func versionProbeBoundsItsProcessAndOutput(agent: Agent) async throws {
         let fixture = try IntegrationHealthFixture()
         let version = agent == .codex ? "codex-cli 0.164.0" : "2.1.306 (Claude Code)"
@@ -124,6 +124,15 @@ struct IntegrationHealthProbeTests {
         let unlaunchable = await IntegrationHealthProbe.inspect(agent: agent, executableURL: fixture.directory,
                                                                 configurationURL: nil, helperURL: nil)
         #expect(unlaunchable.version == .unavailable(.launchFailed))
+    }
+
+    @Test func codexVersionProbeUsesNodeBesideTheLauncher() async throws {
+        let fixture = try IntegrationHealthFixture()
+        _ = try fixture.executable("printf 'codex-cli 0.169.0\\n'", named: "node")
+        let launcher = try fixture.executable("exec node \"$@\"", named: "codex")
+        let evidence = await IntegrationHealthProbe.inspect(agent: .codex, executableURL: launcher,
+                                                            configurationURL: nil, helperURL: nil)
+        #expect(evidence.version == .reported("0.169.0"))
     }
 
     @Test
@@ -183,7 +192,7 @@ struct IntegrationHealthProbeTests {
         #expect(!FileManager.default.fileExists(atPath: marker.path))
     }
 
-    @Test(arguments: Agent.allCases)
+    @Test(arguments: Agent.hookShaped)
     func hookShapeInspectionPreservesEveryConfigurationByte(agent: Agent) async throws {
         let fixture = try IntegrationHealthFixture()
         let marker = fixture.directory.appendingPathComponent("hook-must-not-run")
@@ -223,8 +232,8 @@ private final class IntegrationHealthFixture {
 
     deinit { try? FileManager.default.removeItem(at: directory) }
 
-    func executable(_ body: String) throws -> URL {
-        let url = directory.appendingPathComponent(UUID().uuidString)
+    func executable(_ body: String, named name: String = UUID().uuidString) throws -> URL {
+        let url = directory.appendingPathComponent(name)
         try ("#!/bin/sh\n" + body + "\n").write(to: url, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: url.path)
         return url

@@ -9,9 +9,10 @@ import Observation
 final class ProviderMonitoringModel {
     private(set) var enabledProviders: Set<Agent>
     private(set) var writeIssue: Agent?
-    private(set) var actionsEnabled: Bool
+    /// Agents whose requests are answered in Bunlet. Claude: local responses. Codex: "Approve in Bunlet" (decision 0025).
+    private(set) var actionAgents: Set<Agent>
+    var actionsEnabled: Bool { actionAgents.contains(.claude) }
     private(set) var actionWriteIssue = false
-    private static let actionsKey = "agents.claude.localResponsesEnabled"
     private static let quotaKey = "agents.claude.quotaAutoConnect"
     @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let onChange: (Set<Agent>) -> Void
@@ -19,8 +20,11 @@ final class ProviderMonitoringModel {
     init(defaults: UserDefaults, onChange: @escaping (Set<Agent>) -> Void) {
         self.defaults = defaults
         self.onChange = onChange
-        let actionConsent = defaults.object(forKey: Self.actionsKey) as? NSNumber
-        actionsEnabled = actionConsent.map { CFGetTypeID($0) == CFBooleanGetTypeID() && $0.boolValue } ?? false
+        // Both default off: Claude needs explicit consent, and Codex approves in its terminal unless chosen otherwise.
+        actionAgents = Set(Agent.allCases.filter { agent in
+            (defaults.object(forKey: Self.actionsKey(agent)) as? NSNumber)
+                .map { CFGetTypeID($0) == CFBooleanGetTypeID() && $0.boolValue } ?? false
+        })
         let consent = defaults.object(forKey: "agentMonitoringEnabled") as? NSNumber
         // Agents start on (decision 0023). An earlier saved global choice, and any per-provider choice, still wins.
         let legacyEnabled = consent.map { CFGetTypeID($0) == CFBooleanGetTypeID() && $0.boolValue } ?? true
@@ -43,22 +47,27 @@ final class ProviderMonitoringModel {
 
     func setQuotaAutoConnect(_ on: Bool) { defaults.set(on, forKey: Self.quotaKey) }
 
-    func setActionsEnabled(_ enabled: Bool) {
+    func setActionsEnabled(_ enabled: Bool, for agent: Agent = .claude) {
         if !enabled {
-            actionsEnabled = false
+            actionAgents.remove(agent)
             onChange(enabledProviders)
         }
-        defaults.set(enabled, forKey: Self.actionsKey)
-        guard let value = defaults.object(forKey: Self.actionsKey) as? NSNumber,
+        defaults.set(enabled, forKey: Self.actionsKey(agent))
+        guard let value = defaults.object(forKey: Self.actionsKey(agent)) as? NSNumber,
               CFGetTypeID(value) == CFBooleanGetTypeID(), value.boolValue == enabled else {
-            actionsEnabled = false
+            actionAgents.remove(agent)
             actionWriteIssue = true
             onChange(enabledProviders)
             return
         }
-        actionsEnabled = enabled
+        if enabled { actionAgents.insert(agent) }
         actionWriteIssue = false
         onChange(enabledProviders)
+    }
+
+    /// Claude keeps its original key so existing consent carries over.
+    private static func actionsKey(_ agent: Agent) -> String {
+        agent == .claude ? "agents.claude.localResponsesEnabled" : "agents.\(agent.rawValue).approveInBunlet"
     }
 
     func setEnabled(_ enabled: Bool, for agent: Agent) {

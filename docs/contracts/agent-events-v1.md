@@ -58,7 +58,7 @@ Two invocations for the same source hook can have different IDs. The store must 
 | `tool_use_id` | no | Source tool-call identity; 1–256 UTF-8 bytes |
 | `tool_name` | for tool hooks | Source tool name; 1–128 UTF-8 bytes |
 | `cwd` | no | Absolute source project path; 1–4096 UTF-8 bytes |
-| `terminal` | no | Exactly `kind: "otty"` and `pane_selector`, a 1–256-byte string |
+| `terminal` | no | `kind` and `pane_selector`, plus `socket` and `app` where the kind allows them (decisions 0025, 0026): `otty` (1–256-byte selector); `tmux` (`%N`, absolute `socket`, optional outer `app`); `apple_terminal` (`/dev/ttysN`); `iterm` (session UUID); `wezterm` (pane number); `kitty` (window number, absolute `socket`); `editor` and `app` (bundle identifier) |
 | `prompt_preview` | no | `UserPromptSubmit` only; display preview of the prompt, 1–1024 UTF-8 bytes |
 | `reply_preview` | no | `Stop` only; display preview of the last assistant message, 1–1024 UTF-8 bytes |
 

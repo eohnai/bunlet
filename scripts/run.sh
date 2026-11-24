@@ -7,13 +7,14 @@ if [[ $# -gt 1 || ( $# -eq 1 && "$1" != "--build-only" ) ]]; then
 fi
 
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-dev_dir="${TMPDIR:-/private/tmp}/notch-pet-dev"
+dev_dir="${BUNLET_BUILD_DIRECTORY:-${TMPDIR:-/private/tmp}/notch-pet-dev}"
 build_dir="$dev_dir/build"
 app_dir="$dev_dir/Bunlet.app"
+configuration="${BUNLET_BUILD_CONFIGURATION:-debug}"
 
 # Keep compiler output on stderr so stdout contains only the app bundle path.
-swift build --package-path "$project_dir" --scratch-path "$build_dir" >&2
-binary_dir="$(swift build --package-path "$project_dir" --scratch-path "$build_dir" --show-bin-path)"
+swift build --package-path "$project_dir" --scratch-path "$build_dir" --configuration "$configuration" >&2
+binary_dir="$(swift build --package-path "$project_dir" --scratch-path "$build_dir" --configuration "$configuration" --show-bin-path)"
 
 mkdir -p "$app_dir/Contents/MacOS"
 mkdir -p "$app_dir/Contents/Resources"
@@ -24,6 +25,10 @@ cp "$binary_dir/NotchPetStatusLine" "$app_dir/Contents/MacOS/NotchPetStatusLine"
 cp "$binary_dir/NotchPetActionHook" "$app_dir/Contents/MacOS/NotchPetActionHook"
 cp -R "$binary_dir/NotchPet_Pet.bundle" "$app_dir/Contents/Resources/"
 cp -R "$binary_dir/NotchPet_NotchPet.bundle" "$app_dir/Contents/Resources/"
+if [[ "${BUNLET_ENABLE_SPARKLE:-0}" == "1" ]]; then
+    mkdir -p "$app_dir/Contents/Frameworks"
+    /usr/bin/ditto "$binary_dir/Sparkle.framework" "$app_dir/Contents/Frameworks/Sparkle.framework"
+fi
 /usr/bin/plutil -lint "$app_dir/Contents/Info.plist" >&2
 
 if [[ "${1:-}" == "--build-only" ]]; then

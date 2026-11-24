@@ -10,6 +10,7 @@ Feature-specific behavior stays with Sessions, Notch, Usage, Pets, and Telemetry
 - `feature-management`: [Install/uninstall optional Pet, Notch and Agents](feature-management.md), preserve preferences and coordinate service/surface teardown. FM1–FM6 are implemented/verified; the goal is paused and FM7 is deferred by the user.
 - `settings-window`: Open a native sidebar settings window from the app menu and show the existing pet controls through a working page.
 - `general-preferences`: Save launch-at-login and language preferences and apply them through supported native behavior. Needs: settings-window.
+- `software-updates`: [Check for and install signed app updates](software-updates.md) from About.
 
 ## Merged MVP status, 2026-11-06
 

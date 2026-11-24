@@ -15,7 +15,7 @@ struct PreviewProjectionTests {
         return try HookEnvelopeV1.project(rawHook: raw(fields), agent: agent)
     }
 
-    @Test(arguments: Agent.allCases)
+    @Test(arguments: Agent.hookShaped)
     func submitCarriesPromptPreviewOnly(agent: Agent) throws {
         let envelope = try project(agent, ["hook_event_name": "UserPromptSubmit", "prompt": "Fix the\n\tlogin  bug",
                                            "last_assistant_message": "private-marker",
@@ -27,7 +27,7 @@ struct PreviewProjectionTests {
         #expect(try HookEnvelopeV1.decode(frame: envelope.frame()).promptPreview == "Fix the login bug")
     }
 
-    @Test(arguments: Agent.allCases)
+    @Test(arguments: Agent.hookShaped)
     func stopCarriesReplyPreviewOnly(agent: Agent) throws {
         let envelope = try project(agent, ["hook_event_name": "Stop", "prompt": "private-marker",
                                            "last_assistant_message": "Updated 3 files."])
@@ -36,7 +36,7 @@ struct PreviewProjectionTests {
         #expect(!String(decoding: try envelope.frame(), as: UTF8.self).contains("private-marker"))
     }
 
-    @Test(arguments: Agent.allCases)
+    @Test(arguments: Agent.hookShaped)
     func otherHooksCarryNoPreview(agent: Agent) throws {
         let envelope = try project(agent, ["hook_event_name": "PreToolUse", "tool_name": "Bash",
                                            "prompt": "private-marker", "last_assistant_message": "private-marker"])

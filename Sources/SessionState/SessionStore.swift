@@ -15,6 +15,7 @@ public final class SessionStore {
     public static let eventIDLimit = 4096
     public static let turnIDLimit = 256
     public static let requestLimit = 64
+    public static let subagentLimit = 32
     public static let freshnessNs: UInt64 = 120_000_000_000
 
     private var records: [SessionKey: Record] = [:]
@@ -134,7 +135,22 @@ public final class SessionStore {
         record.seen[event.eventID] = digest
         if let turn { record.turns.insert(turn) }
 
+        switch observation.kind {
+        case .subagentStarted, .subagentStopped:
+            // Subagent hooks fire alongside the parent's own, so they never change its status, order or freshness.
+            guard !record.terminal, let id = event.agentID.map({ SourceIdentity(value: $0) }) else { return .noChange }
+            if case .subagentStarted = observation.kind {
+                guard record.subagents.count < Self.subagentLimit, record.subagents.insert(id).inserted else { return .noChange }
+            } else {
+                guard record.subagents.remove(id) != nil else { return .noChange }
+            }
+            return .applied
+        default:
+            break
+        }
+
         if case .sessionEnded = observation.kind {
+            record.subagents.removeAll()
             record.terminal = true
             record.status = .ended
             record.reason = nil
@@ -186,6 +202,7 @@ public final class SessionStore {
             record.latestPrompt = event.promptPreview
             record.lastReply = nil
             record.currentTool = nil
+            record.subagents.removeAll()
             record.refresh(observation)
             return .applied
 
@@ -195,6 +212,8 @@ public final class SessionStore {
                 return .conflict
             }
             record.pending = record.pending.filter { $0.value.turn != turn }
+            // The parent's turn is over; a subagent that never reported stopping is no longer shown as running.
+            record.subagents.removeAll()
             if record.responseReadyAtMs == nil { record.responseReadyAtMs = event.observedAtMs }
             record.stopped = true
             if record.status == .unknown { return .resolvedButUnknown }
@@ -211,6 +230,9 @@ public final class SessionStore {
 
         case .sessionEnded:
             return .ended // Handled before timestamp and turn checks.
+
+        case .subagentStarted, .subagentStopped:
+            return .noChange // Handled before timestamp and turn checks.
         }
     }
 
@@ -347,6 +369,8 @@ private final class Record {
     var receiptMonotonicNs: UInt64?
     var projectPath: String?
     var paneSelector: String?
+    var location: HookEnvelopeV1.Terminal?
+    var subagents: Set<SourceIdentity> = []
     var latestPrompt: String?
     var lastReply: String?
     var currentTool: String?
@@ -367,7 +391,11 @@ private final class Record {
         receiptWallMs = observation.receiptWallMs
         receiptMonotonicNs = observation.receiptMonotonicNs
         if let cwd = observation.envelope.cwd { projectPath = cwd }
-        if let terminal = observation.envelope.terminal { paneSelector = terminal.paneSelector }
+        if let terminal = observation.envelope.terminal {
+            location = terminal
+            // The legacy field keeps its Otty-only meaning.
+            paneSelector = terminal.kind == .otty ? terminal.paneSelector : nil
+        }
     }
 
     func showPending() {
@@ -391,7 +419,8 @@ private final class Record {
                                receiptWallMs: receiptWallMs, receiptMonotonicNs: receiptMonotonicNs,
                                expiryMonotonicNs: deadlineNs, projectPath: projectPath,
                                paneSelector: paneSelector, hasTerminalRestriction: terminal,
-                               latestPrompt: latestPrompt, lastReply: lastReply, currentTool: currentTool)
+                               latestPrompt: latestPrompt, lastReply: lastReply, currentTool: currentTool,
+                               terminal: location, runningSubagents: subagents.count)
     }
 }
 

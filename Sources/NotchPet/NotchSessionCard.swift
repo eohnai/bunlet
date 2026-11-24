@@ -65,7 +65,7 @@ struct NotchSessionCard: View {
             .accessibilityElement(children: .combine)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityAddTraits(.isButton)
-            .accessibilityHint(onJump == nil ? "Shows session details" : "Returns to the terminal")
+            .accessibilityHint(onJump == nil ? "Shows session details" : "Returns to the session")
             .accessibilityAction(named: detailsOpen ? "Hide details" : "Show details", onToggleDetails)
 
             if detailsOpen { details }
@@ -89,6 +89,10 @@ struct NotchSessionCard: View {
             HStack(spacing: 8) {
                 if let (word, color) = statusWord {
                     IslandChip(text: word, color: color)
+                }
+                if snapshot.runningSubagents > 0 {
+                    IslandChip(text: snapshot.runningSubagents == 1 ? "1 subagent" : "\(snapshot.runningSubagents) subagents")
+                        .help("Subagents running in this turn")
                 }
                 if let timer = presentation.timer {
                     IslandChip(text: NotchPresentation.timerText(seconds: timer.elapsedSeconds(at: nowMs)), monospaced: true)
@@ -128,10 +132,11 @@ struct NotchSessionCard: View {
     }
 
     private var accessibilityLabel: String {
-        var parts = ["\(snapshot.key.agent == .codex ? "Codex" : "Claude Code")", presentation.folderName, spokenStatus]
+        var parts = [snapshot.key.agent.displayName, presentation.folderName, spokenStatus]
         if let timer = presentation.timer {
             parts.append("Prompt duration \(NotchPresentation.timerText(seconds: timer.elapsedSeconds(at: nowMs)))")
         }
+        if snapshot.runningSubagents > 0 { parts.append("\(snapshot.runningSubagents) subagents running") }
         return parts.joined(separator: ", ")
     }
 }
@@ -141,8 +146,12 @@ struct ProviderBadge: View {
     let agent: Agent
 
     var body: some View {
-        let color = agent == .codex ? IslandPalette.codex : IslandPalette.claude
-        Text(agent == .codex ? "Codex" : "Claude Code")
+        let color = switch agent {
+        case .codex: IslandPalette.codex
+        case .claude: IslandPalette.claude
+        case .cursor: IslandPalette.cursor
+        }
+        Text(agent.displayName)
             .font(.system(size: 12))
             .foregroundStyle(color)
             .padding(.horizontal, 4)

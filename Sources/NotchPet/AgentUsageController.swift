@@ -1,3 +1,4 @@
+import AppKit
 import Darwin
 import EventBridge
 import Foundation
@@ -58,7 +59,8 @@ final class AgentUsageController: AppFeatureService {
             let path = getenv("PATH").map { String(cString: $0) }
             let executable: URL
             switch AgentPathLocator.executable(agent: .codex, policy: .usage, searchPath: path,
-                                              homeDirectory: FileManager.default.homeDirectoryForCurrentUser) {
+                                              homeDirectory: FileManager.default.homeDirectoryForCurrentUser,
+                                              desktopApplication: NSWorkspace.shared.urlForApplication(withBundleIdentifier:)) {
             case .found(let url):
                 executable = url
             case .notFound:
