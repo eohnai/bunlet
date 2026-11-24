@@ -39,6 +39,7 @@ struct AppSettingsActions {
     var health: () -> [IntegrationHealthSnapshot]
     var selectPage: (AppSettingsPage) -> Void
     var removeAllHooks: () -> Void
+    var updater: BunletUpdater
     var codex: () -> ProviderSetupController? = { nil }
     var claude: () -> ProviderSetupController? = { nil }
     var monitoring: () -> ProviderMonitoringModel? = { nil }
@@ -140,7 +141,7 @@ struct AppSettingsView: View {
         case .display: DisplaySettingsPage(settings: settings, defaults: defaults, actions: actions)
         case .sound: SoundSettingsPage(settings: settings)
         case .shortcuts: ShortcutsSettingsPage(settings: settings)
-        case .about: AboutSettingsPage()
+        case .about: AboutSettingsPage(updater: actions.updater)
         }
     }
 }

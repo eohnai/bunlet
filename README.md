@@ -13,6 +13,12 @@ Built with SwiftUI and AppKit. Agent monitoring uses local hooks, so you can kee
 - Approve or deny Claude Code requests, answer structured questions and send feedback through its waiting response hook.
 - Customize your pet with a transparent PNG, an animated sprite sheet or a folder of PNG frames.
 
+## Install the app
+
+Unzip the macOS app package, move **Bunlet.app** to **Applications**, and open it from there. Keep it in that location so the installed hooks can find their helpers. The Apple silicon build requires macOS 14 or later.
+
+Update-enabled packages check for newer releases from **Settings > About > Check for Updates**. See [Software updates](docs/specs/settings/software-updates.md) for release packaging.
+
 ## Run from source
 
 Requires macOS 14 or later and Swift 6. Install Xcode or Apple's Command Line Tools, then run this from the repository root:
@@ -64,7 +70,7 @@ Imported artwork stays in Application Support. Missing optional animations use i
 
 ## Development
 
-The Swift package has no external dependencies. The app owns session state and provider services, while the Pet module handles artwork and playback.
+The app owns session state and provider services, while the Pet module handles artwork and playback. Only update-enabled builds link the pinned Sparkle framework.
 
 Run the Swift tests with full Xcode selected:
 
