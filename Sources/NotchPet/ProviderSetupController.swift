@@ -37,7 +37,11 @@ final class ProviderSetupController {
     private(set) var message = "Check a provider to inspect setup. Connecting is optional."
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var generation = UUID()
-    @ObservationIgnored private var autoConnectTried = false
+    @ObservationIgnored private var automaticSetupEnabled = false
+    @ObservationIgnored private var automaticOperation = false
+    @ObservationIgnored private var desktopDiscovery: Task<Void, Never>?
+    @ObservationIgnored private let desktopCheckInterval: Duration
+    @ObservationIgnored private let contextOverride: ((Bool, ProviderSetupScope) throws -> ProviderSetupContext)?
     @ObservationIgnored private let service: ProviderSetupService
     @ObservationIgnored private let onConnected: () -> Void
     @ObservationIgnored private let onPaused: () -> Void
@@ -50,7 +54,9 @@ final class ProviderSetupController {
          onConnected: @escaping () -> Void, onPaused: @escaping () -> Void = {},
          onActionsConsent: @escaping (Bool) -> Void = { _ in },
          onQuotaChoice: @escaping (Bool) -> Void = { _ in }, quotaAutomatic: @escaping () -> Bool = { false },
-         onInspection: @escaping (IntegrationHealthEvidence) -> Void) {
+         onInspection: @escaping (IntegrationHealthEvidence) -> Void,
+         desktopCheckInterval: Duration = .seconds(3),
+         contextOverride: ((Bool, ProviderSetupScope) throws -> ProviderSetupContext)? = nil) {
         self.agent = agent
         self.onPaused = onPaused
         self.onActionsConsent = onActionsConsent
@@ -59,32 +65,67 @@ final class ProviderSetupController {
         self.service = service
         self.onConnected = onConnected
         self.onInspection = onInspection
+        self.desktopCheckInterval = desktopCheckInterval
+        self.contextOverride = contextOverride
         message = "Check \(providerName) to inspect setup. Connecting is optional."
     }
 
-    /// Launch behavior (decisions 0023, 0024): check once, then add Bunlet's hooks or repair drifted ones.
-    /// Claude's quota forwarding follows. Local responses are never touched. A conflict, a missing agent,
-    /// an unqualified version or an unfinished recovery is left for the user.
-    func connectAutomatically() {
-        guard !autoConnectTried, task == nil else { return }
-        autoConnectTried = true
-        start(.check) { [weak self] in
-            guard let self, let inspection = self.inspection, inspection.installationUnavailable == nil,
+    func setAutomaticSetupEnabled(_ enabled: Bool) {
+        guard automaticSetupEnabled != enabled else { return }
+        automaticSetupEnabled = enabled
+        if enabled {
+            connectAutomatically()
+        } else {
+            stopDesktopDiscovery()
+            if automaticOperation { cancel() }
+        }
+    }
+
+    private func connectAutomatically() {
+        start(.check, automatically: true) { [weak self] in
+            guard let self, let inspection = self.inspection else { return }
+            if inspection.installationUnavailable == .executableNotFound,
+               self.agent.desktopBundleIdentifier != nil {
+                self.waitForDesktopRuntime()
+                return
+            }
+            guard inspection.installationUnavailable == nil,
                   Self.canConnectAutomatically(inspection.ownership) else { return }
-            // Connecting an owned setup is a repair: it changes nothing when the entries already match.
-            self.start(.connect) { [weak self] in
+            // Connecting an owned setup repairs drift and leaves matching entries alone.
+            self.start(.connect, automatically: true) { [weak self] in
                 guard let self, case .owned = self.inspection?.ownership else { return }
                 self.connectQuotaAutomatically()
             }
         }
     }
 
+    private func waitForDesktopRuntime() {
+        guard automaticSetupEnabled, desktopDiscovery == nil else { return }
+        desktopDiscovery = Task { [weak self, desktopCheckInterval] in
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: desktopCheckInterval) } catch { return }
+                guard let self, !Task.isCancelled else { return }
+                // Avoid running version and policy probes while the desktop runtime is still missing.
+                guard self.task == nil,
+                      (try? self.context(needsExecutable: true).executableURL) != nil else { continue }
+                self.desktopDiscovery = nil
+                self.connectAutomatically()
+                return
+            }
+        }
+    }
+
+    private func stopDesktopDiscovery() {
+        desktopDiscovery?.cancel()
+        desktopDiscovery = nil
+    }
+
     private func connectQuotaAutomatically() {
         guard agent == .claude, quotaAutomatic() else { return }
-        start(.checkQuota) { [weak self] in
+        start(.checkQuota, automatically: true) { [weak self] in
             guard let self, let inspection = self.quotaInspection, inspection.installationUnavailable == nil,
                   Self.canConnectAutomatically(inspection.ownership) else { return }
-            self.start(.connectQuota)
+            self.start(.connectQuota, automatically: true)
         }
     }
 
@@ -95,15 +136,12 @@ final class ProviderSetupController {
         }
     }
 
-    func start(_ action: ProviderSetupAction, then followUp: (@MainActor () -> Void)? = nil) {
-        guard task == nil else { return }
+    func start(_ action: ProviderSetupAction, automatically: Bool = false, then followUp: (@MainActor () -> Void)? = nil) {
+        guard task == nil, !automatically || automaticSetupEnabled, action.scope.applies(to: agent) else { return }
         let current = UUID()
         generation = current
         operation = action
-        guard action.scope == .lifecycle || agent == .claude else {
-            operation = nil
-            return
-        }
+        automaticOperation = automatically
         let removing = action.removes
         // Removing the hooks is a choice to stop, so the next launch must not add them back.
         if action == .disconnect || action == .remove { onPaused() }
@@ -120,6 +158,7 @@ final class ProviderSetupController {
                 if self.generation == current {
                     self.operation = nil
                     self.task = nil
+                    self.automaticOperation = false
                     if !Task.isCancelled { followUp?() }
                 }
             }
@@ -162,7 +201,10 @@ final class ProviderSetupController {
                     try Task.checkCancellation()
                     guard self.generation == current else { return }
                     if action == .connectActions { self.onActionsConsent(true) }
-                    if !removing { self.onConnected() }
+                    if action.scope == .lifecycle, !removing {
+                        self.stopDesktopDiscovery()
+                        if !automatically { self.onConnected() }
+                    }
                     switch result.change {
                     case .installed:
                         self.message = "Owned \(targetName) installed. Complete \(self.providerName)’s normal hook/workspace review. Runtime support and provider delivery remain unverified."
@@ -228,6 +270,7 @@ final class ProviderSetupController {
     }
 
     private func context(needsExecutable: Bool, scope: ProviderSetupScope = .lifecycle) throws -> ProviderSetupContext {
+        if let contextOverride { return try contextOverride(needsExecutable, scope) }
         let manager = FileManager.default
         let override = try agent.configurationOverrideVariable.flatMap { try environmentValue($0, limit: 4096) }
         let executable: URL?

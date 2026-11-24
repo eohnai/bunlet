@@ -28,6 +28,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
         guard let self else { return }
         self.agents?.setEnabledProviders(enabled)
         self.localActions.setConsent(self.providerMonitoring.actionAgents)
+        self.updateAutomaticSetup(enabled)
     }
     @ObservationIgnored private lazy var navigation = TerminalNavigation(defaults: defaults, sessions: sessions)
     @ObservationIgnored private lazy var replies = TerminalReplyController(sessions: sessions)
@@ -139,6 +140,12 @@ final class PetAppController: NSObject, NSApplicationDelegate {
 
     private var allSetups: [ProviderSetupController] { Agent.allCases.compactMap(setup(for:)) }
 
+    private func updateAutomaticSetup(_ enabled: Set<Agent>) {
+        for setup in allSetups {
+            setup.setAutomaticSetupEnabled(runtimeMonitoring && enabled.contains(setup.agent))
+        }
+    }
+
     private func applyRuntimes(_ installed: Set<AppFeature>, monitoring: Bool) -> Set<AppFeature> {
         if runtimeMonitoring && !monitoring {
             for setup in allSetups { setup.cancel() }
@@ -148,12 +155,9 @@ final class PetAppController: NSObject, NSApplicationDelegate {
             if codexSetup == nil { codexSetup = makeProviderSetup(.codex) }
             if claudeSetup == nil { claudeSetup = makeProviderSetup(.claude) }
             if cursorSetup == nil { cursorSetup = makeProviderSetup(.cursor) }
-            if monitoring {
-                for agent in Agent.allCases where providerMonitoring.isEnabled(agent) {
-                    setup(for: agent)?.connectAutomatically()
-                }
-            }
+            updateAutomaticSetup(providerMonitoring.enabledProviders)
         } else {
+            updateAutomaticSetup([])
             for setup in allSetups { setup.cancel() }
             codexSetup = nil
             claudeSetup = nil
@@ -196,6 +200,7 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        updateAutomaticSetup([])
         for setup in allSetups { setup.cancel() }
         let pet = self.pet
         navigation.stop()
