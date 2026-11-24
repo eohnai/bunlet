@@ -3,6 +3,13 @@ name: Package Bunlet release
 on:
   push:
     tags: ['v*']
+  # Start a release from Actions without pushing a tag. The release tag is created on main at the end.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version in X.Y.Z format, without the leading v
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -34,9 +41,26 @@ jobs:
           persist-credentials: false
 
       - name: Validate the release source
+        env:
+          RELEASE_VERSION_INPUT: ${{ inputs.version }}
         run: |
-          if [[ ! "$GITHUB_REF_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "::error::Use a release tag in vX.Y.Z format."
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+              echo "::error::Run this workflow from main."
+              exit 1
+            fi
+            release_tag="v$RELEASE_VERSION_INPUT"
+          else
+            release_tag="$GITHUB_REF_NAME"
+          fi
+          if [[ ! "$release_tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Use a release version in X.Y.Z format."
+            exit 1
+          fi
+          # A re-run may find the tag it created. Refuse a tag that names other code.
+          if existing="$(git rev-parse -q --verify "refs/tags/$release_tag^{commit}")" \
+              && [[ "$existing" != "$(git rev-parse HEAD)" ]]; then
+            echo "::error::$release_tag already exists on a different commit."
             exit 1
           fi
           test "$(git rev-parse HEAD)" = "$(git rev-parse "$GITHUB_SHA^{commit}")"
@@ -44,8 +68,8 @@ jobs:
           test "$(uname -m)" = arm64
           test "$(xcodebuild -version)" = $'Xcode 26.5\nBuild version 17F42'
           # Bunlet 0.1.1 shipped as build 2. A re-run keeps its original run number.
-          printf 'BUNLET_BUILD_DIRECTORY=%s\nBUNLET_VERSION=%s\nBUNLET_BUILD_NUMBER=%s\n' \
-            "$RUNNER_TEMP/bunlet-build" "${GITHUB_REF_NAME#v}" "$((GITHUB_RUN_NUMBER + 2))" >> "$GITHUB_ENV"
+          printf 'BUNLET_BUILD_DIRECTORY=%s\nBUNLET_VERSION=%s\nBUNLET_BUILD_NUMBER=%s\nRELEASE_TAG=%s\n' \
+            "$RUNNER_TEMP/bunlet-build" "${release_tag#v}" "$((GITHUB_RUN_NUMBER + 2))" "$release_tag" >> "$GITHUB_ENV"
 
       - name: Test and build the Sparkle app
         run: |
@@ -85,7 +109,7 @@ jobs:
             --app "$BUNLET_BUILD_DIRECTORY/Bunlet.app" --output "$assets" \
             --version "$BUNLET_VERSION" --build "$BUNLET_BUILD_NUMBER" \
             --feed-url "$releases/latest/download/appcast.xml" \
-            --download-prefix "$releases/download/$GITHUB_REF_NAME/" \
+            --download-prefix "$releases/download/$RELEASE_TAG/" \
             --public-key "$SPARKLE_PUBLIC_KEY" --generate-appcast "$tools/generate_appcast" --key-file "$key_file"
           "$tools/sign_update" --verify --ed-key-file "$key_file" "$assets/appcast.xml"
 
@@ -119,13 +143,18 @@ jobs:
         run: |
           assets="$RUNNER_TEMP/bunlet-release"
           zip="$assets/Bunlet-$BUNLET_VERSION-$BUNLET_BUILD_NUMBER-macOS-arm64.zip"
-          if draft="$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)"; then
+          # Tag only after the build and signature checks pass, so a failed run leaves no tag behind.
+          # A tag created with this token does not start the tag-push trigger again.
+          if ! git rev-parse -q --verify "refs/tags/$RELEASE_TAG" > /dev/null; then
+            gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$RELEASE_TAG" -f sha="$GITHUB_SHA" > /dev/null
+          fi
+          if draft="$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)"; then
             if [[ "$draft" != true ]]; then
               echo "::error::This tag already has a published release."
               exit 1
             fi
-            gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber "$zip" "$assets/appcast.xml"
+            gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --clobber "$zip" "$assets/appcast.xml"
           else
-            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
               --verify-tag --draft --generate-notes "$zip" "$assets/appcast.xml"
           fi

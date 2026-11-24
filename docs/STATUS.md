@@ -2,8 +2,13 @@
 
 ## Now
 
+Uncommitted: **Package Bunlet release** gains a **Run workflow** button with a version field. A manual run builds `main`
+and creates the release tag through the API after the build and signature checks pass. Tag pushes still work. The YAML
+parses, each step passes `bash -n`, and the version and tag checks were simulated locally. actionlint was not run locally,
+and a manual run has not happened on GitHub yet.
+
 Released Bunlet 0.1.2 traps at launch on any Mac but the build runner. SwiftPM's `Bundle.module` looks beside the
-`.app` and at the runner's absolute build path, but packaging puts resource bundles in `Contents/Resources`. Uncommitted:
+`.app` and at the runner's absolute build path, but packaging puts resource bundles in `Contents/Resources`. PR #37 (merged):
 `AppResourceDirectory` resolves the pet artwork and provider logos from the app's own `Contents/Resources` (missing
 artwork returns nil instead of trapping), and `package-update.py` refuses an app without both bundles. Fixture-app tests
 cover the release layout. A fixed release (0.1.3) still needs a tag, and 0.1.2 users must download it manually because
