@@ -28,7 +28,7 @@ struct AgentsSettingsPage: View {
                                         // The approval hook waits for the user's answer in Bunlet.
                                         codex.start(inBunlet ? .connectActions : .removeActions)
                                     }),
-                                    options: [("Terminal", false), ("Bunlet", true)])
+                                    options: [("ChatGPT or terminal", false), ("Bunlet", true)])
                         .disabled(codex.operation != nil)
                 }
             }

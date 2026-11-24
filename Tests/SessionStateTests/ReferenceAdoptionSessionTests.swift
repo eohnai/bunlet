@@ -42,6 +42,27 @@ struct ReferenceAdoptionSessionTests {
         #expect(store.sessions.first?.runningSubagents == 0)
     }
 
+    @Test(arguments: [Agent.codex, .claude])
+    func desktopSessionPreservesItsHostAcrossAttentionAndCompletion(agent: Agent) throws {
+        let host = try #require(agent.desktopBundleIdentifier)
+        let terminal = ["kind": "app", "pane_selector": host]
+        let store = SessionStore()
+        let key = SessionKey(agent: agent, sessionID: "fictional")
+        _ = store.apply(try observation(1, hook: "SessionStart", agent: agent.rawValue, turnID: nil, terminal: terminal))
+        _ = store.apply(try observation(2, hook: "UserPromptSubmit", agent: agent.rawValue))
+        let working = store.sessions
+        #expect(working.first?.status == .working)
+
+        _ = store.apply(try observation(3, hook: "PermissionRequest", agent: agent.rawValue, toolUseID: "tool", toolName: "Bash"))
+        #expect(IslandNotification.next(previous: working, current: store.sessions) == .attention(key))
+
+        _ = store.apply(try observation(4, hook: "PostToolUse", agent: agent.rawValue, toolUseID: "tool", toolName: "Bash"))
+        let beforeStop = store.sessions
+        _ = store.apply(try observation(5, hook: "Stop", agent: agent.rawValue))
+        #expect(IslandNotification.next(previous: beforeStop, current: store.sessions) == .completed(key))
+        #expect(store.sessions.first?.terminal?.hostApp == host)
+    }
+
     @Test func theLastReportedTerminalIsKept() throws {
         let store = SessionStore()
         let tmux = ["kind": "tmux", "pane_selector": "%3", "socket": "/private/tmp/tmux-501/default"]

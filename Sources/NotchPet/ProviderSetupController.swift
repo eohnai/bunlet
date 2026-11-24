@@ -234,7 +234,8 @@ final class ProviderSetupController {
         if needsExecutable {
             let searchPath = try environmentValue("PATH", limit: 16_384)
             switch AgentPathLocator.executable(agent: agent, policy: .health, searchPath: searchPath,
-                                              homeDirectory: manager.homeDirectoryForCurrentUser) {
+                                              homeDirectory: manager.homeDirectoryForCurrentUser,
+                                              desktopApplication: NSWorkspace.shared.urlForApplication(withBundleIdentifier:)) {
             case .found(let url): executable = url
             case .notFound, .invalidSearchPath: executable = nil
             }
@@ -287,8 +288,8 @@ final class ProviderSetupController {
         switch failure {
         case .executableNotFound:
             switch agent {
-            case .codex: return "Install Codex CLI, then check again."
-            case .claude: return "Install Claude Code CLI, then check again."
+            case .codex: return "Install ChatGPT or Codex CLI, then check again."
+            case .claude: return "Open Claude’s Code tab once to install its local runtime, then check again. Claude Code CLI also works."
             case .cursor: return "Install Cursor CLI, then check again."
             }
         case .unqualifiedVersion:

@@ -17,17 +17,34 @@ enum TerminalTargets {
     enum JumpResult: Equatable {
         /// The exact pane, tab or window was selected.
         case exact
+        /// macOS accepted the request to open the Codex thread in its desktop app.
+        case codexThread
         /// Only the terminal's app was brought forward; the user picks the pane.
         case application
     }
 
     /// Brings the session's own pane, tab or window forward, else its app (decision 0026). Nil means nothing did.
     @MainActor
-    static func jump(_ terminal: HookEnvelopeV1.Terminal, projectPath: String?) async -> JumpResult? {
+    static func jump(_ terminal: HookEnvelopeV1.Terminal, session: SessionKey, projectPath: String?) async -> JumpResult? {
         guard terminal.isValid else { return nil }
+        if let url = codexThreadURL(session, terminal: terminal),
+           let app = running(terminal.paneSelector)?.bundleURL {
+            let configuration = NSWorkspace.OpenConfiguration()
+            if (try? await NSWorkspace.shared.open([url], withApplicationAt: app, configuration: configuration)) != nil {
+                return .codexThread
+            }
+        }
         if await exact(terminal, projectPath: projectPath) { return .exact }
         if let app = terminal.hostApp, activate(bundleID: app) { return .application }
         return nil
+    }
+
+    /// Only a Codex desktop hook can identify a thread, and a thread selector must be one UUID.
+    static func codexThreadURL(_ session: SessionKey, terminal: HookEnvelopeV1.Terminal) -> URL? {
+        guard session.agent == .codex, terminal.kind == .app, terminal.isValid,
+              terminal.paneSelector == Agent.codex.desktopBundleIdentifier,
+              session.sessionID.utf8.count == 36, UUID(uuidString: session.sessionID) != nil else { return nil }
+        return URL(string: "codex://threads/\(session.sessionID)")
     }
 
     @MainActor

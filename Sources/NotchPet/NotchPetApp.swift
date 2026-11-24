@@ -49,7 +49,8 @@ private final class IntegrationHealthController {
         let searchPath = getenv("PATH").map { String(cString: $0) }
         let executable: URL?
         switch AgentPathLocator.executable(agent: agent, policy: .health, searchPath: searchPath,
-                                          homeDirectory: manager.homeDirectoryForCurrentUser) {
+                                          homeDirectory: manager.homeDirectoryForCurrentUser,
+                                          desktopApplication: NSWorkspace.shared.urlForApplication(withBundleIdentifier:)) {
         case .found(let url):
             executable = url
         case .notFound, .invalidSearchPath:

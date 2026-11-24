@@ -1,6 +1,6 @@
 # Bunlet
 
-A small macOS companion for Codex CLI, Claude Code, and Cursor CLI. Keep a pet on your desktop, follow coding sessions in the notch, and see your remaining usage allowance alongside your sessions.
+A small macOS companion for local Codex and Claude Code sessions in the desktop apps and terminal. Keep a pet on your desktop, follow coding sessions in the notch, and see your remaining usage allowance alongside your sessions.
 
 Built with SwiftUI and AppKit. Agent monitoring uses local hooks. The pet can be docked in the notch or moved onto the desktop.
 
@@ -33,7 +33,10 @@ The command prints the app bundle's path. Build output goes to stderr. Quit the 
 
 ## Connect your agents
 
-Open Bunlet to connect any supported CLI you have installed. Complete the provider’s normal hook review and start a new coding session.
+1. Install ChatGPT or Claude. Open Claude's **Code** tab once to download its local runtime.
+2. Open Bunlet. **Settings > Agents** shows whether each installed agent connected. If you initialized Claude after launching Bunlet, select **Connect** there.
+3. Complete normal workspace and hook review. For ChatGPT desktop, review Bunlet's hook through **Settings > Hooks** or the prompt in the composer.
+4. Start a new local coding session in ChatGPT, Claude's **Code** tab, or your terminal. Bunlet follows coding events from that session.
 
 Session monitoring starts on for all three agents. Each switch shows your monitoring preference. The line under the agent name shows whether setup or a new session is needed.
 
@@ -44,6 +47,8 @@ Each provider has Check, Repair, Pause/Resume and Disconnect controls. Pause sto
 Claude follow-up feedback is available during the waiting Stop hook's 60-second window. After that window, continue in the terminal. Local response controls are currently available for Claude Code.
 
 ## Return to your session
+
+Click a ChatGPT desktop session to open its Codex thread. Click a desktop Claude Code session to bring Claude forward.
 
 Clicking a session returns to the pane it runs in for Otty, tmux, Terminal, iTerm2, WezTerm and kitty (kitty needs remote control turned on), and to the project window in Cursor or VS Code. In any other terminal Bunlet brings the app the agent runs in to the front, and you pick the pane. Terminal and iTerm2 ask for macOS Automation approval the first time.
 

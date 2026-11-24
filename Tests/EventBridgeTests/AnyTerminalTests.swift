@@ -80,5 +80,13 @@ struct AnyTerminalTests {
         #expect(TerminalDetection.outermostBundle(inExecutablePath: "relative/A.app/Contents/MacOS/A") == nil)
     }
 
-
+    @Test func claudeRuntimeBundleDoesNotHideTheDesktopHost() {
+        let paths: [pid_t: String] = [30: "/fictional/Runtime/claude.app/Contents/MacOS/claude",
+                                    20: "/Applications/Claude.app/Contents/MacOS/Claude"]
+        let identifiers = ["/fictional/Runtime/claude.app": "com.anthropic.claude-code",
+                           "/Applications/Claude.app": "com.anthropic.claudefordesktop"]
+        let result = TerminalDetection.hostApplication(startingAt: 30, depth: 12, parent: { $0 == 30 ? 20 : 1 },
+                                                       executablePath: { paths[$0] }, identify: { identifiers[$0] })
+        #expect(result == Agent.claude.desktopBundleIdentifier)
+    }
 }

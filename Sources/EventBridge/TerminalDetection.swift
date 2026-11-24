@@ -5,6 +5,7 @@ import Foundation
 /// Pure apart from the tty and host-app lookups, which callers pass in. An unusable value yields no terminal,
 /// so a strange environment never drops the lifecycle event itself.
 public enum TerminalDetection {
+    private static let claudeRuntimeBundleIdentifier = "com.anthropic.claude-code"
 
     /// The environment variables the observer helper reads. Nothing else is copied out of the environment.
     public static let variables = ["TMUX", "TMUX_PANE", "OTTY_PANE_ID", "TERM_PROGRAM", "__CFBundleIdentifier",
@@ -47,7 +48,7 @@ public enum TerminalDetection {
             break
         }
         // Any other terminal: the app the agent runs in, found from its parent processes.
-        guard let app = host() ?? inherited else { return nil }
+        guard let app = host() ?? inherited, app != claudeRuntimeBundleIdentifier else { return nil }
         return valid(.init(kind: .app, paneSelector: app))
     }
 
@@ -89,7 +90,7 @@ public enum TerminalDetection {
         for _ in 0..<depth {
             guard current > 1 else { return nil }
             if let path = executablePath(current), let bundle = outermostBundle(inExecutablePath: path),
-               let identifier = identify(bundle),
+               let identifier = identify(bundle), identifier != claudeRuntimeBundleIdentifier,
                HookEnvelopeV1.Terminal.bundleIdentifier(identifier) {
                 return identifier
             }
