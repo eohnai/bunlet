@@ -113,6 +113,17 @@ struct ReferenceAdoptionAppTests {
 
 /// Decision 0026: jump helpers that need no running terminal. Fictional data only.
 struct AnyTerminalAppTests {
+    @Test func codexThreadLinkRequiresAMatchingDesktopHostAndUUID() {
+        let thread = "6A0E2F4C-1B3D-4E5F-8A9B-0C1D2E3F4A5B"
+        let session = SessionKey(agent: .codex, sessionID: thread)
+        let desktop = HookEnvelopeV1.Terminal(kind: .app, paneSelector: "com.openai.codex")
+        let terminal = HookEnvelopeV1.Terminal(kind: .app, paneSelector: "com.apple.Terminal")
+        #expect(TerminalTargets.codexThreadURL(session, terminal: desktop)?.absoluteString == "codex://threads/\(thread)")
+        #expect(TerminalTargets.codexThreadURL(session, terminal: terminal) == nil)
+        #expect(TerminalTargets.codexThreadURL(SessionKey(agent: .claude, sessionID: thread), terminal: desktop) == nil)
+        #expect(TerminalTargets.codexThreadURL(SessionKey(agent: .codex, sessionID: "../\(thread)"), terminal: desktop) == nil)
+    }
+
     @Test func tmuxClientsAreOrderedByActivity() {
         #expect(TerminalTargets.tmuxClients("100 501\n300 502\nbad line\n200 1\n250 503\n") == [502, 503, 501])
         #expect(TerminalTargets.tmuxClients("").isEmpty)

@@ -21,6 +21,14 @@ public enum Agent: String, Codable, CaseIterable, Sendable {
         }
     }
 
+    public var desktopBundleIdentifier: String? {
+        switch self {
+        case .codex: "com.openai.codex"
+        case .claude: "com.anthropic.claudefordesktop"
+        case .cursor: nil
+        }
+    }
+
     /// An npm-installed Codex launcher requires Node on PATH even when run by absolute path.
     public func launchEnvironment(for executable: URL, inheriting environment: [String: String] = ProcessInfo.processInfo.environment) -> [String: String] {
         guard self == .codex, executable.isFileURL else { return environment }

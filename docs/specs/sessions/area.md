@@ -12,6 +12,7 @@ Code: `Sources/EventBridge/`, `Sources/SessionState/`, `Sources/Integration/` an
 - `claude-setup`: Connect, check, and remove owned Claude lifecycle integration while preserving the status line. Needs: integration-health, notch/session-island.
 - `monitoring-controls`: Pause, resume, and disconnect configured monitoring while preserving unresolved notices. Needs: codex-setup.
 - `pane-navigation`: [Optional terminal navigation](pane-navigation.md) reports user-linked exact-pane, application-only, or manual-return capability through separate adapters. Needs: session-state.
+- `desktop-coding-sessions`: Discover local desktop coding runtimes and route observed sessions back to their app. Needs: codex-setup, claude-setup, pane-navigation.
 - `first-use`: Verify setup, live alerts, navigation, removal, and release instructions. Needs: codex-setup, claude-setup, pane-navigation, notch/desktop-recovery, notch/accessible-controls, usage/refresh-recovery, actions/structured-answers, actions/follow-up-replies, pets/detachable-pet, pets/custom-packs.
 
 ## Merged MVP status, 2026-11-06

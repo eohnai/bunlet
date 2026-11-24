@@ -238,8 +238,12 @@ extension TerminalNavigation {
             let fallback = hasLinkedPane(key) || preferredName != nil
             run(for: key) { [weak self] in
                 // The exact pane first; a linked iTerm2 pane beats bringing only an app forward.
-                let result = await TerminalTargets.jump(terminal, projectPath: session.projectPath)
+                let result = await TerminalTargets.jump(terminal, session: session.key, projectPath: session.projectPath)
                 guard let self, !Task.isCancelled else { return false }
+                if result == .codexThread {
+                    self.message = "Asked ChatGPT to open the Codex thread."
+                    return true
+                }
                 if result == .exact {
                     self.message = "Returned to the session's \(Self.name(terminal.kind))."
                     return true
