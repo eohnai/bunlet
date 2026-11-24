@@ -92,6 +92,8 @@ final class BunletSettings {
     var islandDisplay: IslandDisplay { didSet { defaults.set(islandDisplay.rawValue, forKey: Key.islandDisplay) } }
     var showClaudeLimits: Bool { didSet { defaults.set(showClaudeLimits, forKey: Key.showClaudeLimits) } }
     var showCodexLimits: Bool { didSet { defaults.set(showCodexLimits, forKey: Key.showCodexLimits) } }
+    /// Today's Claude tokens beside the limits (decision 0025).
+    var showTokenCount: Bool { didSet { defaults.set(showTokenCount, forKey: Key.showTokenCount) } }
     var soundEnabled: Bool { didSet { defaults.set(soundEnabled, forKey: Key.soundEnabled) } }
     var soundVolume: Double { didSet { defaults.set(soundVolume, forKey: Key.soundVolume) } }
     private(set) var soundEvents: Set<SoundEvent>
@@ -124,6 +126,7 @@ final class BunletSettings {
         islandDisplay = defaults.string(forKey: Key.islandDisplay).flatMap(IslandDisplay.init(rawValue:)) ?? .main
         showClaudeLimits = bool(Key.showClaudeLimits, true)
         showCodexLimits = bool(Key.showCodexLimits, true)
+        showTokenCount = bool(Key.showTokenCount, true)
         soundEnabled = bool(Key.soundEnabled, false)
         let volume = defaults.object(forKey: Key.soundVolume) as? Double ?? 0.7
         soundVolume = (0...1).contains(volume) ? volume : 0.7
@@ -242,6 +245,7 @@ final class BunletSettings {
         static let islandDisplay = "island.display"
         static let showClaudeLimits = "island.topRow.claudeLimits"
         static let showCodexLimits = "island.topRow.codexLimits"
+        static let showTokenCount = "island.topRow.tokenCount"
         static let soundEnabled = "sound.enabled"
         static let soundVolume = "sound.volume"
         static let soundEvents = "sound.events"

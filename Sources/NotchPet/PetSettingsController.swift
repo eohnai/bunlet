@@ -25,6 +25,7 @@ final class PetSettingsController {
     private let readPetLibrary: () -> PetLibraryModel?
     private let onReturnPet: () -> Void
     private let readLocalActions: () -> LocalActionController?
+    private let readTokens: () -> TokenLedger?
     private let readCursor: () -> ProviderSetupController?
 
     init(defaults: UserDefaults, features: FeatureSettingsModel, settings: BunletSettings,
@@ -39,7 +40,9 @@ final class PetSettingsController {
          readLocalActions: @escaping () -> LocalActionController? = { nil },
          onReturnPet: @escaping () -> Void = {},
          readPetLibrary: @escaping () -> PetLibraryModel? = { nil },
-         readNavigation: @escaping () -> TerminalNavigation? = { nil }) {
+         readNavigation: @escaping () -> TerminalNavigation? = { nil },
+         readTokens: @escaping () -> TokenLedger? = { nil }) {
+        self.readTokens = readTokens
         self.readCursor = readCursor
         self.defaults = defaults
         self.features = features
@@ -92,7 +95,8 @@ final class PetSettingsController {
                 selectPage: { [weak self] page in self?.defaults.set(page.rawValue, forKey: "settings.selectedPane") },
                 removeAllHooks: onRemoveAllHooks, codex: readCodex, claude: readClaude, cursor: readCursor,
                 monitoring: readMonitoring,
-                quota: readQuota, localActions: readLocalActions, petLibrary: readPetLibrary, navigation: readNavigation)
+                quota: readQuota, localActions: readLocalActions, petLibrary: readPetLibrary, navigation: readNavigation,
+                tokens: readTokens)
             window.contentView = NSHostingView(rootView: PetWindowPlayback(window: window) { [features, settings, defaults] visible, sleeping in
                 AppSettingsView(features: features, settings: settings, defaults: defaults, actions: actions, page: page,
                                 isVisible: visible, isSleeping: sleeping)
