@@ -1,5 +1,6 @@
 import EventBridge
 import AppKit
+import Pet
 
 @MainActor
 enum ProviderLogo {
@@ -13,15 +14,9 @@ enum ProviderLogo {
     }()
 
     static func image(for provider: Agent, appBundle: Bundle = .main) -> NSImage? {
-        let directory: URL?
-        if appBundle.bundleURL.pathExtension == "app" {
-            // SwiftPM toolchains emit both flat and Contents/Resources layouts.
-            // Resolve only this app's bundle; missing artwork still uses text.
-            directory = (appBundle.resourceURL?.appendingPathComponent("NotchPet_NotchPet.bundle"))
-                .flatMap { Bundle(url: $0)?.resourceURL ?? $0 }
-        } else {
-            directory = Bundle.module.resourceURL
-        }
+        // Missing artwork still uses text.
+        let directory = AppResourceDirectory.locate("NotchPet_NotchPet.bundle", in: appBundle,
+                                                    otherwise: Bundle.module.resourceURL)
         let file: String? = switch provider {
         case .codex: "codex.svg"
         case .claude: "claude-code.svg"
