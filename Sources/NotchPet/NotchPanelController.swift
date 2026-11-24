@@ -480,10 +480,13 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         guard let notification = IslandNotification.next(previous: lastSessions, current: sessions) else { return }
         switch notification {
         case .attention: settings.play(.actionNeeded)
-        case .completed: settings.play(.taskComplete)
+        case .completed(let key):
+            let failed = sessions.contains { $0.key == key && $0.turnFailed }
+            settings.play(failed ? .taskFailed : .taskComplete)
         }
         guard !hiddenForPet,
-              IslandAutoOpen.shouldOpen(notification, expandOnActionNeeded: settings.expandOnActionNeeded,
+              IslandAutoOpen.shouldOpen(notification, sessions: visibleSessions,
+                                        expandOnActionNeeded: settings.expandOnActionNeeded,
                                         expandOnSessionEnd: settings.expandOnSessionEnd,
                                         focusAwareSuppression: settings.focusAwareSuppression,
                                         frontmostBundleID: NSWorkspace.shared.frontmostApplication?.bundleIdentifier)

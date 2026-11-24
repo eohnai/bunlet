@@ -189,6 +189,8 @@ public struct HookEnvelopeV1: Encodable, Sendable {
         guard promptPreview == nil || hook == .userPromptSubmit, replyPreview == nil || hook == .stop else {
             throw BridgeError.invalidMessage
         }
+        // Only Claude reports failed turns (decision 0030); the other agents' hooks have no such event.
+        guard hook != .stopFailure || agent == .claude else { throw BridgeError.invalidMessage }
         // Subagent events must name their subagent; no other event may carry one.
         let agentID = try string("agent_id", 256, required: hook.isSubagent)
         guard agentID == nil || hook.isSubagent else { throw BridgeError.invalidMessage }

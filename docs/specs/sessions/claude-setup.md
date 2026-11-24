@@ -33,8 +33,9 @@ It does not qualify live Claude/Codex installation, reinstall, removal or cancel
 The earlier full-transaction fixture hit existing path/metadata restrictions. See `docs/STATUS.md`.
 
 Use [provider setup](../../contracts/provider-setup.md) and the existing descriptor-relative ownership
-transaction. Lifecycle Connect adds seven separate command groups to settings.json, each invoking
-the bounded observer as `--agent claude`. Other settings, Otty hooks, trust and permissions stay intact.
+transaction. Lifecycle Connect adds separate command groups to settings.json, each invoking
+the bounded observer as `--agent claude`: the seven core events, `SubagentStart` and `SubagentStop` (decision 0025),
+and `StopFailure` (decision 0030). Owned installations from an earlier event set gain the missing groups in place. Other settings, Otty hooks, trust and permissions stay intact.
 Check reports version, shape, bundled helper, owned entries, policy, receiver and observed delivery
 separately. The documented 2.1.306 binding is unverified; user settings do not establish effective
 project/managed policy. Never set disableAllHooks/allowManagedHooksOnly or change policy automatically.

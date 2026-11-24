@@ -158,6 +158,11 @@ struct NotchSessionView: View {
                     Button("Done", action: endInput).buttonStyle(.plain)
                         .font(.system(size: 12, weight: .medium)).foregroundStyle(IslandPalette.mutedText)
                 }
+                if let settings, !sessions.isEmpty {
+                    IslandIconButton(systemImage: "xmark.bin", label: "Clear all sessions") {
+                        settings.removeFromList(sessions, current: sessionStore.sessions)
+                    }
+                }
                 IslandIconButton(systemImage: "gearshape", label: "Settings", action: onOpenSettings)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -217,6 +222,9 @@ struct NotchSessionView: View {
                                      detailsOpen: detailsKey == snapshot.key,
                                      animates: expanded && isVisible && !isSleeping,
                                      onJump: navigation.map { navigation in { jump(to: snapshot.key, using: navigation) } },
+                                     onRemove: settings.map { settings in
+                                         { settings.removeFromList([snapshot], current: sessionStore.sessions) }
+                                     },
                                      onToggleDetails: {
                                          detailsKey = detailsKey == snapshot.key ? nil : snapshot.key
                                          selection = snapshot.key

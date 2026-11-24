@@ -16,13 +16,14 @@ final class BunletSettings {
 
     /// Events with their own sound switch, using macOS's built-in sounds.
     enum SoundEvent: String, CaseIterable, Identifiable {
-        case appLaunch, sessionStart, taskComplete, actionNeeded
+        case appLaunch, sessionStart, taskComplete, taskFailed, actionNeeded
         var id: String { rawValue }
         var title: String {
             switch self {
             case .appLaunch: "Bunlet opens"
             case .sessionStart: "Session starts"
             case .taskComplete: "Task completes"
+            case .taskFailed: "Task fails"
             case .actionNeeded: "Approval or answer needed"
             }
         }
@@ -31,6 +32,7 @@ final class BunletSettings {
             case .appLaunch: "Blow"
             case .sessionStart: "Pop"
             case .taskComplete: "Glass"
+            case .taskFailed: "Basso"
             case .actionNeeded: "Funk"
             }
         }
@@ -97,6 +99,8 @@ final class BunletSettings {
     var soundEnabled: Bool { didSet { defaults.set(soundEnabled, forKey: Key.soundEnabled) } }
     var soundVolume: Double { didSet { defaults.set(soundVolume, forKey: Key.soundVolume) } }
     private(set) var soundEvents: Set<SoundEvent>
+    /// Sessions removed from the island (decision 0030), with their receipt time at removal. Memory only.
+    private(set) var removedSessions: [SessionKey: UInt64?] = [:]
     var hideWhenFullscreen: Bool { didSet { defaults.set(hideWhenFullscreen, forKey: Key.hideFullscreen) } }
     var alwaysHide: Bool { didSet { defaults.set(alwaysHide, forKey: Key.alwaysHide) } }
     var hideWhenNoSessions: Bool { didSet { defaults.set(hideWhenNoSessions, forKey: Key.hideWhenNoSessions) } }
@@ -130,8 +134,7 @@ final class BunletSettings {
         soundEnabled = bool(Key.soundEnabled, false)
         let volume = defaults.object(forKey: Key.soundVolume) as? Double ?? 0.7
         soundVolume = (0...1).contains(volume) ? volume : 0.7
-        soundEvents = Set((defaults.stringArray(forKey: Key.soundEvents) ?? SoundEvent.allCases.map(\.rawValue))
-            .compactMap(SoundEvent.init(rawValue:)))
+        soundEvents = Self.loadSoundEvents(defaults)
         enabledShortcuts = Set((defaults.stringArray(forKey: Key.shortcuts) ?? Shortcut.allCases.filter { $0.defaultKey != nil }.map(\.rawValue))
             .compactMap(Shortcut.init(rawValue:)))
         hideWhenFullscreen = bool(Key.hideFullscreen, true)
@@ -157,14 +160,36 @@ final class BunletSettings {
 
     /// Sessions the island lists, after Sessions → idle clean-up.
     func visibleSessions(_ sessions: [SessionSnapshot], nowMs: Int64 = Int64(Date().timeIntervalSince1970 * 1_000)) -> [SessionSnapshot] {
-        NotchPresentation.withoutStale(sessions, limitMinutes: sessionCleanupMinutes, nowMs: nowMs)
+        NotchPresentation.withoutRemoved(NotchPresentation.withoutStale(sessions, limitMinutes: sessionCleanupMinutes, nowMs: nowMs),
+                                         removed: removedSessions)
+    }
+
+    /// Hides these sessions until each reports new activity. Session tracking and pending requests are unchanged.
+    /// `current` bounds the record to sessions that still exist.
+    func removeFromList(_ removing: [SessionSnapshot], current: [SessionSnapshot]) {
+        let existing = Set(current.map(\.key))
+        var kept = removedSessions.filter { existing.contains($0.key) }
+        for session in removing { kept[session.key] = .some(session.receiptMonotonicNs) }
+        removedSessions = kept
     }
 
     func isSoundOn(_ event: SoundEvent) -> Bool { soundEvents.contains(event) }
 
+    /// The saved list holds only the switches that are on, so an event added after it was saved would read as off.
+    /// Events missing from the known list start on, as they do for a new user.
+    static func loadSoundEvents(_ defaults: UserDefaults) -> Set<SoundEvent> {
+        guard let saved = defaults.stringArray(forKey: Key.soundEvents) else { return Set(SoundEvent.allCases) }
+        // Saved before the known list existed: every event except the one added with it was offered then.
+        let known = Set(defaults.stringArray(forKey: Key.soundEventsKnown)
+            ?? SoundEvent.allCases.filter { $0 != .taskFailed }.map(\.rawValue))
+        let added = SoundEvent.allCases.filter { !known.contains($0.rawValue) }
+        return Set(saved.compactMap(SoundEvent.init(rawValue:))).union(added)
+    }
+
     func setSound(_ event: SoundEvent, on: Bool) {
         if on { soundEvents.insert(event) } else { soundEvents.remove(event) }
         defaults.set(SoundEvent.allCases.filter(soundEvents.contains).map(\.rawValue), forKey: Key.soundEvents)
+        defaults.set(SoundEvent.allCases.map(\.rawValue), forKey: Key.soundEventsKnown)
     }
 
     func isShortcutOn(_ shortcut: Shortcut) -> Bool { enabledShortcuts.contains(shortcut) && key(for: shortcut) != nil }
@@ -249,6 +274,7 @@ final class BunletSettings {
         static let soundEnabled = "sound.enabled"
         static let soundVolume = "sound.volume"
         static let soundEvents = "sound.events"
+        static let soundEventsKnown = "sound.events.known"
         static let shortcuts = "shortcuts.enabled"
         static let shortcutKeys = "shortcuts.keys"
         static let shortcutModifier = "shortcuts.modifier"

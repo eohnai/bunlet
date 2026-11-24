@@ -166,7 +166,9 @@ def main() -> None:
                     for raw in [b"{}", b"[", b"\xff", b" " * 262145,
                                 b'{"session_id":"a","session_id":"b","hook_event_name":"SessionStart"}']:
                         invoke(helper, raw, agent)
-                    for hook in ("Interrupt", "StopFailure", "Notification", "Elicitation", "ElicitationResult"):
+                    # Claude reports failed turns through StopFailure (decision 0030); Codex has no such hook.
+                    unsupported = ("Interrupt", "Notification", "Elicitation", "ElicitationResult")
+                    for hook in unsupported + (("StopFailure",) if agent == "codex" else ()):
                         invoke(helper, json.dumps({"session_id": "a", "hook_event_name": hook}).encode(), agent)
                 invoke(helper, minimal, "unsupported")
                 try:

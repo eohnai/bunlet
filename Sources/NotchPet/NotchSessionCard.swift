@@ -2,7 +2,7 @@ import EventBridge
 import SessionState
 import SwiftUI
 
-/// A session row (decision 0017), with visible status words for unknown and ended.
+/// A session row (decision 0017), with visible status words for unknown, ended and failed (decision 0030).
 struct NotchSessionCard: View {
     let snapshot: SessionSnapshot
     let presentation: NotchCardPresentation
@@ -11,6 +11,8 @@ struct NotchSessionCard: View {
     let detailsOpen: Bool
     var animates = true
     var onJump: (() -> Void)? = nil
+    /// Hides the row until the session reports new activity (decision 0030).
+    var onRemove: (() -> Void)? = nil
     let onToggleDetails: () -> Void
     @State private var hovering = false
 
@@ -18,6 +20,7 @@ struct NotchSessionCard: View {
         switch snapshot.status {
         case .unknown: ("Unknown", IslandPalette.unknown)
         case .ended: ("Ended", IslandPalette.mutedText)
+        case .responseReady where snapshot.turnFailed: ("Failed", IslandPalette.attentionHare)
         case .idle, .working, .questionNeeded, .approvalNeeded, .responseReady: nil
         }
     }
@@ -28,7 +31,7 @@ struct NotchSessionCard: View {
         case .working: "Working"
         case .questionNeeded: "Answer needed"
         case .approvalNeeded: "Approval needed"
-        case .responseReady: "Response ready"
+        case .responseReady: snapshot.turnFailed ? "Turn failed" : "Response ready"
         case .unknown: "Unknown"
         case .ended: "Ended"
         }
@@ -67,6 +70,7 @@ struct NotchSessionCard: View {
             .accessibilityAddTraits(.isButton)
             .accessibilityHint(onJump == nil ? "Shows session details" : "Returns to the session")
             .accessibilityAction(named: detailsOpen ? "Hide details" : "Show details", onToggleDetails)
+            .accessibilityAction(named: "Remove from list") { onRemove?() }
 
             if detailsOpen { details }
         }
@@ -104,6 +108,16 @@ struct NotchSessionCard: View {
                 .buttonStyle(.plain)
                 .opacity(hovering || detailsOpen || isActive ? 1 : 0.5)
                 .accessibilityLabel(detailsOpen ? "Hide session details" : "Show session details")
+                if let onRemove {
+                    Button(action: onRemove) {
+                        IslandChip(text: "✕", color: IslandPalette.mutedText, fill: .white.opacity(0.06))
+                    }
+                    .buttonStyle(.plain)
+                    // Shown with the pointer or selection, like the reference; the row action keeps it reachable otherwise.
+                    .opacity(hovering || isActive ? 1 : 0)
+                    .help("Remove from list until it has new activity")
+                    .accessibilityLabel("Remove session from list")
+                }
             }
             .fixedSize()
         }

@@ -9,6 +9,8 @@ public enum HookEvent: String, Codable, CaseIterable, Sendable {
     /// Claude only (decision 0025). Carries `agent_id` so the count can pair starts with stops.
     case subagentStart = "SubagentStart"
     case subagentStop = "SubagentStop"
+    /// Claude only (decision 0030). A turn that ended in an API error instead of `Stop`.
+    case stopFailure = "StopFailure"
 
     /// The original seven events every supported agent reports.
     public static let core: [HookEvent] = [.sessionStart, .userPromptSubmit, .preToolUse, .permissionRequest,
@@ -24,7 +26,7 @@ public enum HookEvent: String, Codable, CaseIterable, Sendable {
     var requiresToolName: Bool {
         switch self {
         case .preToolUse, .permissionRequest, .postToolUse: true
-        case .sessionStart, .userPromptSubmit, .stop, .sessionEnd, .subagentStart, .subagentStop: false
+        case .sessionStart, .userPromptSubmit, .stop, .sessionEnd, .subagentStart, .subagentStop, .stopFailure: false
         }
     }
 }

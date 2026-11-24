@@ -91,6 +91,16 @@ public enum NotchPresentation {
         }
     }
 
+    /// Decision 0030: a session removed from the list stays hidden until it reports new activity.
+    /// `removed` holds each removed session's receipt time when it was removed; nil means none was observed.
+    public static func withoutRemoved(_ sessions: [SessionSnapshot],
+                                      removed: [SessionKey: UInt64?]) -> [SessionSnapshot] {
+        sessions.filter { session in
+            guard let mark = removed[session.key] else { return true }
+            return session.receiptMonotonicNs != mark
+        }
+    }
+
     public static func ordered(_ sessions: [SessionSnapshot]) -> [SessionSnapshot] {
         let rank: (SessionSnapshot) -> Int = { session in
             if session.pendingRequests.contains(where: \.isConfirmed) { return 0 }
