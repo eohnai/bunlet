@@ -14,7 +14,8 @@ def main() -> None:
     reports.mkdir(parents=True, exist_ok=True)
     job = os.environ['GITHUB_JOB']
     commands = {
-        'workflow': [str(root / 'tools/actionlint'), '.github/workflows/ci.yml'],
+        'workflow': [str(root / 'tools/actionlint'),
+                     *map(str, sorted(Path('.github/workflows').glob('*.yml')))],
         'tests': ['swift', 'test', '--scratch-path', str(root / 'test-build'), '--enable-code-coverage',
                   '--event-stream-output-path', str(reports / 'tests.jsonl'), '--event-stream-version', '6.3'],
         'build': ['bash', 'scripts/run.sh', '--build-only'],
