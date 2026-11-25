@@ -7,6 +7,7 @@ import Usage
 struct NotchAllowanceStrip: View {
     let store: UsageStore
     let activeProviders: Set<Agent>
+    var todayTokenLabel: String? = nil
     /// Settings choose between percent left (the default, D6) and percent used.
     var showsUsed = false
     @State private var hovered: Agent?
@@ -14,28 +15,46 @@ struct NotchAllowanceStrip: View {
     var body: some View {
         // The parent creates this view only while expanded. With no providers,
         // there is no allowance to age and no countdown to schedule.
-        if !activeProviders.isEmpty {
+        if activeProviders.isEmpty {
+            fittingRow([], nowMs: 0)
+        } else {
             TimelineView(.periodic(from: .now, by: 30)) { context in
                 let nowMs = Int64(context.date.timeIntervalSince1970 * 1_000)
                 let snapshots = store.snapshots(activeProviders: activeProviders, nowMs: nowMs)
                 let entries = NotchAllowancePresentation.entries(activeProviders: activeProviders,
                                                                   snapshots: snapshots)
-                HStack(spacing: 12) {
-                    ForEach(entries, id: \.provider) { entry in
-                        if entry.provider != entries.first?.provider {
-                            Text("|")
-                                .font(.system(size: 12))
-                                .foregroundStyle(Color(red: 224 / 255, green: 226 / 255, blue: 242 / 255).opacity(0.25))
-                                .accessibilityHidden(true)
-                        }
-                        cell(entry, nowMs: nowMs)
-                    }
-                }
+                fittingRow(entries, nowMs: nowMs)
             }
         }
     }
 
-    private func cell(_ entry: NotchAllowanceEntry, nowMs: Int64) -> some View {
+    private func fittingRow(_ entries: [NotchAllowanceEntry], nowMs: Int64) -> some View {
+        ViewThatFits(in: .horizontal) {
+            row(entries, nowMs: nowMs, compact: false)
+            row(entries, nowMs: nowMs, compact: true)
+        }
+    }
+
+    private func row(_ entries: [NotchAllowanceEntry], nowMs: Int64, compact: Bool) -> some View {
+        HStack(spacing: compact ? 6 : 12) {
+            ForEach(entries, id: \.provider) { entry in
+                if entry.provider != entries.first?.provider {
+                    Text("|")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color(red: 224 / 255, green: 226 / 255, blue: 242 / 255).opacity(0.25))
+                        .accessibilityHidden(true)
+                }
+                cell(entry, nowMs: nowMs, compact: compact)
+            }
+            if let todayTokenLabel {
+                IslandChip(text: compact ? todayTokenLabel : "\(todayTokenLabel) today", size: 11, monospaced: true)
+                    .help("Claude Code tokens today")
+                    .accessibilityLabel("\(todayTokenLabel) Claude Code tokens today")
+            }
+        }
+    }
+
+    private func cell(_ entry: NotchAllowanceEntry, nowMs: Int64, compact: Bool) -> some View {
         let name = entry.provider.displayName
         let countdown = NotchAllowancePresentation.countdownText(for: entry.window, at: nowMs)
         let spoken = entry.percentLeft.map {
@@ -49,17 +68,17 @@ struct NotchAllowanceStrip: View {
                 if let percentLeft = entry.percentLeft {
                     Text(entry.windowLabel)
                     Text("\(showsUsed ? 100 - percentLeft : percentLeft)%").foregroundStyle(color(entry.color))
-                    Text(countdown)
+                    if !compact { Text(countdown) }
                 } else {
                     // Missing data must not look like zero remaining.
-                    Text("\(entry.windowLabel) unavailable")
+                    Text(compact ? "—" : "\(entry.windowLabel) unavailable")
                 }
             }
             .font(.system(size: 12, weight: .medium))
             .kerning(-0.2)
             .monospacedDigit()
             .foregroundStyle(.white.opacity(0.7))
-            if entry.source?.isStale == true {
+            if !compact, entry.source?.isStale == true {
                 Text("stale").font(.system(size: 12)).foregroundStyle(IslandPalette.mutedText)
             }
             if needsWarning(entry) {

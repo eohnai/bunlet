@@ -137,22 +137,21 @@ struct NotchSessionView: View {
 
     /// Sits beside the physical notch: limits on the left, panel actions on the right.
     private var usageRow: some View {
-        HStack(spacing: 0) {
+        let inset: CGFloat = 18
+        let contentWidth = max(0, windowState.panelWidth - 2 * inset)
+        let notchWidth = windowState.hasNotch ? min(windowState.notchWidth, contentWidth) : 0
+        let sideWidth = windowState.hasNotch ? (contentWidth - notchWidth) / 2 : nil
+        return HStack(spacing: 0) {
             Group {
                 if expanded && isVisible && !isSleeping {
-                    HStack(spacing: 10) {
-                        NotchAllowanceStrip(store: usageStore, activeProviders: shownLimitProviders,
-                                            showsUsed: settings?.usageValue == .used)
-                        if settings?.showTokenCount ?? true, let today = tokens?.total(on: .now), today > 0 {
-                            IslandChip(text: "\(StatisticsSettingsPage.format(today)) today", size: 11, monospaced: true)
-                                .help("Claude Code tokens today")
-                                .accessibilityLabel("\(StatisticsSettingsPage.format(today)) Claude Code tokens today")
-                        }
-                    }
+                    NotchAllowanceStrip(store: usageStore, activeProviders: shownLimitProviders,
+                                        todayTokenLabel: todayTokenLabel, showsUsed: settings?.usageValue == .used)
                 }
             }
+            .padding(.trailing, windowState.hasNotch ? 6 : 0)
             .frame(maxWidth: .infinity, alignment: .leading)
-            Color.clear.frame(width: windowState.hasNotch ? windowState.notchWidth : 0)
+            .frame(width: sideWidth, alignment: .leading)
+            Color.clear.frame(width: notchWidth)
             HStack(spacing: 12) {
                 if windowState.hasKeyboardFocus {
                     Button("Done", action: endInput).buttonStyle(.plain)
@@ -166,11 +165,17 @@ struct NotchSessionView: View {
                 IslandIconButton(systemImage: "gearshape", label: "Settings", action: onOpenSettings)
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
+            .frame(width: sideWidth, alignment: .trailing)
         }
-        .padding(.horizontal, 18)
+        .padding(.horizontal, inset)
         .frame(height: headerHeight)
         // The usage popup extends below the row and must draw over the session list.
         .zIndex(1)
+    }
+
+    private var todayTokenLabel: String? {
+        guard settings?.showTokenCount ?? true, let today = tokens?.total(on: .now), today > 0 else { return nil }
+        return StatisticsSettingsPage.format(today)
     }
 
     @ViewBuilder private var notices: some View {
