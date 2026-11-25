@@ -106,6 +106,10 @@ The [island UI reference](../../notes/reference-ui.md) holds the exact values; t
   **Failed** label and plays the Task fails sound.
 - Hovering a row shows **✕**, and the top row has **Clear all sessions**. Removed rows stay hidden in memory until their
   session reports new activity; the row's accessibility actions include **Remove from list**.
+- [Decision 0032](../../decisions/0032-list-sessions-like-the-reference.md): a session waiting for an approval or answer
+  is always listed. Otherwise an ended session leaves the list at once; an idle or unknown session stays out until its
+  first accepted prompt; and any session quiet longer than **Clear quiet sessions after** (7 days by default) leaves,
+  whatever its state. Tracking is unchanged, so a hidden session returns when it qualifies again.
 
 The **Done when** checks above still apply. Hover-open and notification-open are additions; neither takes keyboard focus.
 

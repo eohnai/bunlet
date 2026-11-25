@@ -158,9 +158,9 @@ final class BunletSettings {
         refreshLaunchAtLogin()
     }
 
-    /// Sessions the island lists, after Sessions → idle clean-up.
+    /// Sessions the island lists: decision 0032's rules with the Sessions clean-up limit, minus rows the user removed.
     func visibleSessions(_ sessions: [SessionSnapshot], nowMs: Int64 = Int64(Date().timeIntervalSince1970 * 1_000)) -> [SessionSnapshot] {
-        NotchPresentation.withoutRemoved(NotchPresentation.withoutStale(sessions, limitMinutes: sessionCleanupMinutes, nowMs: nowMs),
+        NotchPresentation.withoutRemoved(NotchPresentation.listed(sessions, limitMinutes: sessionCleanupMinutes, nowMs: nowMs),
                                          removed: removedSessions)
     }
 

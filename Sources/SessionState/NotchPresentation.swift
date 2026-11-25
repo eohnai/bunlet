@@ -81,12 +81,20 @@ public enum NotchPresentation {
             .map { $0.key.agent })
     }
 
-    /// Hides idle and ended sessions that have been quiet longer than the limit. Sessions that need
-    /// attention, are working, or have no receipt time always stay listed.
-    public static func withoutStale(_ sessions: [SessionSnapshot], limitMinutes: Int, nowMs: Int64) -> [SessionSnapshot] {
+    /// Which sessions the island lists (decision 0032, following the reference island). A session waiting for an
+    /// approval or an answer always stays. Otherwise a session leaves once it has ended, while it is idle or unknown
+    /// without ever having had an accepted prompt, or once it has been quiet longer than the limit in any state.
+    /// Sessions with no receipt time are never aged out.
+    public static func listed(_ sessions: [SessionSnapshot], limitMinutes: Int, nowMs: Int64) -> [SessionSnapshot] {
         let limitMs = Int64(limitMinutes) * 60_000
         return sessions.filter { session in
-            guard session.status == .idle || session.status == .ended, let receipt = session.receiptWallMs else { return true }
+            if session.status == .questionNeeded || session.status == .approvalNeeded || !session.pendingRequests.isEmpty {
+                return true
+            }
+            if session.status == .ended { return false }
+            // The accepted submit, not its preview text, marks a prompt: an empty preview must not hide a session.
+            if session.turnStartedAtMs == nil, session.status == .idle || session.status == .unknown { return false }
+            guard let receipt = session.receiptWallMs else { return true }
             return nowMs - receipt <= limitMs
         }
     }
