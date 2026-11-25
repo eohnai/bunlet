@@ -7,7 +7,6 @@ import Usage
 struct NotchAllowanceStrip: View {
     let store: UsageStore
     let activeProviders: Set<Agent>
-    var todayTokenLabel: String? = nil
     /// Settings choose between percent left (the default, D6) and percent used.
     var showsUsed = false
     @State private var hovered: Agent?
@@ -15,9 +14,7 @@ struct NotchAllowanceStrip: View {
     var body: some View {
         // The parent creates this view only while expanded. With no providers,
         // there is no allowance to age and no countdown to schedule.
-        if activeProviders.isEmpty {
-            fittingRow([], nowMs: 0)
-        } else {
+        if !activeProviders.isEmpty {
             TimelineView(.periodic(from: .now, by: 30)) { context in
                 let nowMs = Int64(context.date.timeIntervalSince1970 * 1_000)
                 let snapshots = store.snapshots(activeProviders: activeProviders, nowMs: nowMs)
@@ -45,11 +42,6 @@ struct NotchAllowanceStrip: View {
                         .accessibilityHidden(true)
                 }
                 cell(entry, nowMs: nowMs, compact: compact)
-            }
-            if let todayTokenLabel {
-                IslandChip(text: compact ? todayTokenLabel : "\(todayTokenLabel) today", size: 11, monospaced: true)
-                    .help("Claude Code tokens today")
-                    .accessibilityLabel("\(todayTokenLabel) Claude Code tokens today")
             }
         }
     }

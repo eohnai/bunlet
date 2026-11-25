@@ -135,7 +135,7 @@ struct NotchSessionView: View {
 
     private var listMaxHeight: CGFloat { max(0, windowState.panelMaxHeight - headerHeight - 1) }
 
-    /// Sits beside the physical notch: limits on the left, panel actions on the right.
+    /// Sits beside the physical notch: limits on the left; today's tokens and panel actions on the right.
     private var usageRow: some View {
         let inset: CGFloat = 18
         let contentWidth = max(0, windowState.panelWidth - 2 * inset)
@@ -145,7 +145,7 @@ struct NotchSessionView: View {
             Group {
                 if expanded && isVisible && !isSleeping {
                     NotchAllowanceStrip(store: usageStore, activeProviders: shownLimitProviders,
-                                        todayTokenLabel: todayTokenLabel, showsUsed: settings?.usageValue == .used)
+                                        showsUsed: settings?.usageValue == .used)
                 }
             }
             .padding(.trailing, windowState.hasNotch ? 6 : 0)
@@ -156,6 +156,12 @@ struct NotchSessionView: View {
                 if windowState.hasKeyboardFocus {
                     Button("Done", action: endInput).buttonStyle(.plain)
                         .font(.system(size: 12, weight: .medium)).foregroundStyle(IslandPalette.mutedText)
+                }
+                // Tokens sit with the panel actions so the left side holds only quota.
+                if expanded && isVisible && !isSleeping, let today = todayTokenLabel {
+                    IslandChip(text: "\(today) today", size: 11, monospaced: true)
+                        .help("Claude Code tokens today")
+                        .accessibilityLabel("\(today) Claude Code tokens today")
                 }
                 if let settings, !sessions.isEmpty {
                     IslandIconButton(systemImage: "xmark.bin", label: "Clear all sessions") {
