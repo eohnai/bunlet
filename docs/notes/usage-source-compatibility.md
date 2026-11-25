@@ -1,6 +1,6 @@
 # Provider usage-source compatibility
 
-Checked on 2026-10-22 for task 2 in the [specification](../specs/notch-companion.md).
+Checked on 2026-10-22. The [Codex](../specs/usage/codex-allowance.md) and [Claude](../specs/usage/claude-allowance.md) allowance specs are built on these findings.
 
 Codex returned account usage through its installed App Server without starting a thread or turn.
 Claude Code supports the documented status-line fields, but this investigation did not obtain a live quota payload.
@@ -196,34 +196,3 @@ The Codex account identifier is deliberately fictional.
   "claude_zero": {"rate_limits": {"five_hour": {"used_percentage": 0, "resets_at": 1792670400}}}
 }
 ```
-
-## Verification and retained evidence
-
-Temporary evidence is in `/private/tmp/notch-pet-usage-20261022`.
-It includes probe scripts, generated schemas, configuration fingerprints, and sanitized result summaries.
-It is disposable and may disappear. This note is the durable findings record.
-
-Successful commands:
-
-```bash
-codex --version
-claude --version
-codex app-server generate-json-schema --experimental --out /private/tmp/notch-pet-usage-20261022/schema
-python3 /private/tmp/notch-pet-usage-20261022/probe-usage.py claude
-python3 /private/tmp/notch-pet-usage-20261022/probe-usage.py managed
-python3 /private/tmp/notch-pet-usage-20261022/probe-usage.py signed-out
-python3 /private/tmp/notch-pet-usage-20261022/probe-usage.py api-key
-python3 /private/tmp/notch-pet-usage-20261022/verify-results.py
-```
-
-The managed Codex and Claude checks required normal macOS access outside the sandbox.
-The first Claude check incorrectly reported signed out inside the sandbox; the approved retry reported Pro.
-The first managed Codex attempt ended with a broken pipe after startup exited.
-A diagnostic reproduction found denied SQLite initialization; the approved retry initialized and completed both reads.
-The probe initially labeled the fictional API-key rejection as signed out.
-Its corrected classifier distinguishes a ChatGPT-authentication requirement from absent authentication.
-
-Verification checks real probe summaries, configuration fingerprints, installed field support, and the fictional fragments.
-Codex fragments validate against the installed generated schemas.
-Claude fragments cover present, absent, and zero-percent values; zero must not mean missing.
-These checks do not verify a production adapter, forwarding wrapper, live Claude quota, or every account mode.

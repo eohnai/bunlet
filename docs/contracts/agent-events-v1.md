@@ -1,11 +1,9 @@
 # Agent event contract, version 1
 
-Status: accepted for the first bridge and shared-store implementations, 2026-10-22.
-See [decision 0008](../decisions/0008-define-event-ordering.md).
+Accepted with [decision 0008](../decisions/0008-define-event-ordering.md).
 
 When Claude requests command approval, the app must identify the session and distinguish that request from an old message.
 This contract defines the helper's message and the receiver's handling rules.
-It does not establish that the bridge, adapters, or shared store already work.
 
 ## Scope and boundaries
 

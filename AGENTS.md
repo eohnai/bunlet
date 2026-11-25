@@ -1,7 +1,8 @@
 # Project instructions
 
 - Read `docs/STATUS.md` before working on this project.
-- Read the active specification and relevant decision records before changing code.
+- Find the relevant spec in `docs/specs/README.md` and read it with its decision records before changing code.
+- Docs describe the present (decision 0033). When behavior changes, update the spec, `docs/STATUS.md` and `docs/ARCHITECTURE.md` in place. Keep plans, verification logs and run details in commits and pull request descriptions, not in docs.
 - Read `docs/SWIFT-PRACTICES.md` before writing or reviewing Swift code.
 - Keep proposed decisions distinct from accepted decisions.
 - VoiceOver/screen-reader testing is excluded from all feature acceptance at the user's request. Keep native labels, keyboard controls, Reduce Motion and focus behavior.

@@ -1,75 +1,47 @@
-# Claude Code setup
+---
+summary: Bunlet installs, repairs and removes its Claude Code lifecycle hooks and, separately, its quota status-line wrapper.
+---
 
-Status: implementation merged in PR #16; feature acceptance remains deferred.
+# Connect Claude Code
 
-Needs: integration-health, notch/session-island
+## How it works
 
+Claude Code follows the same automatic setup as Codex: on by default, connected at launch when none of Bunlet's hooks
+are present, repaired when its owned entries drift, and picked up when the Claude desktop runtime appears later.
 
-Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
-coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
-historical results and unrun acceptance checkboxes retain their original meaning.
+**Lifecycle hooks.** Connect adds command groups to `~/.claude/settings.json`, each running the helper with
+`--agent claude`: the seven core events, `SubagentStart` and `SubagentStop`
+([0025](../../decisions/0025-adopt-more-reference-behavior.md)), and `StopFailure`
+([0030](../../decisions/0030-keep-requests-visible-and-report-failures.md)). Older owned installs gain missing groups in
+place. Other settings, other apps' hooks, trust and permissions are untouched. Bunlet never sets `disableAllHooks` or
+`allowManagedHooksOnly`.
 
-## Scope and approval
+**Quota forwarding.** A separate operation wraps the existing `statusLine` command with `NotchPetStatusLine`, which
+forwards quota readings and still runs the original command with its output. Bunlet stores the original value
+privately and restores it on removal. If another app replaces the wrapper, Settings shows **Replaced outside Bunlet**.
+Connect wraps the new value and Remove clears only Bunlet's record
+([0031](../../decisions/0031-recover-a-replaced-claude-status-line.md)).
 
-The full MVP task list authorizes source implementation of Claude setup, independent monitoring,
-quota wrapping and removal. This fulfills the Claude portion of source I4/I5/I6 without migrating
-or ticking their historical verification tasks. Local checks and feature-specific native/provider qualification remain NOT RUN; hosted evidence is recorded above.
+Lifecycle hooks, quota forwarding and local-response hooks share one writer lock and recover pending journals before
+any change. Disconnect pauses intake first, then removes response hooks, quota wrapping and lifecycle hooks. A partial
+failure stays paused and says what already happened.
 
-## Contract
+## Requirements
 
-The user approved setup progress and duplicate-probe removal on 2026-11-14.
-The shared setup service returns the saved-file inspection with the transaction result.
-Settings shows checking, saving and verification stages, plus the final message, beside each provider.
-The post-save inspection reuses only that operation's version/policy evidence.
-Configuration, helper and ownership evidence is read again. Explicit Check remains a fresh probe.
+- Edited, missing or duplicated owned entries conflict and are not rebuilt over the user's edits.
+- Remove works from the ownership record even if the CLI or old helper is gone. A moved app may need Remove, then Connect.
+- Setup never adopts an unowned entry that only looks like Bunlet's.
+- Any Claude Code version connects. Version 2.1.306 is recorded as tested.
 
-- [x] Verify post-save inspection rereads changed/malformed configuration without repeating CLI/policy
-  probes, preserves configuration bytes, and keeps explicit Check fresh with `ProviderSetupServiceTests`.
+## Open work
 
-Verification, 2026-11-14: all 207 tests passed with
-`env DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path /private/tmp/bunlet-notch-hooks-xcode`.
-The new test uses fictional Codex version/policy evidence to exercise the shared inspection path.
-It does not qualify live Claude/Codex installation, reinstall, removal or cancellation.
-The earlier full-transaction fixture hit existing path/metadata restrictions. See `docs/STATUS.md`.
+- Check install, repeat install, interruption recovery and conflicts against a disposable real Claude Code setup.
+- Check workspace trust and event coverage, including `StopFailure` and subagent payloads, in a real session.
+- Check status-line output, cancellation and restoration in a disposable setup.
 
-Use [provider setup](../../contracts/provider-setup.md) and the existing descriptor-relative ownership
-transaction. Lifecycle Connect adds separate command groups to settings.json, each invoking
-the bounded observer as `--agent claude`: the seven core events, `SubagentStart` and `SubagentStop` (decision 0025),
-and `StopFailure` (decision 0030). Owned installations from an earlier event set gain the missing groups in place. Other settings, Otty hooks, trust and permissions stay intact.
-Check reports version, shape, bundled helper, owned entries, policy, receiver and observed delivery
-separately. The documented 2.1.306 binding is unverified; user settings do not establish effective
-project/managed policy. Never set disableAllHooks/allowManagedHooksOnly or change policy automatically.
+## Decisions
 
-Repair recovers known journal states and reinstalls unchanged owned configuration idempotently.
-Edited/missing/duplicated owned entries conflict rather than being reconstructed over a user's edits.
-Remove works from exact ownership when the CLI or old helper has disappeared. A moved app may need
-Remove then Connect at its new location; setup never adopts an unowned lookalike.
-
-Quota setup is a separate statusLine operation. It wraps the original shell command, preserves field
-members and stores the exact original value privately for restoration. Absent original status lines
-use silent forwarding. The original value is restored only while the complete owned field matches.
-Lifecycle, quota and local-action scopes share a writer lock and recover known pending journals
-before changing settings. Disconnect pauses intake and disables responses first, then removes owned
-local-action hooks, quota wrapping and lifecycle hooks. A
-partial failure leaves monitoring paused and reports what already happened.
-
-## Source implementation
-
-- CL1: documented release/policy, timeout/limits, ownership/recovery and removal contract above.
-- CL2: `HookSetupPlanner` now accepts typed Claude input and preserves unrelated JSON bytes.
-- CL3: `ProviderSetupService` → `ProviderHookTransaction` → `HookFileDirectory` guarded installation.
-- CL4: scoped exact removal/journal recovery without provider execution or trust grants.
-- CL5: `ProviderSetupController`/`ProviderSetupView`, app-owned controllers and both menu submenus.
-- Separate quota planner: `ClaudeStatusLinePlanner`, with its own ownership and pending record names.
-
-These are source findings. Hosted CI establishes compilation, packaging and the existing suite result. Installed configuration,
-hook execution, terminal output/cancellation, native focus and real Claude session results remain unverified.
-
-## Deferred acceptance
-
-- [ ] Confirm guarded install, unchanged reinstall, interruption recovery and conflict preservation.
-- [ ] Confirm normal workspace trust and event coverage with a real supported Claude session.
-- [ ] Confirm exact status-line I/O, cancellation, exit and owned restoration in a disposable setup.
-- [ ] Confirm both providers can pause/resume/disconnect independently with retained notices.
-
-No acceptance command was run. Original I4/I5/I6 checks remain with the source specification.
+[Provider setup contract](../../contracts/provider-setup.md),
+[0024](../../decisions/0024-repair-hooks-and-connect-quota-at-launch.md),
+[0029](../../decisions/0029-automate-desktop-agent-setup.md),
+[0031](../../decisions/0031-recover-a-replaced-claude-status-line.md).
