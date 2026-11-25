@@ -370,8 +370,8 @@ read the same day. None of this is accepted behavior; each candidate needs a dec
 Bunlet today: each badge shows the window, percent left, reset countdown and a stale marker, and missing data reads
 "5h unavailable". Badges appear only for providers with a session that is neither Unknown nor Ended. The token chip sits
 on the left with the badges. The branch `fix/usage-badges-beside-notch` gives each side of the notch a fixed width
-and switches to a shorter form when the full labels do not fit. **Candidate:** move the token chip to the right-hand
-action group, as the reference does, so the left side holds only quota.
+and switches to a shorter form when the full labels do not fit. Moving the token chip to the right-hand action group,
+as the reference does, so the left side holds only quota, was approved by the user later the same day and added to that branch.
 
 ### Claude quota delivery
 

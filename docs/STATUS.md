@@ -23,8 +23,9 @@ A comparison with the reference island on 2026-11-25 is recorded in
 2. Diagnose Claude quota delivery: **Settings → Agents → Advanced → Setup → Claude Code → Usage forwarding → Check quota**.
    It should report a conflict or missing forwarding (see Blockers). Decide how Bunlet should treat another app's
    status-line wrapper.
-3. Decide: whether old Unknown rows leave the list (keeping any outstanding request), whether the token chip moves to
-   the right-hand buttons, and how to count Claude tokens without transcripts (needs a decision record against 0019).
+3. Decide: whether old Unknown rows leave the list (keeping any outstanding request), and how to count Claude tokens
+   without transcripts (needs a decision record against 0019). The user approved moving the token chip to the
+   right-hand buttons on 2026-11-25; it is part of the quota-badge PR.
 4. Verify desktop alerts and return navigation as described in the [desktop spec](specs/sessions/desktop-coding-sessions.md).
 5. When separately authorized, check the deferred Settings, fullscreen and shortcut interactions on screen.
 6. Decide whether to update the superseded pet and feature-management specs.
