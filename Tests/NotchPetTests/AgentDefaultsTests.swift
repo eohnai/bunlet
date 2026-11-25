@@ -33,7 +33,8 @@ struct AgentDefaultsTests {
 
 @MainActor
 struct AutoConnectRulesTests {
-    @Test(arguments: [(OwnedProviderHooks.notOwned, true), (.owned, true), (.conflict, false), (.recoveryRequired, false)])
+    @Test(arguments: [(OwnedProviderHooks.notOwned, true), (.owned, true), (.conflict, false), (.recoveryRequired, false),
+                            (.replacedOutside, false)])
     func onlyCleanStatesConnectAutomatically(state: OwnedProviderHooks, expected: Bool) {
         #expect(ProviderSetupController.canConnectAutomatically(state) == expected)
     }

@@ -129,10 +129,11 @@ final class ProviderSetupController {
         }
     }
 
+    /// A replacement outside Bunlet counts as a removal by hand, which launch repair must not undo (decision 0024).
     static func canConnectAutomatically(_ ownership: OwnedProviderHooks) -> Bool {
         switch ownership {
         case .notOwned, .owned: true
-        default: false
+        case .conflict, .recoveryRequired, .replacedOutside: false
         }
     }
 
@@ -310,6 +311,8 @@ final class ProviderSetupController {
             return "A saved operation needs recovery. Finish other configuration edits, then explicitly retry Connect or Remove hooks. Conflicting states require manual reconciliation."
         case .conflict:
             return "Hook ownership or configuration conflicts with the saved record. Leave the files in place for manual reconciliation."
+        case .replacedOutside:
+            return "Another app or an edit replaced Bunlet's status-line forwarding. Connect wraps the current status line again and keeps its output; Remove clears Bunlet's record and leaves the status line as it is."
         case .owned:
             return "Owned entries match. Trust, receiver readiness and actual delivery remain separate evidence."
         case .notOwned:

@@ -25,8 +25,11 @@ enum ClaudeStatusLinePlanner {
             if let ownership = input.ownership {
                 let owner = try validatedOwnership(ownership, target: input.target)
                 guard owner.installationID == input.installationID else { throw HookPlanningFailure.ownershipConflict }
-                try verifyInstalled(document.data, ownership: ownership, target: input.target)
-                return .unchanged
+                // A replaced wrapper is installed again around whatever replaced it (decision 0031).
+                if !replacedOutside(configuration: input.configuration, ownership: ownership, target: input.target) {
+                    try verifyInstalled(document.data, ownership: ownership, target: input.target)
+                    return .unchanged
+                }
             }
             let original = document.rawValue(at: field)
             try rejectLookalike(original, helper: input.target.helperPath)
@@ -50,6 +53,10 @@ enum ClaudeStatusLinePlanner {
                 return .unchanged
             }
             let owner = try validatedOwnership(ownership, target: target)
+            if let configuration, replacedOutside(configuration: configuration, ownership: ownership, target: target) {
+                // Nothing of Bunlet's is left in the file, so only the record goes.
+                return .update(configuration: configuration, ownership: Data())
+            }
             try verifyInstalled(document.data, ownership: ownership, target: target)
             let candidate: Data
             if let original = owner.original { candidate = try HookGroupEdits.setting(.key("statusLine"), value: original, in: document) }
@@ -72,6 +79,17 @@ enum ClaudeStatusLinePlanner {
             throw HookPlanningFailure.ownershipConflict
         }
         return owner
+    }
+
+    /// True when a valid record's wrapper is gone and nothing that looks like Bunlet's helper took its place, which is
+    /// what happens when another app or the user rewrites `statusLine`. Without this, the stale record would block
+    /// Connect, Remove and launch repair alike.
+    static func replacedOutside(configuration: Data?, ownership: Data, target: HookSetupTarget) -> Bool {
+        guard let configuration, let document = try? HookConfigurationJSON(data: configuration),
+              let owner = try? validatedOwnership(ownership, target: target) else { return false }
+        let current = document.rawValue(at: field)
+        guard current != owner.installed else { return false }
+        return (try? rejectLookalike(current, helper: target.helperPath)) != nil
     }
 
     static func verifyInstalled(_ configuration: Data, ownership: Data, target: HookSetupTarget) throws {
