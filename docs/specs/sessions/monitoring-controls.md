@@ -1,49 +1,34 @@
-# Independent provider monitoring
+---
+summary: Each agent has its own switch that pauses or resumes monitoring without losing pending requests.
+---
 
-Status: implementation merged in PR #16; feature acceptance remains deferred.
+# Per-agent monitoring
 
-Needs: codex-setup, claude-setup
+## How it works
 
+`ProviderMonitoringModel` saves one on or off choice per agent. Turning an agent off pauses it: its live sessions lose
+confirmation, pending requests stay as unconfirmed, ended sessions are kept, and its quota reads stop at once. Events
+from a paused agent are dropped before they reach the session store. Other agents keep running.
 
-Merged evidence: [full MVP handoff](../notch-companion.md#merged-mvp-handoff-2026-11-06). Hosted build/package, existing tests and
-coverage checks passed at `ab2ae13`. This is not feature-specific native/provider acceptance;
-historical results and unrun acceptance checkboxes retain their original meaning.
+Turning an agent back on sets fresh receipt cutoffs, so queued events from before the pause or before sleep cannot
+restore a session. Resuming never implies working, completion, approval or a resolved request.
 
-## Behavior
+Disconnect pauses first, then removes owned hooks after its own confirmation. An uncertain or partial removal stays
+paused and needs an explicit Check. Opening Settings only reads state. It never runs Check, changes hooks or starts
+monitoring.
 
-The user approved source implementation in the full MVP goal. The master Agents monitoring switch
-still controls the optional runtime. `ProviderMonitoringModel` adds separate app-owned consent keys
-for Codex and Claude. Missing keys preserve an existing global consent; they do not establish a new
-provider connection. Explicit provider changes save booleans and fail closed on malformed/failed writes.
+## Requirements
 
-Pause withdraws confirmation from only that provider's live sessions, retains requests, and preserves
-ended sessions. It cancels Codex reads/retries or stops Claude quota receipt immediately. Lifecycle IPC
-is shared; disabled providers are filtered before delivery enters SessionStore. Other providers continue.
+- A saved choice per agent wins over the default. A failed or malformed preference write fails closed.
+- Quota intake has its own generation, so a stopped receiver's queued readings cannot leak through.
 
-Resume sets fresh monotonic receipt and wall capture cutoffs. Queued pre-pause/pre-sleep evidence cannot
-restore a session. The existing reducer still requires a valid baseline/new turn and correlation;
-resuming cannot imply working, completion, approval or request resolution. Quota receipt has an additional
-generation so stopped/restarted receiver queues cannot leak through a surviving Agents runtime.
+## Open work
 
-Disconnect pauses before owned removal, with separate confirmation. Claude restores owned quota wrapping
-then removes lifecycle groups. An uncertain/partial removal remains paused and needs explicit Check/retry.
-Uninstalling Agents stops all runtime services while leaving provider hooks/settings untouched. Reinstall
-preserves preferences but the master monitoring switch stays off until explicitly enabled.
+- Check per-agent pause and resume with concurrent sessions, and that stale evidence cannot come back.
+- Check cancellation, queued delivery, sleep and clock boundaries, and failed preference writes.
+- Check Disconnect with a missing CLI, partial removal, conflicts and journal recovery.
 
-Settings and menu controls call the same models/controllers. Opening Settings reads snapshots; it does
-not run Check, alter hooks, start provider processes or enable monitoring. Notch/Pet are optional surfaces.
+## Decisions
 
-## Source
-
-`ProviderMonitoringModel.setEnabled` → `PetAppController` → `AgentServices.setEnabledProviders` →
-provider filter/cutoffs + `SessionStore.suspendMonitoring(agent:)` + cancellable provider quota work.
-`ProviderSetupController.start(.disconnect)` pauses first and uses the scoped ownership service.
-
-## Deferred acceptance
-
-- [ ] Real per-provider pause/resume and fresh-evidence restoration with concurrent sessions.
-- [ ] Cancellation, queued delivery, sleep/clock boundaries and preference failure behavior.
-- [ ] Disconnect with missing CLI, partial removals, conflicts and journal recovery.
-
-No local checks or feature-specific native/provider qualification were run; hosted evidence is recorded above. These checks remain open; source implementation
-does not replace the original shared I5/I6 or native feature acceptance requirements.
+[0023](../../decisions/0023-connect-agents-automatically.md),
+[0029](../../decisions/0029-automate-desktop-agent-setup.md).

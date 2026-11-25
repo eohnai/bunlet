@@ -1,7 +1,5 @@
 # Reference island UI
 
-Date: 2026-11-12
-
 This note makes the reference island's visible UI reproducible without the installed app.
 It supports [decision 0017](../decisions/0017-match-reference-island-ui.md): Bunlet matches the reference's look while keeping its own behavior.
 For the reference's architecture and provider behavior, see [reference adoption](reference-adoption.md).
@@ -161,13 +159,14 @@ All cards use the card border/fill from the palette. Headers are 5×8 padding wi
 | Prompt and activity lines | Short previews per [0019](../decisions/0019-show-prompt-and-reply-previews.md); activity shows the last reply |
 | Elapsed chip | Bunlet's observed prompt-turn timer; unknown shows no timer |
 | Status word | Unknown/ended states keep a visible word; the reference has no unknown phase |
-| Session order and visibility | Bunlet's rules: confirmed requests first; ended and unknown stay visible |
-| Approval/question buttons | Only for verified local channels (Claude); otherwise the card shows "Jump to terminal" guidance |
-| Always allow, plan confirmation | Omitted until a verified channel exists |
-| Follow-up | Claude Stop-hook reply window only; never typed into a terminal |
-| Subagents, remote badge, token totals, update tag, sound, SSH/cloud status | Omitted (no Bunlet data) |
-| Shortcuts | Esc collapses; other global shortcuts are separate work |
-| Drag pill down to detach pet | Same 50-point threshold when Pet is installed; the pet follows the pointer and the island hides. Releasing over the pill docks it: the pet window hides and the island returns. Show Pet brings it back to its last desktop spot. Without Notch the pet always stays on the desktop |
+| Session order and visibility | Confirmed requests first. Listing follows the reference's rules ([0032](../decisions/0032-list-sessions-like-the-reference.md)), but waiting requests are never removed |
+| Approval/question buttons | Only for verified local channels: Claude, and Codex when **Approve in** is Bunlet. Otherwise the card shows "Jump to terminal" guidance |
+| Always allow | Shown when Claude sends permission suggestions. Plan confirmation is omitted |
+| Follow-up | Claude's Stop-hook reply window first, then typed only into an Otty or tmux pane ([0025](../decisions/0025-adopt-more-reference-behavior.md)) |
+| Subagents, token totals | A subagent count under the session, and today's Claude tokens on the right of the top row |
+| Remote badge, update tag, sound toggle, SSH/cloud status | Omitted |
+| Shortcuts | Seven rebindable shortcuts, and Esc collapses |
+| Drag pill down to detach pet | Same 50-point threshold; the pet follows the pointer and the island hides. Releasing over the pill docks it: the pet window hides and the island returns. Show Pet brings it back to its last desktop spot. Without Notch the pet always stays on the desktop |
 | Warm-up open/close on launch | Omitted |
 
 ## Settings window

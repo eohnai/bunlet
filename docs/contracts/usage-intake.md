@@ -1,7 +1,6 @@
 # Local quota intake
 
-Implementation policy selected under the user's full MVP authorization, 2026-11-06.
-This records source behavior, not runtime qualification. Existing acceptance checks stay open.
+How quota readings reach `UsageStore`, and the rules for sources, freshness and the private socket.
 
 - The app owns UsageStore, Codex refresh and the optional Claude receiver. Notch only renders.
 - The datagram ingress accepts Claude only. Its source namespace is `claude-status-v1:` followed
