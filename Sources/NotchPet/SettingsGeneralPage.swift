@@ -81,8 +81,8 @@ struct GeneralSettingsPage: View {
 
     private var sessions: some View {
         SettingsGroup(title: "Sessions") {
-            SettingsMenuRow(title: "Clear idle sessions after",
-                            subtitle: "Idle and ended sessions leave the list after this long without events",
+            SettingsMenuRow(title: "Clear quiet sessions after",
+                            subtitle: "Sessions leave the list after this long without events, unless they are waiting for you",
                             width: 140, selection: $settings.sessionCleanupMinutes,
                             options: BunletSettings.sessionCleanupChoices.map { (Self.cleanupLabel($0), $0) })
             SettingsSliderRow(title: "Maximum panel height",
