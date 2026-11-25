@@ -2,20 +2,45 @@
 
 ## Now
 
-Bunlet 0.1.3 (build 4) fixes the 0.1.2 launch crash. The **Run workflow** button (PR #38) built it and created the
-`v0.1.3` tag on `b130fe8`. The user installed it from the draft, and it launches. The release was still a draft at
-the last check. Decisions 0025–0030 are on `main` (PR #35). Their live acceptance stays deferred, as listed in Blockers.
+Bunlet 0.1.4 (build 5) is the Latest GitHub release, tagged on `9bae7f6`, the same commit as `main`. The public
+update feed serves it, and it is installed on this Mac. The user reports that desktop session tracking worked for both
+local Codex in ChatGPT and local Claude Code in Claude Desktop. Decisions 0025–0030 are on `main`; their remaining live
+acceptance is listed in Blockers.
+
+The quota badges can run under the camera notch: one screenshot showed about 527 px of content for 483 px of space.
+The approved fix is on branch `fix/usage-badges-beside-notch`, uncommitted. Each side of the notch gets a fixed width,
+and the badges switch to shorter labels when the full ones do not fit; hover keeps the full details. It compiles, and
+the full suite passed (283 tests, including a new layout test). On 2026-11-25 the user ran a development build on this
+MacBook and confirmed that the full labels (`5h unavailable | 7d 87% 3h37m`) now sit beside the notch. The short-label
+form was not seen on screen. Running that build left the Claude, Codex and Cursor hooks pointing at the installed app.
+
+A comparison with the reference island on 2026-11-25 is recorded in
+[reference adoption](notes/reference-adoption.md#usage-visibility-and-sweep-follow-up-2026-11-25), on the same branch.
 
 ## Next
 
-1. Publish the `v0.1.3` draft as Latest, so the download link and the update feed stop serving 0.1.2.
-2. In the installed 0.1.3, use **Settings → About → Check for Updates** against the hosted [feed](specs/settings/software-updates.md).
-3. Verify desktop alerts and return navigation as described in the [desktop spec](specs/sessions/desktop-coding-sessions.md).
-4. When separately authorized, check the deferred Settings, fullscreen and shortcut interactions on screen.
-5. Decide whether to update the superseded pet and feature-management specs.
+1. Review and merge the quota-badge PR.
+2. Diagnose Claude quota delivery: **Settings → Agents → Advanced → Setup → Claude Code → Usage forwarding → Check quota**.
+   It should report a conflict or missing forwarding (see Blockers). Decide how Bunlet should treat another app's
+   status-line wrapper.
+3. Decide: whether old Unknown rows leave the list (keeping any outstanding request), whether the token chip moves to
+   the right-hand buttons, and how to count Claude tokens without transcripts (needs a decision record against 0019).
+4. Verify desktop alerts and return navigation as described in the [desktop spec](specs/sessions/desktop-coding-sessions.md).
+5. When separately authorized, check the deferred Settings, fullscreen and shortcut interactions on screen.
+6. Decide whether to update the superseded pet and feature-management specs.
 
 ## Blockers
 
+- Claude quota does not arrive. Claude Code CLI shows `5h unavailable`, and after a completed reply **Last quota receipt**
+  still says **Not observed**. On 2026-11-25, `statusLine` in `~/.claude/settings.json` was another app's wrapper, and
+  Bunlet's `NotchPetStatusLine` appeared nowhere in Claude's settings, so the forwarder never runs. Why Bunlet did not
+  wrap it is unconfirmed: the planner leaves the status line alone when its ownership record no longer matches the file,
+  which happens if another app rewrites it after Bunlet. The forwarder sends a reading even when Claude omits
+  `rate_limits`, which Claude sends only to Pro, Max and Ultra subscribers, after the first response.
+- Claude token totals undercount. `TokenLedger` subtracts successive status-line `context_window` totals, but Claude
+  documents them as counts from the most recent response, not session totals. Codex token totals are not implemented.
+- Unknown sessions stay listed. `NotchPresentation.withoutStale` hides only Idle and Ended sessions, and a provider's
+  quota badge disappears when its only sessions are Unknown or Ended.
 - Bunlet 0.1.2 crashes at launch, so its users cannot reach **Check for Updates**. They must download 0.1.3 by hand.
 - The full suite fails intermittently. `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --scratch-path <fresh directory>`
   failed 2 of 282: `versionProbeBoundsItsProcessAndOutput(agent: .codex)` got `.timedOut` instead of `.nonzeroExit`
