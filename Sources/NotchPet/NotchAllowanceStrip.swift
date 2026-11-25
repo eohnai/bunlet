@@ -20,22 +20,33 @@ struct NotchAllowanceStrip: View {
                 let snapshots = store.snapshots(activeProviders: activeProviders, nowMs: nowMs)
                 let entries = NotchAllowancePresentation.entries(activeProviders: activeProviders,
                                                                   snapshots: snapshots)
-                HStack(spacing: 12) {
-                    ForEach(entries, id: \.provider) { entry in
-                        if entry.provider != entries.first?.provider {
-                            Text("|")
-                                .font(.system(size: 12))
-                                .foregroundStyle(Color(red: 224 / 255, green: 226 / 255, blue: 242 / 255).opacity(0.25))
-                                .accessibilityHidden(true)
-                        }
-                        cell(entry, nowMs: nowMs)
-                    }
-                }
+                fittingRow(entries, nowMs: nowMs)
             }
         }
     }
 
-    private func cell(_ entry: NotchAllowanceEntry, nowMs: Int64) -> some View {
+    private func fittingRow(_ entries: [NotchAllowanceEntry], nowMs: Int64) -> some View {
+        ViewThatFits(in: .horizontal) {
+            row(entries, nowMs: nowMs, compact: false)
+            row(entries, nowMs: nowMs, compact: true)
+        }
+    }
+
+    private func row(_ entries: [NotchAllowanceEntry], nowMs: Int64, compact: Bool) -> some View {
+        HStack(spacing: compact ? 6 : 12) {
+            ForEach(entries, id: \.provider) { entry in
+                if entry.provider != entries.first?.provider {
+                    Text("|")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color(red: 224 / 255, green: 226 / 255, blue: 242 / 255).opacity(0.25))
+                        .accessibilityHidden(true)
+                }
+                cell(entry, nowMs: nowMs, compact: compact)
+            }
+        }
+    }
+
+    private func cell(_ entry: NotchAllowanceEntry, nowMs: Int64, compact: Bool) -> some View {
         let name = entry.provider.displayName
         let countdown = NotchAllowancePresentation.countdownText(for: entry.window, at: nowMs)
         let spoken = entry.percentLeft.map {
@@ -49,17 +60,17 @@ struct NotchAllowanceStrip: View {
                 if let percentLeft = entry.percentLeft {
                     Text(entry.windowLabel)
                     Text("\(showsUsed ? 100 - percentLeft : percentLeft)%").foregroundStyle(color(entry.color))
-                    Text(countdown)
+                    if !compact { Text(countdown) }
                 } else {
                     // Missing data must not look like zero remaining.
-                    Text("\(entry.windowLabel) unavailable")
+                    Text(compact ? "—" : "\(entry.windowLabel) unavailable")
                 }
             }
             .font(.system(size: 12, weight: .medium))
             .kerning(-0.2)
             .monospacedDigit()
             .foregroundStyle(.white.opacity(0.7))
-            if entry.source?.isStale == true {
+            if !compact, entry.source?.isStale == true {
                 Text("stale").font(.system(size: 12)).foregroundStyle(IslandPalette.mutedText)
             }
             if needsWarning(entry) {

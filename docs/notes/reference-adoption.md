@@ -342,6 +342,100 @@ the sign-in providers and cloud agents (plan confirmation exists only for one of
 and the forced-update dialog (Bunlet uses Sparkle). Remote SSH profiles, host discovery and remote hook deployment remain
 optional future work, as recorded under [Existing choices to retain](#existing-choices-to-retain).
 
+## Usage, visibility and sweep follow-up, 2026-11-25
+
+The installed app is still version `0.1.25` with the same archive SHA-256 recorded above. Selected entries were extracted
+with REA 6.10.1 into a session scratch directory outside this repository: `out/main/index.js`,
+`out/renderer/assets/IslandPanel-DSRHjja3.js` and its stylesheet `IslandPanel-CgVhWn8Q.css`. No app launch, configuration
+or credential read, or code reuse occurred. Everything below is packaged-source observation unless marked otherwise.
+Claude Code's field meanings come from its [status-line documentation](https://code.claude.com/docs/en/statusline),
+read the same day. None of this is accepted behavior; each candidate needs a decision.
+
+### Quota badges beside the notch
+
+- **Layout.** The usage row is a flex row with 18 px side padding. The badge group grows to fill the space
+  (`flex: 1; min-width: 0; overflow: visible`), and each badge refuses to shrink (`flex-shrink: 0`). Nothing measures
+  the notch, so enough badges would also run under it. The reference avoids that only by keeping each badge short.
+- **Badge content.** `AgentQuotaCell` (`IslandPanel-DSRHjja3.js:245`) shows the provider logo and one window: the 5-hour
+  window when valid, otherwise the 7-day one. The text is the window label, the colored percent *used* and the time
+  until reset. There is no stale marker in the row. Hovering shows every valid window with its reset time.
+- **Missing data.** A badge with no valid window shows only the logo, with no text. A Codex badge with no valid window
+  is not shown at all (`AgentUsageRow`, line 286). The reference never shows an "unavailable" label.
+- **Colors.** Percent used: red from 80, yellow from 50, green below (`usagePctColor`, line 240).
+- **Which providers.** A badge appears whenever the quota service holds data for that provider and its switch is on
+  (`claudeSubscription`, `codexSubscription`, both on by default). It does not depend on that provider having a live session.
+- **Token count.** Today's token total sits in the right-hand action group with a fire icon. Clicking it opens the
+  Statistics settings tab (line 407). It does not share space with the quota badges.
+
+Bunlet today: each badge shows the window, percent left, reset countdown and a stale marker, and missing data reads
+"5h unavailable". Badges appear only for providers with a session that is neither Unknown nor Ended. The token chip sits
+on the left with the badges. The branch `fix/usage-badges-beside-notch` gives each side of the notch a fixed width
+and switches to a shorter form when the full labels do not fit. Moving the token chip to the right-hand action group,
+as the reference does, so the left side holds only quota, was approved by the user later the same day and added to that branch.
+
+### Claude quota delivery
+
+- The reference replaces Claude's `statusLine` command with a generated bash script (`buildStatusLineScript`,
+  `out/main/index.js:41429`). The script extracts `.rate_limits` with `jq`, writes it to a cache file, then pipes the
+  same input to the user's original command.
+- `loadClaudeQuota` (line 47104) reads that cache file and uses its modification time as the capture time. It returns
+  nothing when neither `five_hour` nor `seven_day` is present, so no Claude badge appears until a reading exists.
+  It accepts `used_percentage`, then `utilization`, and clamps the value to 0–100.
+- Claude's documentation names only `used_percentage` (0–100) and `resets_at` (Unix seconds). `rate_limits` appears only
+  for Pro, Max and Ultra subscribers, or behind a gateway that sets a spend limit, and only after the session's first
+  API response. Each window can be absent on its own.
+
+Bunlet's `ClaudeUsageProvider` reads the documented fields. When the windows are absent it still sends a reading marked
+awaiting source, so **Last quota receipt → Not observed** means the forwarder was not run or did not deliver; the parser
+is not the cause. ^[inferred from source; live delivery unverified]
+
+### Token counting
+
+- The reference counts tokens from transcripts. `collectTokenUsage` (line 30443) reads per-message usage from Claude
+  transcripts and from Codex, Cursor and OpenCode session data. `applyBaselineDiff` (line 30908) keeps a per-session
+  running total and records only the increase. Repeated reports from one session within 3 seconds are skipped.
+- `StatsService` (line 30665) stores input, output, cache-read and cache-creation tokens separately and adds them up
+  for today or the last 7 days.
+- Claude's documentation says `context_window.total_input_tokens` and `total_output_tokens` are counts "from the most
+  recent API response", not session totals. `current_usage` is the last call's breakdown and is null before the first
+  response and after `/compact`. The `cost.*` fields are the session-cumulative ones.
+
+Bunlet's `TokenLedger` subtracts successive `context_window` totals as if they were cumulative, which undercounts.
+Reading transcripts would conflict with [0019](../decisions/0019-show-prompt-and-reply-previews.md)'s rule against
+transcript reading. **Candidate, not designed:** count each call's `current_usage` once, ignoring repeated status-line
+deliveries of the same call.
+
+### Session visibility
+
+- `isVisibleInIsland` (`IslandPanel-DSRHjja3.js:6`) shows a session waiting for approval or an answer. Otherwise it hides
+  child sessions and hook-tracked sessions that have ended, and shows a hook-tracked Claude or Codex session only once it
+  has a user prompt. The reference has no Unknown state.
+- A periodic sweep (`out/main/index.js:60900`) deletes sessions that fail that filter, then deletes any session whose
+  last update is older than `idleAutoCollapseMsecs`, 7 days by default (line 25320), whatever its phase.
+
+Bunlet's `NotchPresentation.withoutStale` hides only Idle and Ended sessions past the cleanup limit, so Unknown rows stay
+until the user removes them. **Candidate** (raised in the 2026-11-25 handoff, undecided): apply the cleanup limit to
+Unknown rows too, while keeping any row that holds an outstanding approval or question.
+
+### Status of the 2026-11-24 sweep
+
+[Decision 0030](../decisions/0030-keep-requests-visible-and-report-failures.md) adopted these items, and they are on `main`:
+
+- Removing one session, and **Clear all**.
+- A Claude failed-turn report, with its own **Task fails** sound.
+- A completion no longer opens the island while another session waits for a request.
+- Per-session focus suppression.
+
+These remain without a decision:
+
+- A status hint in the island when a connection breaks.
+- Replaceable sound files.
+- A first-launch welcome.
+- A debug window that plays test scenarios.
+- Interface language.
+
+Not checked: whether a user interrupt reaches Bunlet as a completion. The reference skips opening the island for one.
+
 ## Planning outcome
 
 The spec retains the user's existing single-spec layout and completed foundation tasks.
