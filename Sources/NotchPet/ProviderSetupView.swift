@@ -252,6 +252,7 @@ struct ProviderSetupView: View {
         case .owned: "Entries match"
         case .conflict: "Conflict"
         case .recoveryRequired: "Recovery needed"
+        case .replacedOutside: "Replaced outside Bunlet"
         }
     }
 }

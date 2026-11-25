@@ -16,7 +16,8 @@ public struct CodexHookQualification: Sendable {
 }
 
 public enum OwnedProviderHooks: Equatable, Sendable {
-    case notOwned, owned, conflict, recoveryRequired
+    /// `replacedOutside`: Bunlet's record is valid, but another app or the user replaced its entry (decision 0031).
+    case notOwned, owned, conflict, recoveryRequired, replacedOutside
 }
 
 public struct ProviderSetupInspection: Sendable {
@@ -214,6 +215,10 @@ public struct ProviderSetupService: Sendable {
             let target = HookSetupTarget(configurationPath: context.configurationDirectory.appendingPathComponent(name).path,
                 parentDevice: configuration.device, parentInode: configuration.inode, helperPath: record.target.helperPath)
             guard let hooks = hooks.data else { return .conflict }
+            if context.scope == .claudeQuota, record.target.helperPath == context.helperURL.path,
+               ClaudeStatusLinePlanner.replacedOutside(configuration: hooks, ownership: owner, target: target) {
+                return .replacedOutside
+            }
             try ProviderSetupPlanners.verifyInstalled(hooks, ownership: owner, target: target, agent: context.agent,
                                                       scope: context.scope)
             guard record.target.helperPath == context.helperURL.path else { return .conflict }

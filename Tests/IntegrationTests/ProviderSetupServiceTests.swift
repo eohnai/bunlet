@@ -47,6 +47,83 @@ struct ProviderSetupServiceTests {
         #expect(try Data(contentsOf: configFile) == original)
     }
 
+    /// Decision 0031: a status line replaced outside Bunlet no longer leaves a stale record that blocks every action.
+    @Test func claudeQuotaRecoversWhenTheStatusLineIsReplacedOutsideBunlet() async throws {
+        let root = URL(fileURLWithPath: "/private/tmp/bunlet-quota-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false,
+                                               attributes: [.posixPermissions: 0o700])
+        defer { try? FileManager.default.removeItem(at: root) }
+        let executable = root.appendingPathComponent("claude")
+        try "#!/bin/sh\n[ \"$1\" = --version ] || exit 1\nprintf '%s\\n' '2.1.325 (Claude Code)'\n"
+            .write(to: executable, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
+        let helper = root.appendingPathComponent("NotchPetStatusLine")
+        try FileManager.default.copyItem(at: executable, to: helper)
+        let configuration = root.appendingPathComponent("configuration", isDirectory: true)
+        try FileManager.default.createDirectory(at: configuration, withIntermediateDirectories: false,
+                                               attributes: [.posixPermissions: 0o700])
+        let settings = configuration.appendingPathComponent(Agent.claude.hookConfigurationName)
+        let statusLine: (String) -> Data = { Data(#"{"theme":"dark","statusLine":{"type":"command","command":"\#($0)"}}"#.utf8) }
+        try statusLine("fictional-first-line").write(to: settings)
+        let context = ProviderSetupContext(configurationDirectory: configuration,
+            ownershipDirectory: root.appendingPathComponent("ownership"), helperURL: helper,
+            executableURL: executable, agent: .claude, scope: .claudeQuota)
+        let service = ProviderSetupService()
+        #expect(try await service.executeAndInspect(.connect, context: context).inspection.ownership == .owned)
+
+        // Another app writes its own wrapper over Bunlet's.
+        let replacement = statusLine("fictional-other-wrapper")
+        try replacement.write(to: settings)
+        #expect(await service.check(context).ownership == .replacedOutside)
+
+        // Connect wraps the replacement and keeps its command.
+        #expect(try await service.executeAndInspect(.connect, context: context).inspection.ownership == .owned)
+        let rewrapped = String(decoding: try Data(contentsOf: settings), as: UTF8.self)
+        #expect(rewrapped.contains("NotchPetStatusLine") && rewrapped.contains("fictional-other-wrapper")
+                && rewrapped.contains(#""theme":"dark""#))
+
+        // Remove after another replacement clears only Bunlet's record.
+        try replacement.write(to: settings)
+        #expect(try await service.execute(.remove, context: context) == .removed)
+        #expect(try Data(contentsOf: settings) == replacement)
+        #expect(await service.check(context).ownership == .notOwned)
+    }
+
+    @Test func claudeQuotaKeepsTreatingALookalikeReplacementAsAConflict() async throws {
+        let root = URL(fileURLWithPath: "/private/tmp/bunlet-quota-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false,
+                                               attributes: [.posixPermissions: 0o700])
+        defer { try? FileManager.default.removeItem(at: root) }
+        let executable = root.appendingPathComponent("claude")
+        try "#!/bin/sh\n[ \"$1\" = --version ] || exit 1\nprintf '%s\\n' '2.1.325 (Claude Code)'\n"
+            .write(to: executable, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
+        let helper = root.appendingPathComponent("NotchPetStatusLine")
+        try FileManager.default.copyItem(at: executable, to: helper)
+        let configuration = root.appendingPathComponent("configuration", isDirectory: true)
+        try FileManager.default.createDirectory(at: configuration, withIntermediateDirectories: false,
+                                               attributes: [.posixPermissions: 0o700])
+        let settings = configuration.appendingPathComponent(Agent.claude.hookConfigurationName)
+        try Data("{}".utf8).write(to: settings)
+        let context = ProviderSetupContext(configurationDirectory: configuration,
+            ownershipDirectory: root.appendingPathComponent("ownership"), helperURL: helper,
+            executableURL: executable, agent: .claude, scope: .claudeQuota)
+        let service = ProviderSetupService()
+        #expect(try await service.executeAndInspect(.connect, context: context).inspection.ownership == .owned)
+
+        // An edited copy of Bunlet's own wrapper is not a replacement Bunlet may adopt or discard.
+        let edited = Data(#"{"statusLine":{"type":"command","command":"/elsewhere/NotchPetStatusLine --edited"}}"#.utf8)
+        try edited.write(to: settings)
+        #expect(await service.check(context).ownership == .conflict)
+        await #expect(throws: ProviderSetupFailure.ownershipConflict) {
+            try await service.execute(.connect, context: context)
+        }
+        await #expect(throws: ProviderSetupFailure.ownershipConflict) {
+            try await service.execute(.remove, context: context)
+        }
+        #expect(try Data(contentsOf: settings) == edited)
+    }
+
     @Test func postSaveVerificationReadsChangedFilesWithoutRepeatingCLIOrPolicyProbe() async throws {
         // Foundation standardizes /private/tmp to /tmp, which the path guard rejects as a symlink.
         let directory = URL(fileURLWithPath: "/Users/Shared", isDirectory: true)
