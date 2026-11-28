@@ -44,8 +44,9 @@ coverage, read test results and compute the Required result. Build archives are 
   formatting and selected SwiftLint rules ([0015](../../decisions/0015-adopt-swift-format-and-selected-swiftlint-rules.md)),
   coverage thresholds, an Intel and multi-version matrix, sanitizers and repeated tests, secret and dependency scanning,
   automated app startup checks, and merge gates.
-- Two tests fail intermittently when the suite runs in parallel: `versionProbeBoundsItsProcessAndOutput(agent: .codex)`
-  and `waitsForDesktopRuntimeAndHonorsPause(.claude, pauseBeforeInstall: true)`.
+- Three tests fail intermittently when the suite runs in parallel on a busy machine, and pass alone:
+  `versionProbeBoundsItsProcessAndOutput(agent: .codex)`, `waitsForDesktopRuntimeAndHonorsPause` (seen with `.claude`
+  and `.codex`, `pauseBeforeInstall: true`) and `connectsAndRemovesHooksFromCleanDesktopConfiguration(agent: .claude)`.
 
 ## Decisions
 

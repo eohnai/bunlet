@@ -16,7 +16,7 @@ public enum IslandPhase: Equatable, Sendable {
 
 /// Island sizes and timings (decision 0017).
 public enum IslandMetrics {
-    public static let windowWidth: CGFloat = 740
+    public static let windowWidth: CGFloat = 760
     public static let windowHeight: CGFloat = 750
     public static let closedTopRadius: CGFloat = 8
     public static let closedBottomRadius: CGFloat = 10
@@ -121,7 +121,7 @@ public enum IslandGeometry {
     }
 
     public static func panelBodyWidth(screenWidth: CGFloat, windowWidth: CGFloat) -> CGFloat {
-        let desired = screenWidth > 0 ? max(680, min(740, screenWidth * 0.46)) : 680
+        let desired = screenWidth > 0 ? max(700, min(760, screenWidth * 0.46)) : 700
         return min(desired, maxBodyWidth(top: IslandMetrics.openTopRadius,
                                          bottom: IslandMetrics.openBottomRadius, windowWidth: windowWidth))
     }

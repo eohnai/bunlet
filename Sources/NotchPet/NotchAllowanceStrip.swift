@@ -33,7 +33,7 @@ struct NotchAllowanceStrip: View {
     }
 
     private func row(_ entries: [NotchAllowanceEntry], nowMs: Int64, compact: Bool) -> some View {
-        HStack(spacing: compact ? 6 : 12) {
+        HStack(spacing: 6) {
             ForEach(entries, id: \.provider) { entry in
                 if entry.provider != entries.first?.provider {
                     Text("|")
