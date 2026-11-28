@@ -98,17 +98,28 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
                     }
                 }
             }.store(in: &subscriptions)
-        globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseUp]) { [weak self] event in
+        // Presses in other apps reach only the global monitor. They include presses on the island's transparent corners,
+        // which pass through to the window below.
+        globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(
+            matching: [.mouseMoved, .leftMouseUp, .leftMouseDown, .rightMouseDown, .otherMouseDown]) { [weak self] event in
             MainActor.assumeIsolated {
-                if event.type == .leftMouseUp { self?.pointerDown = false }
-                self?.updateMousePassThrough()
+                guard let self else { return }
+                switch event.type {
+                case .leftMouseUp: self.pointerDown = false
+                case .leftMouseDown, .rightMouseDown, .otherMouseDown: self.pressedOutsideIfNeeded()
+                default: break
+                }
+                self.updateMousePassThrough()
             }
         }
         localMouseMonitor = NSEvent.addLocalMonitorForEvents(
-            matching: [.mouseMoved, .leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
+            matching: [.mouseMoved, .leftMouseDown, .leftMouseDragged, .leftMouseUp, .rightMouseDown]) { [weak self] event in
             let consumed = MainActor.assumeIsolated { () -> Bool in
                 guard let self else { return false }
                 switch event.type {
+                case .leftMouseDown where event.window !== self.panel, .rightMouseDown where event.window !== self.panel:
+                    // A press in Settings, the pet or the menu bar item is outside the island.
+                    self.pressedOutsideIfNeeded()
                 case .leftMouseDown where event.window === self.panel:
                     self.pointerDown = true
                     // Pressing the closed pill arms the drag-out gesture and cancels hover-open.
@@ -259,6 +270,21 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         state.hasKeyboardFocus = false
         previousApplication = nil
         updateHotKeys()
+        // The pointer may have left while a text field was being edited. Nothing else rechecks it.
+        scheduleLeaveCloseIfNeeded()
+    }
+
+    /// A text field in the island is being edited. Focus alone, as after Open Sessions, is not typing.
+    private var editingText: Bool {
+        panel.isKeyWindow && panel.firstResponder is NSText
+    }
+
+    private func pressedOutsideIfNeeded() {
+        let inside = panel.isVisible && islandContains(NSEvent.mouseLocation)
+        guard !hiddenForPet, IslandDismissal.closesOnPress(expanded: state.expanded, pressInsideIsland: inside) else { return }
+        // The press already moves focus to what was clicked, so focus must not go back to the previous app.
+        endInput(restore: false)
+        setExpanded(false)
     }
 
     private func recover() {
@@ -464,13 +490,24 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
                 }
                 self.setExpanded(true)
             }
-        } else if state.expanded, !state.hasKeyboardFocus, settings.collapseOnMouseLeave {
-            hoverTask = Task { [weak self] in
-                try? await Task.sleep(for: IslandMetrics.leaveCloseDelay)
-                guard !Task.isCancelled, let self, !self.pointerInside, !self.state.hasKeyboardFocus else { return }
-                self.setExpanded(false)
-            }
+        } else {
+            scheduleLeaveCloseIfNeeded()
         }
+    }
+
+    private func scheduleLeaveCloseIfNeeded() {
+        guard closesOnLeave else { return }
+        hoverTask?.cancel()
+        hoverTask = Task { [weak self] in
+            try? await Task.sleep(for: IslandMetrics.leaveCloseDelay)
+            guard !Task.isCancelled, let self, self.closesOnLeave else { return }
+            self.setExpanded(false)
+        }
+    }
+
+    private var closesOnLeave: Bool {
+        IslandDismissal.closesOnLeave(expanded: state.expanded, pointerInside: pointerInside, editingText: editingText,
+                                      collapseOnLeave: settings.collapseOnMouseLeave)
     }
 
     /// New approvals, questions and completions play their sounds and, if the Behavior settings allow,
@@ -501,7 +538,7 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         if case .attention(let key) = notification, hasLocalResponse(for: key) { return }
         autoCloseTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(self?.settings.reminderSeconds ?? 5))
-            guard !Task.isCancelled, let self, !self.pointerInside, !self.state.hasKeyboardFocus else { return }
+            guard !Task.isCancelled, let self, !self.pointerInside, !self.editingText else { return }
             self.setExpanded(false)
         }
     }
@@ -513,13 +550,16 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
         } == true
     }
 
-    private func updateMousePassThrough() {
-        guard !pointerDown else { return }
-        let local = panel.convertPoint(fromScreen: NSEvent.mouseLocation)
+    private func islandContains(_ screenPoint: NSPoint) -> Bool {
+        let local = panel.convertPoint(fromScreen: screenPoint)
         // AppKit's origin is bottom-left; the shape uses a top-left origin.
         let point = CGPoint(x: local.x, y: panel.frame.height - local.y)
-        let inside = panel.isVisible && state.shape(sessions: visibleSessions)
-            .path(windowWidth: panel.frame.width).contains(point)
+        return state.shape(sessions: visibleSessions).path(windowWidth: panel.frame.width).contains(point)
+    }
+
+    private func updateMousePassThrough() {
+        guard !pointerDown else { return }
+        let inside = panel.isVisible && islandContains(NSEvent.mouseLocation)
         panel.ignoresMouseEvents = !inside
         if inside != pointerInside {
             pointerInside = inside

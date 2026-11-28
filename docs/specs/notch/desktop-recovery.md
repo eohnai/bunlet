@@ -15,8 +15,8 @@ pet returns.
 
 **Focus and keyboard.** The island, pet and Settings use native SwiftUI controls, so Tab, Space and Return work as
 usual. Only **Open Sessions** and **Respond** take focus. Incoming events never activate the app. Escape collapses the
-island and returns focus to the previous app, but only while Bunlet owns focus. **Done Editing** ends editing without
-changing the session or request.
+island and returns focus to the previous app, but only while Bunlet owns focus. A click outside the island closes it
+and leaves focus where the click put it. The island has no separate button to end editing.
 
 **Pointer and motion.** The island's transparent corners pass clicks through, following its rounded shape, and a mouse
 drag stays owned until mouse-up. The pet takes the pointer only where its artwork is opaque. Reduce Motion turns off
