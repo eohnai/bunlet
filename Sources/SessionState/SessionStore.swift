@@ -4,6 +4,7 @@ import Foundation
 import Observation
 
 /// One in-memory authority. Main-actor isolation serializes changes and publication.
+/// The latest event decides a session's state (decision 0035). There is no unknown state.
 @MainActor
 @Observable
 public final class SessionStore {
@@ -37,10 +38,8 @@ public final class SessionStore {
                            wallMs: Int64, monotonicNs: UInt64) {
         observeRuntimeClock(wallMs: wallMs, monotonicNs: monotonicNs)
         for observation in batch { recordIntake(reduce(observation)) }
-        if observationsLost {
-            deliveryOverflowed = true
-            invalidate(reason: .deliveryOverflow)
-        }
+        // Lost events leave each session in its last state until its next event corrects it.
+        if observationsLost { deliveryOverflowed = true }
         horizonNs = max(horizonNs, monotonicNs)
         publish()
     }
@@ -57,26 +56,26 @@ public final class SessionStore {
     }
 
     public func invalidateClocks() {
-        invalidate(reason: .clockOrWake)
+        forgetCaptureTimes()
         receiptClock = ClockHistory()
         runtimeClock = ClockHistory()
         horizonNs = 0
         publish()
     }
 
-    /// Retain request identities while withdrawing confirmation when monitoring stops.
+    /// Stop showing sessions that can no longer update. Paused or stopped monitoring would otherwise freeze them.
     public func suspendMonitoring(agent: Agent? = nil) {
         if let agent {
-            for (key, record) in records where key.agent == agent && !record.terminal { record.unknown(.monitoringStopped) }
+            records = records.filter { $0.key.agent != agent }
         } else {
-            invalidate(reason: .monitoringStopped)
+            records.removeAll()
         }
         publish()
     }
 
     private func recordIntake(_ result: SessionApplyResult) {
         switch result {
-        case .sessionCapacity, .identityCapacity, .requestCapacity: capacityIssue = result
+        case .sessionCapacity, .requestCapacity: capacityIssue = result
         default: break
         }
     }
@@ -91,7 +90,7 @@ public final class SessionStore {
         guard age <= 30_000, age >= -2000 else { return .deliveryTime }
         let monotonicReset = receiptClock.previous.map { observation.receiptMonotonicNs < $0.monotonic } ?? false
         if receiptClock.observe(wallMs: observation.receiptWallMs, monotonicNs: observation.receiptMonotonicNs) {
-            invalidate(reason: .clockOrWake)
+            forgetCaptureTimes()
             // Later clock checks must use the new monotonic clock range.
             if monotonicReset { horizonNs = observation.receiptMonotonicNs }
         }
@@ -107,19 +106,15 @@ public final class SessionStore {
         }
         let digest = Data(SHA256.hash(data: canonical))
         if let previous = record.seen[event.eventID] {
-            guard previous == digest else {
-                record.unknown(.eventIDConflict)
-                return .eventIDConflict
-            }
-            return .duplicate
+            // Two different events with one ID cannot both be right, so the second one changes nothing.
+            return previous == digest ? .duplicate : .eventIDConflict
         }
         let turn = event.turnID.map { SourceIdentity(value: $0) }
         let knownTurn = turn.map { record.turns.contains($0) } ?? false
-        guard !record.saturated, record.seen.count < Self.eventIDLimit,
-              turn == nil || knownTurn || record.turns.count < Self.turnIDLimit else {
-            record.saturated = true
-            record.unknown(.identityCapacity)
-            return .identityCapacity
+        if record.seen.count >= Self.eventIDLimit || (!knownTurn && turn != nil && record.turns.count >= Self.turnIDLimit) {
+            // A full session forgets old identities instead of refusing events and freezing in its last state.
+            // The 30-second delivery limit keeps a forgotten event from arriving again in practice.
+            record.forgetIdentities()
         }
         record.seen[event.eventID] = digest
         if let turn { record.turns.insert(turn) }
@@ -142,43 +137,37 @@ public final class SessionStore {
             record.subagents.removeAll()
             record.terminal = true
             record.status = .ended
-            record.reason = nil
             record.pending.removeAll()
             return .ended
         }
+        // Agents resume a session with the same ID, so a new start or prompt after an end reopens it.
+        // Any other event after an end is a late copy from before the end.
+        var reopened = false
         if record.terminal {
-            if case .sessionStarted = observation.kind { record.unknown(.reusedSessionID) }
-            return .terminalRestriction
+            switch observation.kind {
+            case .sessionStarted, .turnSubmitted:
+                record.reopen()
+                reopened = true
+            default:
+                return .terminalRestriction
+            }
         }
-        if let watermark = record.watermarkMs, event.observedAtMs <= watermark {
-            record.unknown(.ambiguousCaptureOrder)
-            return .ambiguousCaptureOrder
-        }
+        // An event captured before the latest applied one is out of date. One from the same millisecond applies.
+        if let watermark = record.watermarkMs, event.observedAtMs < watermark { return .outOfOrder }
         if let turn, record.retired.contains(turn) { return .retiredTurn }
 
         switch observation.kind {
         case .sessionStarted:
-            guard record.seen.count == 1 else { return .repeatedStart }
+            // A later start in a live session, for example after compacting, must not hide a running turn.
+            guard record.seen.count == 1 || reopened else { return .repeatedStart }
             record.status = .idle
-            record.reason = nil
             record.refresh(observation)
             return .applied
 
         case .turnSubmitted:
-            if record.baseline && turn == record.turn { return .repeatedSubmit }
-            if record.baseline && turn == nil {
-                record.unknown(.missingTurnIdentity)
-                return .conflict
-            }
-            // A previously conflicting turn is not new lifecycle evidence.
-            if record.baseline && knownTurn {
-                record.unknown(.overlappingTurns)
-                return .conflict
-            }
-            guard record.pending.isEmpty, !(record.baseline && record.status == .working) else {
-                record.unknown(.overlappingTurns)
-                return .conflict
-            }
+            if record.baseline, turn != nil, turn == record.turn { return .repeatedSubmit }
+            // The latest prompt always starts a new turn, even when the previous turn never reported a stop.
+            // An interrupted turn sends no stop, so waiting for one would freeze the session.
             if let previous = record.turn { record.retired.insert(previous) }
             record.turn = turn
             record.turnStartedAtMs = event.observedAtMs
@@ -186,7 +175,7 @@ public final class SessionStore {
             record.baseline = true
             record.stopped = false
             record.status = .working
-            record.reason = nil
+            record.pending.removeAll()
             record.latestPrompt = event.promptPreview
             record.lastReply = nil
             record.failed = false
@@ -197,21 +186,16 @@ public final class SessionStore {
 
         case .responseReady, .turnFailed:
             let failed = if case .turnFailed = observation.kind { true } else { false }
-            // A failure without the turn's identity is not evidence about which turn ended, so it changes nothing.
-            if failed, turn == nil { return .conflict }
-            guard record.baseline, let turn, turn == record.turn else {
-                record.unknown(.uncorrelatedStop)
-                return .conflict
-            }
-            record.pending = record.pending.filter { $0.value.turn != turn }
+            // A failure without the turn's identity may belong to another turn or a subagent, so it changes nothing.
+            if failed, turn == nil { return .noChange }
+            // The agent waits for the user after a stop, so no request can still be open.
+            record.pending.removeAll()
             // The parent's turn is over; a subagent that never reported stopping is no longer shown as running.
             record.subagents.removeAll()
             if record.responseReadyAtMs == nil { record.responseReadyAtMs = event.observedAtMs }
             record.stopped = true
-            if record.status == .unknown { return .resolvedButUnknown }
             if record.status == .responseReady { return .repeatedStop }
             record.status = .responseReady
-            record.reason = nil
             record.failed = failed
             record.lastReply = event.replyPreview
             record.currentTool = nil
@@ -231,65 +215,54 @@ public final class SessionStore {
 
     private func applyTool(_ observation: SessionObservationV1, record: Record,
                            turn: SourceIdentity?) -> SessionApplyResult {
-        guard !record.stopped else {
-            record.unknown(.activityAfterStop)
-            return .conflict
-        }
         let event = observation.envelope
-        let correlated = record.baseline && turn != nil && turn == record.turn
-        let toolID = event.toolUseID.map { SourceIdentity(value: $0) }
         guard let toolName = event.toolName else { return .invalidObservation }
+        if record.stopped {
+            // A tool that finishes after the stop is a late copy. New tool activity means the agent works again.
+            if case .toolFinished = observation.kind { return .noChange }
+            record.stopped = false
+            record.responseReadyAtMs = nil
+        }
+        let toolID = event.toolUseID.map { SourceIdentity(value: $0) }
         let name = SourceIdentity(value: toolName)
         let requestKey: RequestKey
-        if let turn, let toolID { requestKey = .correlated(turn, toolID) }
-        else { requestKey = .uncorrelated(event.eventID) }
+        if let turn, let toolID { requestKey = .identified(turn, toolID) }
+        else { requestKey = .unidentified(event.eventID) }
 
         switch observation.kind {
         case .requestOpened(let kind):
-            if let existing = record.pending[requestKey] {
-                guard existing.name == name && existing.kind == kind else {
-                    record.unknown(.requestConflict)
-                    return .conflict
-                }
+            if let existing = record.pending[requestKey], existing.name == name, existing.kind == kind {
                 return .mergedRequest
             }
-            guard record.pending.count < Self.requestLimit else {
-                record.unknown(.requestCapacity)
+            guard record.pending[requestKey] != nil || record.pending.count < Self.requestLimit else {
                 return .requestCapacity
             }
+            // A changed opening for the same tool call replaces the old one: the latest event wins.
             record.pending[requestKey] = Pending(eventID: event.eventID, turn: turn,
                                                   toolID: toolID, name: name, kind: kind)
-            guard correlated else {
-                record.unknown(.uncorrelatedActivity)
-                return .conflict
-            }
-            if record.status == .unknown { return .retainedButUnknown }
             record.showPending()
             record.refresh(observation)
             return .applied
 
         case .toolFinished:
-            if correlated, let request = record.pending[requestKey], request.name == name {
+            if let request = record.pending[requestKey], request.name == name {
                 record.pending.removeValue(forKey: requestKey)
-                if record.status == .unknown { return .resolvedButUnknown }
-                record.showPending()
-                record.refresh(observation)
-                return .applied
+            } else if let match = record.pending.filter({ $0.key.isUnidentified && $0.value.name == name })
+                .min(by: { $0.value.eventID < $1.value.eventID }) {
+                // A request without a tool-call ID cannot be matched exactly. A finished tool with the same name
+                // most likely answers it, and leaving it would show a waiting request after the agent moved on.
+                record.pending.removeValue(forKey: match.key)
+            } else if !record.pending.isEmpty {
+                return .unmatchedCompletion
             }
-            if !record.pending.isEmpty {
-                record.unknown(.uncorrelatedResolution)
-                return .conflict
-            }
-            return .unmatchedCompletion
+            record.showPending()
+            record.refresh(observation)
+            return .applied
 
         default:
-            guard correlated else {
-                record.unknown(.uncorrelatedActivity)
-                return .conflict
-            }
-            if record.status == .unknown || !record.pending.isEmpty { return .noChange }
+            // Waiting requests keep priority. Another tool can run while one waits for approval.
+            if !record.pending.isEmpty { return .noChange }
             record.status = .working
-            record.reason = nil
             record.currentTool = toolName
             record.refresh(observation)
             return .applied
@@ -298,22 +271,24 @@ public final class SessionStore {
 
     private func observeRuntimeClock(wallMs: Int64, monotonicNs: UInt64) {
         if runtimeClock.observe(wallMs: wallMs, monotonicNs: monotonicNs) {
-            invalidate(reason: .clockOrWake)
+            forgetCaptureTimes()
         }
         advanceClock(monotonicNs: monotonicNs)
     }
 
     private func advanceClock(monotonicNs: UInt64) {
         if monotonicNs < horizonNs {
-            invalidate(reason: .clockOrWake)
+            forgetCaptureTimes()
             horizonNs = monotonicNs
         } else {
             horizonNs = max(horizonNs, monotonicNs)
         }
     }
 
-    private func invalidate(reason: SessionUnknownReason) {
-        for record in records.values where !record.terminal { record.unknown(reason) }
+    /// After a clock jump, capture times before and after it cannot be compared. Without this, a clock moved
+    /// backward would make every new event look out of date and freeze each session.
+    private func forgetCaptureTimes() {
+        for record in records.values { record.watermarkMs = nil }
     }
 
     private func publish() {
@@ -326,8 +301,15 @@ public final class SessionStore {
 }
 
 private enum RequestKey: Hashable {
-    case correlated(SourceIdentity, SourceIdentity)
-    case uncorrelated(String)
+    /// Turn and tool-call IDs from the source.
+    case identified(SourceIdentity, SourceIdentity)
+    /// No tool-call ID, so the request is keyed by its own event ID.
+    case unidentified(String)
+
+    var isUnidentified: Bool {
+        if case .unidentified = self { return true }
+        return false
+    }
 }
 
 private struct Pending {
@@ -340,15 +322,15 @@ private struct Pending {
 
 @MainActor
 private final class Record {
-    var status: SessionStatus = .unknown
-    var reason: SessionUnknownReason? = .noBaseline
+    /// A session first seen in the middle of a turn, for example after an app restart, takes its state from
+    /// that event. Idle is only the starting value.
+    var status: SessionStatus = .idle
     var turn: SourceIdentity?
     var turnStartedAtMs: Int64?
     var responseReadyAtMs: Int64?
     var baseline = false
     var stopped = false
     var terminal = false
-    var saturated = false
     var watermarkMs: Int64?
     var receiptWallMs: Int64?
     var receiptMonotonicNs: UInt64?
@@ -365,11 +347,6 @@ private final class Record {
     var retired: Set<SourceIdentity> = []
     var pending: [RequestKey: Pending] = [:]
 
-    func unknown(_ reason: SessionUnknownReason) {
-        status = .unknown
-        self.reason = reason
-    }
-
     func refresh(_ observation: SessionObservationV1) {
         watermarkMs = observation.envelope.observedAtMs
         receiptWallMs = observation.receiptWallMs
@@ -383,21 +360,39 @@ private final class Record {
     }
 
     func showPending() {
-        reason = nil
         if pending.values.contains(where: { $0.kind == .questionNeeded }) { status = .questionNeeded }
         else if !pending.isEmpty { status = .approvalNeeded }
         else { status = .working }
     }
 
+    /// Keep the current turn's identity so its late events still count as part of it.
+    func forgetIdentities() {
+        seen.removeAll()
+        retired.removeAll()
+        turns = turn.map { [$0] } ?? []
+    }
+
+    /// The previous lifecycle's turn is retired, so its late events cannot change the reopened session.
+    func reopen() {
+        terminal = false
+        status = .idle
+        if let turn { retired.insert(turn) }
+        turn = nil
+        baseline = false
+        stopped = false
+        responseReadyAtMs = nil
+        turnStartedAtMs = nil
+    }
+
     func snapshot(key: SessionKey) -> SessionSnapshot {
         let requests = pending.values.map {
             SessionRequest(eventID: $0.eventID, turnID: $0.turn?.value, toolUseID: $0.toolID?.value,
-                           toolName: $0.name.value, kind: $0.kind, isConfirmed: status != .unknown)
+                           toolName: $0.name.value, kind: $0.kind)
         }.sorted {
             if $0.kind != $1.kind { return $0.kind == .questionNeeded }
             return $0.eventID < $1.eventID
         }
-        return SessionSnapshot(key: key, status: status, reason: reason, currentTurnID: turn?.value,
+        return SessionSnapshot(key: key, status: status, currentTurnID: turn?.value,
                                turnStartedAtMs: turnStartedAtMs, responseReadyAtMs: responseReadyAtMs,
                                pendingRequests: requests, captureWatermarkMs: watermarkMs,
                                receiptWallMs: receiptWallMs, receiptMonotonicNs: receiptMonotonicNs,

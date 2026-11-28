@@ -77,47 +77,25 @@ public struct SessionKey: Hashable, Sendable {
 }
 
 public enum SessionStatus: String, Sendable {
-    case idle, working, ended, unknown
+    case idle, working, ended
     case questionNeeded = "question_needed"
     case approvalNeeded = "approval_needed"
     case responseReady = "response_ready"
 }
 
-public enum SessionUnknownReason: String, Sendable {
-    case noBaseline = "no_baseline"
-    case eventIDConflict = "event_id_conflict"
-    case identityCapacity = "identity_capacity"
-    case requestCapacity = "request_capacity"
-    case reusedSessionID = "reused_session_id"
-    case ambiguousCaptureOrder = "ambiguous_capture_order"
-    case missingTurnIdentity = "missing_turn_identity"
-    case overlappingTurns = "overlapping_turns"
-    case uncorrelatedStop = "uncorrelated_stop"
-    case activityAfterStop = "activity_after_stop"
-    case requestConflict = "request_conflict"
-    case uncorrelatedActivity = "uncorrelated_activity"
-    case uncorrelatedResolution = "uncorrelated_resolution"
-    case clockOrWake = "clock_or_wake"
-    case deliveryOverflow = "delivery_overflow"
-    case monitoringStopped = "monitoring_stopped"
-}
-
 public enum SessionApplyResult: String, Sendable {
-    case applied, duplicate, ended, conflict
+    case applied, duplicate, ended
     case deliveryTime = "delivery_time"
     case invalidObservation = "invalid_observation"
     case sessionCapacity = "session_capacity"
     case eventIDConflict = "event_id_conflict"
-    case identityCapacity = "identity_capacity"
     case requestCapacity = "request_capacity"
     case terminalRestriction = "terminal_restriction"
-    case ambiguousCaptureOrder = "ambiguous_capture_order"
+    case outOfOrder = "out_of_order"
     case retiredTurn = "retired_turn"
     case repeatedStart = "repeated_start"
     case repeatedSubmit = "repeated_submit"
     case repeatedStop = "repeated_stop"
-    case resolvedButUnknown = "resolved_but_unknown"
-    case retainedButUnknown = "retained_but_unknown"
     case mergedRequest = "merged_request"
     case unmatchedCompletion = "unmatched_completion"
     case noChange = "no_change"
@@ -129,19 +107,16 @@ public struct SessionRequest: Equatable, Sendable {
     public let toolUseID: String?
     public let toolName: String
     public let kind: SessionRequestKind
-    /// Unknown sessions retain notices without claiming the request is still current.
-    public let isConfirmed: Bool
 }
 
 public struct SessionSnapshot: Equatable, Sendable, Identifiable {
     public var id: SessionKey { key }
     public let key: SessionKey
     public let status: SessionStatus
-    public let reason: SessionUnknownReason?
     public let currentTurnID: String?
     /// Capture time of the accepted submit for the current turn, in Unix milliseconds.
     public let turnStartedAtMs: Int64?
-    /// Capture time of the first matching stop. Unknown status remains authoritative.
+    /// Capture time of the first stop of the current turn.
     public let responseReadyAtMs: Int64?
     public let pendingRequests: [SessionRequest]
     public let captureWatermarkMs: Int64?

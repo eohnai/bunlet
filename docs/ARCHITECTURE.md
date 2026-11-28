@@ -54,13 +54,15 @@ through pure functions such as `NotchPresentation`, `NotchAllowancePresentation`
 **Events.** An agent hook runs `NotchPetHook`, whose adapter keeps only the fields the
 [contract](contracts/agent-events-v1.md) allows, plus short prompt and reply previews. It writes one frame to
 `/private/tmp/notch-pet-<uid>/events-v1.sock`. The app validates the frame, drops it if that agent is paused, queues it
-in `SessionEventInbox` and applies it once to `SessionStore` on the main actor. The island, pet and sounds react to the
-new snapshot.
+in `SessionEventInbox` and applies it once to `SessionStore` on the main actor. The latest event decides each session's
+state, and there is no unknown state ([0035](decisions/0035-remove-the-unknown-session-state.md)). The island, pet and
+sounds react to the new snapshot.
 
 **Quota.** For Codex, `AgentUsageController` reads the App Server while a Codex session is active. For Claude,
 `NotchPetStatusLine` sends each reading over a separate private datagram socket to `UsageInbox`
 ([quota intake](contracts/usage-intake.md)). Both end in `UsageStore`, which never creates session events. Claude
-readings also feed `TokenLedger`.
+readings also feed `TokenLedger`. The badge shows the last reading with no stale state, and a failed read keeps it
+([0036](decisions/0036-keep-the-last-quota-reading.md)).
 
 **Replies.** `NotchPetActionHook` streams a held request to the app over its own socket
 ([local actions](contracts/local-actions-v1.md)). `LocalActionController` shows it, rechecks it against

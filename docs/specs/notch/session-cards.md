@@ -11,25 +11,26 @@ two sessions share a folder, and a timer chip. Below it are "You: {prompt previe
 or the reply preview when done ([0019](../../decisions/0019-show-prompt-and-reply-previews.md)). Paths inside the session
 folder are shown relative to it. A failed Claude turn shows **Failed**.
 
-Status words appear only for unknown and ended. Other states show through the phase icon and its color. Every state is
-still in the row's accessibility label.
+The phase icon is a hare: blue while working, orange while waiting for an approval or answer, green when the response
+is ready, and red when the turn failed ([0035](../../decisions/0035-remove-the-unknown-session-state.md)). Status
+words appear only for failed (red) and ended. Every state is still in the row's accessibility label.
 
 Clicking a row jumps to the session's terminal or app ([pane navigation](../sessions/pane-navigation.md)) and collapses
 the island. A **⋯** chip shows the full path, session ID and refresh time.
 
-A request with no local reply channel shows a card with the tool name, "Pending" or "Unconfirmed" approval or question,
+A request with no local reply channel shows a card with the tool name, "Pending approval" or "Pending question",
 terminal guidance and **Jump to terminal**. A request with a verified channel shows only its [action card](../README.md#actions).
 
 ## Requirements
 
 - The timer starts at the turn's `UserPromptSubmit` and stops at its final duration on `Stop`. It is computed from
-  millisecond timestamps and hidden for unknown, ended and turnless sessions.
+  millisecond timestamps and hidden for idle, ended and turnless sessions.
 - The timer ticks once a second only while the panel is open and a timer is running, using a conditional `TimelineView`.
 - Rows show only the tool name from a request, never command or tool input.
 
 ## Open work
 
-- Check on screen: two same-folder sessions, running and stopped timers, a request card and an unknown session.
+- Check on screen: two same-folder sessions, running and stopped timers, a request card and a failed turn's red hare.
 
 ## Decisions
 

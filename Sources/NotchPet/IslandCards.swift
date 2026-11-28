@@ -86,9 +86,9 @@ struct NotchRequestCard: View {
                     .truncationMode(.middle)
             } content: {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("\(request.isConfirmed ? "Pending" : "Unconfirmed") \(request.kind == .questionNeeded ? "question" : "approval")")
+                    Text("Pending \(request.kind == .questionNeeded ? "question" : "approval")")
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(request.isConfirmed ? IslandPalette.attention : IslandPalette.mutedText)
+                        .foregroundStyle(IslandPalette.attention)
                     Text(request.kind == .questionNeeded ? "Answer it in the terminal." : "Approve or deny it in the terminal.")
                         .font(.system(size: 12))
                         .foregroundStyle(IslandPalette.mutedText)

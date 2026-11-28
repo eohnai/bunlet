@@ -11,7 +11,8 @@ How quota readings reach `UsageStore`, and the rules for sources, freshness and 
   Receipt time is stamped by the app; Claude has no provider measurement timestamp/account ID.
 - Sources expire from storage after 24 hours at the next intake. At 128 sources, refuse a new source
   and expose capacity loss; never merge anonymous accounts or silently evict a recent source.
-  The visible allowance is stale after five minutes, any passed reset, clock rollback or source failure.
+  A source's empty or failed reading keeps its last reading with windows and records the failure for the popup.
+  The badge has no stale state. A passed reset shows the window as 100% left (decision 0036).
 - The endpoint is private (directory 0700/socket 0600), nonblocking and bounded to 8192 bytes.
   Per-socket send/receive buffers support that bound; global OS settings are untouched.
   A private persistent lock serializes participating receivers. Under that lock, only an owned socket

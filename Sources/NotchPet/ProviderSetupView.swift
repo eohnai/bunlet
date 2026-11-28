@@ -137,7 +137,7 @@ struct ProviderSetupView: View {
                  ? "Restore the exact original status-line value only if the owned wrapper is unchanged. Lifecycle hooks stay in place."
                  : "Wrap the existing status-line command while preserving its input and output, or install a silent forwarder if none exists. Creating a status line may hide Claude’s built-in footer hints. Runtime compatibility is unverified.")
         } else if removing {
-            Text("Only unchanged, uniquely owned entries can be removed. Finish other configuration edits first. Disconnect pauses this provider before removal; retained requests stay unconfirmed.")
+            Text("Only unchanged, uniquely owned entries can be removed. Finish other configuration edits first. Disconnect pauses this provider before removal, and its sessions leave the list.")
         } else {
             Text("This installs or checks Bunlet's owned lifecycle hooks and resumes monitoring after success. Repair recovers only known saved states and preserves conflicting edits. Finish other configuration edits first. Runtime support is unverified and normal trust review still applies.")
         }

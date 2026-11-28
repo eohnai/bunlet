@@ -17,8 +17,8 @@ fits together.
 
 - [Observe local agent events](sessions/observation-bridge.md): the bundled hook helper delivers allowed agent event
   fields to the running app over a private Unix socket.
-- [Track agent session state](sessions/session-state.md): one in-memory store turns events into per-session state,
-  keeping requests, completions and unknown state apart.
+- [Track agent session state](sessions/session-state.md): one in-memory store turns events into per-session state.
+  The latest event decides, and there is no unknown state.
 - [Report integration health](sessions/integration-health.md): Settings shows version, hook configuration, helper,
   receiver and last delivery as separate evidence per agent.
 - [Connect Codex](sessions/codex-setup.md): Bunlet installs, repairs and removes its own Codex lifecycle hooks without

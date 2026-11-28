@@ -16,7 +16,7 @@ and helper. Receiver and delivery values come from the running app, so a probe n
 - A running receiver or a successful helper run is not proof of delivery. Delivery is shown only after an event reaches
   the app.
 - An empty session list or a quiet period is not reported as a broken integration.
-- Delivery times come from the inbox, so they survive a session becoming unknown or ended.
+- Delivery times come from the inbox, so they survive a session ending or leaving the list.
 - Probes never change configuration, run the helper or show file contents. Diagnostics contain no prompts, tool input,
   transcripts or credentials.
 - Probes run only from an explicit Check or a setup operation, never in the background.

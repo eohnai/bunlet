@@ -16,7 +16,8 @@ enum IslandPalette {
     static let workingHare = Color(red: 0x65 / 255, green: 0xAE / 255, blue: 1)
     static let attentionHare = Color(red: 1, green: 0x9F / 255, blue: 0x43 / 255)
     static let completed = Color(red: 0x42 / 255, green: 0xE8 / 255, blue: 0x6B / 255)
-    static let unknown = Color.orange
+    /// macOS dark-mode system red. A turn that ended in an error (decision 0035).
+    static let failed = Color(red: 1, green: 0x45 / 255, blue: 0x3A / 255)
     static let claude = Color(red: 0xDA / 255, green: 0x72 / 255, blue: 0x50 / 255)
     static let codex = Color(red: 0x8E / 255, green: 0xA1 / 255, blue: 0xFF / 255)
     static let cursor = Color(red: 0xD4 / 255, green: 0xD4 / 255, blue: 0xD8 / 255)
@@ -24,7 +25,7 @@ enum IslandPalette {
 
 /// Bunlet's own phase artwork. Running animates only when motion is allowed.
 struct IslandPhaseIcon: View {
-    enum Kind: Equatable { case idle, running, attention, completed, unknown, ended }
+    enum Kind: Equatable { case idle, running, attention, completed, failed, ended }
     let kind: Kind
     let size: CGFloat
     let animates: Bool
@@ -43,9 +44,8 @@ struct IslandPhaseIcon: View {
                 hare(IslandPalette.attentionHare)
             case .completed:
                 hare(IslandPalette.completed)
-            case .unknown:
-                Image(systemName: "questionmark.circle").resizable().scaledToFit()
-                    .padding(size * 0.14).foregroundStyle(IslandPalette.unknown)
+            case .failed:
+                hare(IslandPalette.failed)
             case .ended:
                 Image(systemName: "stop.circle").resizable().scaledToFit()
                     .padding(size * 0.14).foregroundStyle(IslandPalette.mutedText)
@@ -81,19 +81,14 @@ struct IslandPhaseIcon: View {
         self.size = size
     }
 
-    init(status: SessionStatus, hasConfirmedRequest: Bool, size: CGFloat, animates: Bool = true) {
+    init(status: SessionStatus, failed: Bool, size: CGFloat, animates: Bool = true) {
         self.animates = animates
-        if hasConfirmedRequest {
-            kind = .attention
-        } else {
-            switch status {
-            case .working: kind = .running
-            case .approvalNeeded, .questionNeeded: kind = .attention
-            case .responseReady: kind = .completed
-            case .idle: kind = .idle
-            case .unknown: kind = .unknown
-            case .ended: kind = .ended
-            }
+        switch status {
+        case .working: kind = .running
+        case .approvalNeeded, .questionNeeded: kind = .attention
+        case .responseReady: kind = failed ? .failed : .completed
+        case .idle: kind = .idle
+        case .ended: kind = .ended
         }
         self.size = size
     }

@@ -6,10 +6,10 @@ Limits, fallbacks and failure rules for pet reactions, movement and imported art
 ## Reactions
 
 The app translates shared SessionStore snapshots into pet-owned moods; Pet imports no agent types.
-Confirmed pending notices take priority, then unknown/unconfirmed notices, working, response ready,
-observed ended and ordinary idle. Every mood has visible text/symbol even when optional art falls back
-to idle. Drag changes art only when it does not hide attention or unknown state. No silence implies end.
-Master/provider pause retains unknown notices; uninstalling Agents retains their observation state.
+Open requests take priority, then working, a failed turn, response ready, observed ended and ordinary
+idle. Every mood has visible text/symbol even when optional art falls back to idle. Drag changes art only
+when it does not hide attention. No silence implies end. A master or provider pause removes that
+provider's sessions; uninstalling Agents retains their observation state.
 
 A completion cue means only an observed finished response. It requires a newly observed response-ready
 identity (agent/session/turn/first Stop time) with SessionStore’s accepted submit baseline. Existing ready records

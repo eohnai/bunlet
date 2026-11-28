@@ -20,7 +20,7 @@ private final class PetSurfaceState {
     }
 
     var pose: PetPose {
-        if mood == .attention || mood == .unknown { return mood.pose }
+        if mood == .attention { return mood.pose }
         if dragging { return .drag }
         return cue ? .complete : mood.pose
     }
@@ -62,7 +62,7 @@ private struct PetSurfaceView: View {
         switch state.mood {
         case .attention: IslandPalette.attention
         case .responseReady: IslandPalette.completed
-        case .unknown: IslandPalette.unknown
+        case .failed: IslandPalette.failed
         case .ended: IslandPalette.mutedText
         case .working, .idle: .white.opacity(0.9)
         }

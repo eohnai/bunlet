@@ -154,11 +154,13 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
                 }
             }.store(in: &subscriptions)
         // Re-register shortcuts when their switches change or a request becomes answerable.
-        shortcutObservation = ObservationLoop({ [settings, actions] in
-            settings.enabledShortcuts.map(\.rawValue).sorted()
-                + [settings.shortcutModifier.rawValue]
-                + BunletSettings.Shortcut.allCases.map { settings.key(for: $0)?.rawValue ?? "" }
-                + (actions?.store.snapshots.filter { $0.phase == .available }.map(\.id.uuidString) ?? [])
+        // Typed parts keep the Command Line Tools compiler (Swift 6.2) from timing out on one long expression.
+        shortcutObservation = ObservationLoop({ [settings, actions] () -> [String] in
+            let enabled: [String] = settings.enabledShortcuts.map(\.rawValue).sorted()
+            let modifier: [String] = [settings.shortcutModifier.rawValue]
+            let keys: [String] = BunletSettings.Shortcut.allCases.map { settings.key(for: $0)?.rawValue ?? "" }
+            let available: [String] = actions?.store.snapshots.filter { $0.phase == .available }.map(\.id.uuidString) ?? []
+            return enabled + modifier + keys + available
         }) { [weak self] _ in self?.updateHotKeys() }
         lastSessions = sessionStore.sessions
         if !playedLaunchSound {

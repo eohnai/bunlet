@@ -26,13 +26,13 @@ inside it takes the pointer. `IslandGeometry` computes the frame. Exact values a
 - **Pet:** dragging the closed pill down more than 50 points pulls the pet out.
 
 **Which sessions are listed** ([0032](../../decisions/0032-list-sessions-like-the-reference.md)). A session waiting for
-an approval or answer is always listed. Otherwise an ended session leaves at once, an idle or unknown session stays out
-until its first accepted prompt, and any session quiet longer than **Clear quiet sessions after** (7 days by default)
+an approval or answer is always listed. Otherwise an ended session leaves at once, an idle session stays out until its
+first accepted prompt, and any session quiet longer than **Clear quiet sessions after** (7 days by default)
 leaves. Hovering a row shows **✕**. Removed rows stay hidden until the session reports new activity. The pet panel,
 the pet's mood and the switch-session shortcut use the same list.
 
-**Order.** Confirmed requests come first, then response ready, working, idle, unknown sessions and unconfirmed
-requests, and ended last. The selected session stays selected while updates arrive.
+**Order.** Sessions waiting for an approval or answer come first, then response ready, working, idle, and ended last.
+There is no unknown state ([0035](../../decisions/0035-remove-the-unknown-session-state.md)). The selected session stays selected while updates arrive.
 
 ## Requirements
 
@@ -45,7 +45,7 @@ requests, and ended last. The selected session stays selected while updates arri
 
 - Check on screen: focus, click-through, keyboard expansion, hover-open and notification-open.
 - Check on screen: the closed pill's height on the 13-inch MacBook Air and with an auto-hidden menu bar.
-- Check on screen: response-ready, ended and unknown states, and the listing rules from decision 0032.
+- Check on screen: response-ready, failed and ended states, and the listing rules from decision 0032.
 
 ## Decisions
 

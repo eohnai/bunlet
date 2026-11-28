@@ -2,7 +2,7 @@ import EventBridge
 import SessionState
 import SwiftUI
 
-/// A session row (decision 0017), with visible status words for unknown, ended and failed (decision 0030).
+/// A session row (decision 0017), with visible status words for ended and failed (decisions 0030, 0035).
 struct NotchSessionCard: View {
     let snapshot: SessionSnapshot
     let presentation: NotchCardPresentation
@@ -18,9 +18,8 @@ struct NotchSessionCard: View {
 
     private var statusWord: (String, Color)? {
         switch snapshot.status {
-        case .unknown: ("Unknown", IslandPalette.unknown)
         case .ended: ("Ended", IslandPalette.mutedText)
-        case .responseReady where snapshot.turnFailed: ("Failed", IslandPalette.attentionHare)
+        case .responseReady where snapshot.turnFailed: ("Failed", IslandPalette.failed)
         case .idle, .working, .questionNeeded, .approvalNeeded, .responseReady: nil
         }
     }
@@ -32,7 +31,6 @@ struct NotchSessionCard: View {
         case .questionNeeded: "Answer needed"
         case .approvalNeeded: "Approval needed"
         case .responseReady: snapshot.turnFailed ? "Turn failed" : "Response ready"
-        case .unknown: "Unknown"
         case .ended: "Ended"
         }
     }
@@ -40,8 +38,7 @@ struct NotchSessionCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center, spacing: 8) {
-                IslandPhaseIcon(status: snapshot.status,
-                                hasConfirmedRequest: snapshot.pendingRequests.contains(where: \.isConfirmed),
+                IslandPhaseIcon(status: snapshot.status, failed: snapshot.turnFailed,
                                 size: 32, animates: animates)
                 VStack(alignment: .leading, spacing: 2) {
                     headline
@@ -126,7 +123,6 @@ struct NotchSessionCard: View {
     /// Current activity, else the last reply. The only activity evidence is the tool name.
     private var activity: String? {
         if snapshot.status == .working, let tool = snapshot.currentTool { return "Using \(tool)" }
-        if snapshot.status == .unknown { return "Current activity is unconfirmed. Fresh session evidence is needed." }
         return NotchPresentation.displayText(snapshot.lastReply, cwd: snapshot.projectPath)
     }
 

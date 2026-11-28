@@ -65,7 +65,8 @@ struct IntegrationHealthModelTests {
         #expect(store.apply(SessionObservationV1(envelope: event, receiptWallMs: receipt.wallMs,
                                                  receiptMonotonicNs: receipt.monotonicNs)) == .applied)
         store.invalidateClocks()
-        #expect(store.sessions.first?.status == .unknown)
+        // A clock reset keeps the session's last state.
+        #expect(store.sessions.first?.status == .working)
         #expect(IntegrationHealth.evaluate(evidence).lastDelivery == receipt)
         #expect(SessionStore().sessions.isEmpty)
         #expect(IntegrationHealth.evaluate(evidence).lastDelivery == receipt)

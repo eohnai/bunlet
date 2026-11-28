@@ -17,9 +17,9 @@ struct NotchAllowanceStrip: View {
         if !activeProviders.isEmpty {
             TimelineView(.periodic(from: .now, by: 30)) { context in
                 let nowMs = Int64(context.date.timeIntervalSince1970 * 1_000)
-                let snapshots = store.snapshots(activeProviders: activeProviders, nowMs: nowMs)
+                let snapshots = store.snapshots(activeProviders: activeProviders)
                 let entries = NotchAllowancePresentation.entries(activeProviders: activeProviders,
-                                                                  snapshots: snapshots)
+                                                                  snapshots: snapshots, nowMs: nowMs)
                 fittingRow(entries, nowMs: nowMs)
             }
         }
@@ -49,9 +49,10 @@ struct NotchAllowanceStrip: View {
     private func cell(_ entry: NotchAllowanceEntry, nowMs: Int64, compact: Bool) -> some View {
         let name = entry.provider.displayName
         let countdown = NotchAllowancePresentation.countdownText(for: entry.window, at: nowMs)
+        let resetSpoken = entry.isReset ? "reset since the last reading" : "resets in \(countdown)"
         let spoken = entry.percentLeft.map {
-            showsUsed ? "\(entry.windowLabel), \(100 - $0) percent used, resets in \(countdown)"
-                : "\(entry.windowLabel), \($0) percent left, resets in \(countdown)"
+            showsUsed ? "\(entry.windowLabel), \(100 - $0) percent used, \(resetSpoken)"
+                : "\(entry.windowLabel), \($0) percent left, \(resetSpoken)"
         }
             ?? "\(entry.windowLabel), usage limits unavailable"
         return HStack(spacing: 6) {
@@ -60,7 +61,8 @@ struct NotchAllowanceStrip: View {
                 if let percentLeft = entry.percentLeft {
                     Text(entry.windowLabel)
                     Text("\(showsUsed ? 100 - percentLeft : percentLeft)%").foregroundStyle(color(entry.color))
-                    if !compact { Text(countdown) }
+                    // A passed reset has no next reset time until the next reading.
+                    if !compact, !entry.isReset { Text(countdown) }
                 } else {
                     // Missing data must not look like zero remaining.
                     Text(compact ? "—" : "\(entry.windowLabel) unavailable")
@@ -70,9 +72,6 @@ struct NotchAllowanceStrip: View {
             .kerning(-0.2)
             .monospacedDigit()
             .foregroundStyle(.white.opacity(0.7))
-            if !compact, entry.source?.isStale == true {
-                Text("stale").font(.system(size: 12)).foregroundStyle(IslandPalette.mutedText)
-            }
             if needsWarning(entry) {
                 Circle().fill(Color(red: 1, green: 0x8C / 255, blue: 0)).frame(width: 6, height: 6)
             }
@@ -92,7 +91,7 @@ struct NotchAllowanceStrip: View {
         }
         .zIndex(hovered == entry.provider ? 1 : 0)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(name), \(spoken)\(entry.accountUnverified ? ", account unverified" : "")\(entry.source?.isStale == true ? ", stale" : "")")
+        .accessibilityLabel("\(name), \(spoken)\(entry.accountUnverified ? ", account unverified" : "")")
     }
 
     @ViewBuilder private func logo(_ provider: Agent, name: String) -> some View {

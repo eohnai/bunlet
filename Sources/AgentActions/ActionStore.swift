@@ -211,14 +211,14 @@ public final class ActionStore {
     private func matching(_ offer: ActionOffer, sessions: [SessionSnapshot]) -> (session: SessionKey, eventID: String?)? {
         let key = SessionKey(agent: offer.provider, sessionID: offer.sessionID)
         guard let session = sessions.first(where: { $0.key == key }), !session.hasTerminalRestriction,
-              session.status != .unknown, session.status != .ended,
+              session.status != .ended,
               session.currentTurnID?.utf8.elementsEqual(offer.turnID.utf8) == true else { return nil }
         if offer.kind == .followUp {
             return session.status == .responseReady && session.pendingRequests.isEmpty ? (key, nil) : nil
         }
         let kind: SessionRequestKind = offer.kind == .question ? .questionNeeded : .approvalNeeded
         let requests = session.pendingRequests.filter { request in
-            request.isConfirmed && request.kind == kind && request.turnID?.utf8.elementsEqual(offer.turnID.utf8) == true &&
+            request.kind == kind && request.turnID?.utf8.elementsEqual(offer.turnID.utf8) == true &&
             request.toolName.utf8.elementsEqual((offer.toolName ?? "").utf8) &&
             (offer.toolUseID.map { tool in request.toolUseID?.utf8.elementsEqual(tool.utf8) == true } ?? (request.toolUseID == nil))
         }

@@ -10,18 +10,19 @@ struct NotchAllowancePresentationTests {
     }
 
     private func snapshot(_ provider: Agent = .codex, source: String = "fictional-source",
-                          receipt: Int64 = 1_000, stale: Bool = false,
-                          account: String? = "fictional-account", windows: [UsageWindow],
-                          failure: UsageFailure? = nil, measured: Int64? = nil) -> UsageSnapshot {
+                          receipt: Int64 = 1_000, account: String? = "fictional-account",
+                          windows: [UsageWindow], failure: UsageFailure? = nil, measured: Int64? = nil,
+                          laterFailure: UsageFailure? = nil) -> UsageSnapshot {
         UsageSnapshot(observation: UsageObservation(
             provider: provider.rawValue, sourceID: source, accountID: account,
             receivedAtMs: receipt, measuredAtMs: measured, windows: windows, failure: failure),
-            isStale: stale)
+            failure: laterFailure)
     }
 
-    private func entry(_ snapshot: UsageSnapshot, provider: Agent = .codex) throws -> NotchAllowanceEntry {
+    private func entry(_ snapshot: UsageSnapshot, provider: Agent = .codex,
+                       now: Int64 = 1_000) throws -> NotchAllowanceEntry {
         try #require(NotchAllowancePresentation.entries(
-            activeProviders: [provider], snapshots: [snapshot]).first)
+            activeProviders: [provider], snapshots: [snapshot], nowMs: now).first)
     }
 
     @Test func countdownFloorsMinutesAndChangesUnitsAtHourAndDayBoundaries() {
@@ -50,16 +51,17 @@ struct NotchAllowancePresentationTests {
         let snapshots = [snapshot(.codex, windows: [window(used: 10)]),
                          snapshot(.codex, source: "another-source", windows: [window(used: 90)]),
                          snapshot(.claude, windows: [window(used: 40)])]
-        let entries = NotchAllowancePresentation.entries(activeProviders: [.codex, .claude], snapshots: snapshots)
+        let entries = NotchAllowancePresentation.entries(activeProviders: [.codex, .claude], snapshots: snapshots,
+                                                          nowMs: 1_000)
         #expect(entries.map(\.provider) == [.claude, .codex])
-        #expect(NotchAllowancePresentation.entries(activeProviders: [.codex], snapshots: snapshots)
+        #expect(NotchAllowancePresentation.entries(activeProviders: [.codex], snapshots: snapshots, nowMs: 1_000)
             .map(\.provider) == [.codex])
-        #expect(NotchAllowancePresentation.entries(activeProviders: [], snapshots: snapshots).isEmpty)
+        #expect(NotchAllowancePresentation.entries(activeProviders: [], snapshots: snapshots, nowMs: 1_000).isEmpty)
     }
 
     @Test(arguments: [Agent.codex, .claude])
     func activeProviderWithoutObservationsHasAMissingEntry(provider: Agent) throws {
-        let entries = NotchAllowancePresentation.entries(activeProviders: [provider], snapshots: [])
+        let entries = NotchAllowancePresentation.entries(activeProviders: [provider], snapshots: [], nowMs: 0)
         #expect(entries.count == 1)
         let entry = try #require(entries.first)
         #expect(entry.provider == provider)
@@ -121,12 +123,19 @@ struct NotchAllowancePresentationTests {
         }
     }
 
-    @Test(arguments: [0.0, 50.0, 100.0])
-    func staleValuesKeepTheirPercentAndUseGray(used: Double) throws {
-        let entry = try entry(snapshot(stale: true, windows: [window(used: used)]))
-        #expect(entry.percentLeft == Int(100 - used))
-        #expect(entry.color == .gray)
-        #expect(entry.source?.isStale == true)
+    @Test func oldReadingsKeepTheirPercentAndColor() throws {
+        let entry = try entry(snapshot(windows: [window(used: 25, reset: 100_000_000)]), now: 90_000_000)
+        #expect(entry.percentLeft == 75)
+        #expect(entry.color == .green)
+        #expect(!entry.isReset)
+    }
+
+    @Test func passedResetReadsAsAFullWindow() throws {
+        let entry = try entry(snapshot(windows: [window(used: 90, reset: 5_000)]), now: 5_000)
+        #expect(entry.isReset)
+        #expect(entry.percentLeft == 100)
+        #expect(entry.color == .green)
+        #expect(entry.source?.observation.windows.first?.usedPercent == 90)
     }
 
     @Test(arguments: [Agent.codex, .claude])
@@ -137,42 +146,33 @@ struct NotchAllowancePresentationTests {
         }
     }
 
-    @Test func newestFreshSourceWinsOverNewerStaleSources() throws {
-        let selected = snapshot(source: "fresh-new", receipt: 2_000, windows: [window(used: 30)])
-        let snapshots = [snapshot(source: "fresh-old", windows: [window(used: 10)]), selected,
-                         snapshot(source: "stale-new", receipt: 3_000, stale: true, windows: [window(used: 90)])]
+    @Test func newestSourceWithWindowsWinsAndTiesUseSourceID() throws {
+        let selected = snapshot(source: "a", receipt: 2_000, windows: [window(used: 80)])
+        let snapshots = [snapshot(source: "old", windows: [window()]),
+                         snapshot(source: "z", receipt: 2_000, windows: [window(used: 10)]), selected]
         for readings in [snapshots, Array(snapshots.reversed())] {
             let entry = try #require(NotchAllowancePresentation.entries(
-                activeProviders: [.codex], snapshots: readings).first)
-            #expect(entry.source == selected)
-            #expect(entry.percentLeft == 70)
-            #expect(entry.color == .green)
-        }
-    }
-
-    @Test func newestStaleSourceIsTheFallbackAndTiesUseSourceID() throws {
-        let selected = snapshot(source: "a", receipt: 2_000, stale: true, windows: [window(used: 80)])
-        let snapshots = [snapshot(source: "old", stale: true, windows: [window()]),
-                         snapshot(source: "z", receipt: 2_000, stale: true, windows: [window(used: 10)]), selected]
-        for readings in [snapshots, Array(snapshots.reversed())] {
-            let entry = try #require(NotchAllowancePresentation.entries(
-                activeProviders: [.codex], snapshots: readings).first)
+                activeProviders: [.codex], snapshots: readings, nowMs: 2_000).first)
             #expect(entry.source == selected)
             #expect(entry.percentLeft == 20)
-            #expect(entry.color == .gray)
+            #expect(entry.color == .yellow)
         }
     }
 
-    @Test func newerEmptySourceDoesNotBorrowAnOlderSourcesWindowOrAccount() throws {
-        let selected = snapshot(source: "new", receipt: 2_000, account: nil, windows: [])
-        let entries = NotchAllowancePresentation.entries(activeProviders: [.codex], snapshots: [
-            snapshot(source: "old", windows: [window()]), selected
-        ])
-        let entry = try #require(entries.first)
-        #expect(entry.source == selected)
-        #expect(entry.percentLeft == nil)
-        #expect(entry.color == .gray)
-        #expect(entry.accountUnverified)
+    /// A new Claude session reports no limits before its first reply. It must not hide the earlier reading.
+    @Test func newerSourceWithoutWindowsDoesNotHideAnEarlierReading() throws {
+        let earlier = snapshot(source: "old", windows: [window(used: 30)])
+        let empty = snapshot(source: "new", receipt: 2_000, account: nil, windows: [], failure: .awaitingSource)
+        let entry = try #require(NotchAllowancePresentation.entries(
+            activeProviders: [.codex], snapshots: [earlier, empty], nowMs: 2_000).first)
+        #expect(entry.source == earlier)
+        #expect(entry.percentLeft == 70)
+        let alone = try #require(NotchAllowancePresentation.entries(
+            activeProviders: [.codex], snapshots: [empty], nowMs: 2_000).first)
+        #expect(alone.source == empty)
+        #expect(alone.percentLeft == nil)
+        #expect(alone.color == .gray)
+        #expect(alone.accountUnverified)
     }
 
     @Test func matchingCodexBucketWinsWithoutCombiningBuckets() throws {
@@ -208,40 +208,42 @@ struct NotchAllowancePresentationTests {
     }
 
     @MainActor
-    @Test func storeFreshnessControlsGrayForAgeResetClockAndSourceFailure() throws {
+    @Test func failedReadKeepsTheBadgeNumberAndColor() throws {
         let store = UsageStore()
-        let reading = snapshot(windows: [window(reset: 10_000)])
-        #expect(store.apply(reading.observation))
-        for now: Int64 in [1_000, 999, 10_000, 301_000] {
-            let entries = NotchAllowancePresentation.entries(
-                activeProviders: [.codex], snapshots: store.snapshots(activeProviders: [.codex], nowMs: now))
-            let entry = try #require(entries.first)
-            #expect(entry.percentLeft == 75)
-            #expect(entry.color == (now == 1_000 ? .green : .gray))
-        }
-        let failed = snapshot(receipt: 2_000, windows: [window()], failure: .timedOut)
-        #expect(store.apply(failed.observation))
+        #expect(store.apply(snapshot(windows: [window(reset: 10_000_000)]).observation))
+        #expect(store.apply(snapshot(receipt: 2_000, windows: [], failure: .timedOut).observation))
         let entry = try #require(NotchAllowancePresentation.entries(
-            activeProviders: [.codex], snapshots: store.snapshots(activeProviders: [.codex], nowMs: 2_000)).first)
-        #expect(entry.source?.observation.failure == .timedOut)
+            activeProviders: [.codex], snapshots: store.snapshots(activeProviders: [.codex]), nowMs: 400_000).first)
+        #expect(entry.source?.failure == .timedOut)
         #expect(entry.percentLeft == 75)
-        #expect(entry.color == .gray)
+        #expect(entry.color == .green)
     }
 
-    @Test func popupListsEveryWindowAndFreshness() throws {
-        let source = snapshot(stale: true, account: nil, windows: [
+    @Test func popupListsEveryWindowItsAgeAndAFailedRead() throws {
+        let source = snapshot(account: nil, windows: [
             window("weekly", used: 70, minutes: 10_080, reset: 3_600_000),
-            window(used: 25.5, reset: nil)
-        ])
-        let lines = NotchAllowancePresentation.detailLines(for: try entry(source), at: 0)
-        #expect(lines == ["5h 74% left, reset time unknown", "7d 30% left, resets in 1h0m",
-                          "Stale: this reading may no longer apply", "Account unverified"])
+            window(used: 25.5, reset: nil),
+            window("passed", used: 90, minutes: 60, reset: 0)
+        ], laterFailure: .timedOut)
+        let lines = NotchAllowancePresentation.detailLines(for: try entry(source), at: 721_000)
+        #expect(lines == ["1h 100% left, reset since the last reading", "5h 74% left, reset time unknown",
+                          "7d 30% left, resets in 47m", "Updated 12 min ago", "Last read failed: timed out",
+                          "Account unverified"])
+    }
+
+    @Test func ageTextUsesWholeUnitsAndTreatsFutureReceiptsAsNow() {
+        let cases: [(Int64, String)] = [(-5_000, "Updated just now"), (59_999, "Updated just now"),
+                                        (60_000, "Updated 1 min ago"), (3_600_000, "Updated 1 h ago"),
+                                        (90_000_000, "Updated 1 d ago")]
+        for (age, expected) in cases {
+            #expect(NotchAllowancePresentation.ageText(receivedAtMs: 1_000, at: 1_000 + age) == expected)
+        }
     }
 
     @Test func popupNeverShowsMissingDataAsZero() throws {
-        let missing = try #require(NotchAllowancePresentation.entries(activeProviders: [.claude], snapshots: []).first)
+        let missing = try #require(NotchAllowancePresentation.entries(activeProviders: [.claude], snapshots: [], nowMs: 0).first)
         #expect(NotchAllowancePresentation.detailLines(for: missing, at: 0) == ["Usage limits unavailable"])
-        #expect(NotchAllowancePresentation.detailLines(for: try entry(snapshot(windows: [])), at: 0)
-                == ["No limit windows reported"])
+        #expect(NotchAllowancePresentation.detailLines(for: try entry(snapshot(windows: [])), at: 1_000)
+                == ["No limit windows reported", "Updated just now"])
     }
 }

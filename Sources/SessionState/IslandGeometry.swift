@@ -5,12 +5,9 @@ import Foundation
 public enum IslandPhase: Equatable, Sendable {
     case idle, running, attention, completed
 
-    /// Attention wins over running, which wins over completed. Unknown and ended sessions add no phase.
+    /// Attention wins over running, which wins over completed. Idle and ended sessions add no phase.
     public static func dominant(_ sessions: [SessionSnapshot]) -> IslandPhase {
-        if sessions.contains(where: { session in
-            session.status == .approvalNeeded || session.status == .questionNeeded
-                || session.pendingRequests.contains(where: \.isConfirmed)
-        }) { return .attention }
+        if sessions.contains(where: { $0.status == .approvalNeeded || $0.status == .questionNeeded }) { return .attention }
         if sessions.contains(where: { $0.status == .working }) { return .running }
         if sessions.contains(where: { $0.status == .responseReady }) { return .completed }
         return .idle

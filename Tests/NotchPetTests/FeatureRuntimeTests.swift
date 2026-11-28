@@ -92,18 +92,18 @@ struct FeatureRuntimeTests {
         service.stop()
         #expect(receiverStops == 1 && usage.stops == 1)
         handlers[0]([try observation(2, session: "stopped")], false)
-        #expect(sessions.sessions.count == 1)
-        #expect(sessions.sessions.first?.reason == .monitoringStopped)
+        #expect(sessions.sessions.isEmpty)
         service.start()
         #expect(handlers.count == 2 && usage.starts == 2)
         handlers[0]([try observation(3, session: "old-generation")], false)
-        #expect(sessions.sessions.count == 1)
+        #expect(sessions.sessions.isEmpty)
         handlers[1]([try observation(4, session: "current")], false)
         #expect(sessions.sessions.contains { $0.key.sessionID == "current" && $0.status == .working })
         service.stop()
     }
 
-    @Test func stoppingRetainsUnconfirmedRequestsWithoutSyntheticCompletion() throws {
+    /// Sessions that can no longer update leave the list instead of freezing in their last state.
+    @Test func stoppingClearsSessionsWithoutSyntheticCompletion() throws {
         let sessions = SessionStore()
         var deliver: AgentServices.BatchHandler?
         let service = AgentServices(sessionStore: sessions, usage: Service(), startObserving: { handler in
@@ -114,13 +114,11 @@ struct FeatureRuntimeTests {
         let handler = try #require(deliver)
         handler([try observation(1), try observation(2, hook: "PermissionRequest", request: true)], false)
         #expect(sessions.sessions.first?.status == .approvalNeeded)
-        #expect(sessions.sessions.first?.pendingRequests.first?.isConfirmed == true)
-        service.stop()
-        #expect(sessions.sessions.first?.status == .unknown)
-        #expect(sessions.sessions.first?.pendingRequests.first?.isConfirmed == false)
-        handler([try observation(3, hook: "Stop")], false)
         #expect(sessions.sessions.first?.pendingRequests.count == 1)
-        #expect(sessions.sessions.first?.responseReadyAtMs == nil)
+        service.stop()
+        #expect(sessions.sessions.isEmpty)
+        handler([try observation(3, hook: "Stop")], false)
+        #expect(sessions.sessions.isEmpty)
     }
 
     @Test func receiverFailureLeavesUsageIndependent() {

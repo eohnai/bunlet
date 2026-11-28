@@ -71,19 +71,18 @@ public enum NotchPresentation {
         case .responseReady:
             guard let stop = session.responseReadyAtMs, stop >= 0 else { return nil }
             return .stopped(durationMs: max(0, stop - start))
-        case .idle, .unknown, .ended:
+        case .idle, .ended:
             return nil
         }
     }
 
     public static func activeProviders(_ sessions: [SessionSnapshot]) -> Set<Agent> {
-        Set(sessions.filter { $0.status != .ended && $0.status != .unknown }
-            .map { $0.key.agent })
+        Set(sessions.filter { $0.status != .ended }.map { $0.key.agent })
     }
 
     /// Which sessions the island lists (decision 0032, following the reference island). A session waiting for an
-    /// approval or an answer always stays. Otherwise a session leaves once it has ended, while it is idle or unknown
-    /// without ever having had an accepted prompt, or once it has been quiet longer than the limit in any state.
+    /// approval or an answer always stays. Otherwise a session leaves once it has ended, while it is idle without
+    /// ever having had an accepted prompt, or once it has been quiet longer than the limit in any state.
     /// Sessions with no receipt time are never aged out.
     public static func listed(_ sessions: [SessionSnapshot], limitMinutes: Int, nowMs: Int64) -> [SessionSnapshot] {
         let limitMs = Int64(limitMinutes) * 60_000
@@ -93,7 +92,7 @@ public enum NotchPresentation {
             }
             if session.status == .ended { return false }
             // The accepted submit, not its preview text, marks a prompt: an empty preview must not hide a session.
-            if session.turnStartedAtMs == nil, session.status == .idle || session.status == .unknown { return false }
+            if session.turnStartedAtMs == nil, session.status == .idle { return false }
             guard let receipt = session.receiptWallMs else { return true }
             return nowMs - receipt <= limitMs
         }
@@ -111,13 +110,12 @@ public enum NotchPresentation {
 
     public static func ordered(_ sessions: [SessionSnapshot]) -> [SessionSnapshot] {
         let rank: (SessionSnapshot) -> Int = { session in
-            if session.pendingRequests.contains(where: \.isConfirmed) { return 0 }
             switch session.status {
+            case .questionNeeded, .approvalNeeded: return 0
             case .responseReady: return 1
             case .working: return 2
             case .idle: return 3
-            case .unknown, .questionNeeded, .approvalNeeded: return 4
-            case .ended: return 5
+            case .ended: return 4
             }
         }
         return sessions.sorted { left, right in

@@ -1,6 +1,6 @@
 /// Presentation input only. Provider identities and session rules belong to the app adapter.
 public enum PetMood: String, Sendable {
-    case idle, working, attention, responseReady, unknown, ended
+    case idle, working, attention, responseReady, failed, ended
 
     public var label: String {
         switch self {
@@ -8,7 +8,7 @@ public enum PetMood: String, Sendable {
         case .working: "Working"
         case .attention: "Needs your attention"
         case .responseReady: "Response ready"
-        case .unknown: "State unknown · check retained requests"
+        case .failed: "Turn failed"
         case .ended: "Session ended"
         }
     }
@@ -19,7 +19,7 @@ public enum PetMood: String, Sendable {
         case .working: "ellipsis"
         case .attention: "exclamationmark.bubble"
         case .responseReady: "bubble.left"
-        case .unknown: "questionmark.circle"
+        case .failed: "xmark.circle"
         case .ended: "stop.circle"
         }
     }
@@ -27,8 +27,8 @@ public enum PetMood: String, Sendable {
     public var pose: PetPose {
         switch self {
         case .working: .running
-        case .attention, .unknown: .attention
-        case .idle, .responseReady, .ended: .idle
+        case .attention: .attention
+        case .idle, .responseReady, .failed, .ended: .idle
         }
     }
 }

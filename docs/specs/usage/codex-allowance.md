@@ -21,7 +21,8 @@ durations keep their own labels.
 - The App Server process has a bounded lifetime, output size and frame size. Cancelling stops only the process Bunlet
   started.
 - Either window can be missing on its own. A missing window shows unavailable, never a made-up number.
-- A passed reset time or a failed read shows stale, never zero usage.
+- A failed read keeps the last good reading and never shows zero usage. A passed reset time shows the window as
+  100% left ([0036](../../decisions/0036-keep-the-last-quota-reading.md)).
 - Several sessions never duplicate an allowance.
 - Quota has its own store and transport. It never adds account data to session events.
 
@@ -39,4 +40,5 @@ durations keep their own labels.
 ## Decisions
 
 [0007](../../decisions/0007-read-supported-usage-data.md) supported sources only,
-[0015](../../decisions/0015-show-limits-only-for-active-providers.md) active agents only.
+[0015](../../decisions/0015-show-limits-only-for-active-providers.md) active agents only,
+[0036](../../decisions/0036-keep-the-last-quota-reading.md) keep the last reading.
