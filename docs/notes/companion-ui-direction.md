@@ -6,8 +6,8 @@ describes its behavior. Where Bunlet differs, it is to keep states truthful.
 
 ## Truthful states
 
-- Unknown, ended and unconfirmed keep visible words, not only a color or icon.
-- Missing quota never looks like zero remaining, and stale quota says stale.
+- Every session state has a visible word, not only a color or icon. There is no unknown state.
+- Missing quota never looks like zero remaining. A quota badge shows its last reading, and the popup says how old it is.
 - Settings keeps four states apart for each agent: whether it is **on or paused**, whether its hooks are **connected**,
   what **health** checks show, and whether any session has been **seen**. A quiet agent is not "disconnected", and an
   empty session list is not a setup failure.

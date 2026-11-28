@@ -76,9 +76,10 @@ struct NotchSessionView: View {
         }
     }
 
-    /// Display → Top Info Items hides a provider's limits without affecting tracking.
+    /// A provider's limits show while it has a listed session or a kept reading (decision 0036), so a badge stays
+    /// after its sessions leave the list. Display → Top Info Items hides a provider's limits without affecting tracking.
     private var shownLimitProviders: Set<Agent> {
-        NotchPresentation.activeProviders(sessions).filter { provider in
+        NotchPresentation.activeProviders(sessions).union(usageStore.providersWithReadings).filter { provider in
             switch provider {
             case .codex: settings?.showCodexLimits ?? true
             case .claude: settings?.showClaudeLimits ?? true
@@ -188,11 +189,11 @@ struct NotchSessionView: View {
         if let issue = sessionStore.capacityIssue {
             Text(issue == .sessionCapacity
                  ? "Session capacity reached. New sessions are not being observed. Existing requests are retained."
-                 : "A session reached its identity or request capacity. Its state is unconfirmed.")
+                 : "A session has 64 open requests. Newer requests in it are not shown.")
                 .font(.system(size: 12)).foregroundStyle(IslandPalette.attention)
         }
         if sessionStore.deliveryOverflowed {
-            Text("Some events were lost. Affected sessions need fresh evidence.")
+            Text("Some events were lost. A session can show an old state until its next event.")
                 .font(.system(size: 12)).foregroundStyle(IslandPalette.attention)
         }
         if sessions.isEmpty {

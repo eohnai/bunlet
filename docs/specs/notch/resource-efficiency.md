@@ -18,7 +18,8 @@ seconds and a 120-second loop while active. Hidden or sleeping surfaces stop the
 - Reduce Motion shows a stable pose. Low Power Mode reduces optional motion.
 - Queues, image resources and buffers have explicit bounds. Artwork is decoded once.
 - Quota reads are shared per agent and account, never repeated per session or surface, and never overlap.
-- A failed refresh shows stale or unavailable, never a guess. Reset times alone are not fresh usage.
+- A failed refresh keeps the last reading or shows unavailable, never a guess. A passed reset shows a full window
+  ([0036](../../decisions/0036-keep-the-last-quota-reading.md)).
 - Sleep takes no keep-awake assertion. Wake does not replay history or fire a burst of catch-up requests.
 - Hooks do no network upload, database scan or wait for an approval decision.
 

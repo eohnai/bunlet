@@ -15,17 +15,22 @@ public struct NotchAllowanceEntry: Equatable, Sendable {
     public let provider: Agent
     public let source: UsageSnapshot?
     public let window: UsageWindow?
+    /// The window's reset time has passed since the reading (decision 0036). Nothing has been used in the new window
+    /// as far as Bunlet knows, so it reads 100% left with no countdown until the next reading.
+    public var isReset = false
 
     public var windowLabel: String {
         window?.durationMinutes == 10_080 ? "7d" : "5h"
     }
 
     public var percentLeft: Int? {
-        window?.allowancePercentLeft
+        guard let window else { return nil }
+        return isReset ? 100 : window.allowancePercentLeft
     }
 
+    /// Gray only when there is no number to show. An old reading keeps its level color.
     public var color: AllowanceColor {
-        guard source?.isStale == false, let percentLeft else { return .gray }
+        guard let percentLeft else { return .gray }
         if percentLeft > 50 { return .green }
         return percentLeft >= 20 ? .yellow : .red
     }
@@ -56,14 +61,37 @@ public enum NotchAllowancePresentation {
             ($0.durationMinutes ?? .max, $0.id) < ($1.durationMinutes ?? .max, $1.id)
         }
         var lines = windows.map { window in
-            let left = Int((100 - window.usedPercent).rounded(.down))
-            let reset = window.resetsAtMs == nil ? "reset time unknown" : "resets in \(countdownText(for: window, at: nowMs))"
-            return "\(label(for: window)) \(left)% left, \(reset)"
+            guard let resetMs = window.resetsAtMs else {
+                return "\(label(for: window)) \(window.allowancePercentLeft)% left, reset time unknown"
+            }
+            if resetMs <= nowMs { return "\(label(for: window)) 100% left, reset since the last reading" }
+            return "\(label(for: window)) \(window.allowancePercentLeft)% left, resets in \(countdownText(for: window, at: nowMs))"
         }
         if lines.isEmpty { lines.append("No limit windows reported") }
-        if source.isStale { lines.append("Stale: this reading may no longer apply") }
+        lines.append(ageText(receivedAtMs: source.observation.receivedAtMs, at: nowMs))
+        if let failure = source.failure { lines.append("Last read failed: \(failureText(failure))") }
         if entry.accountUnverified { lines.append("Account unverified") }
         return lines
+    }
+
+    /// When Bunlet received the reading. A receipt time in the future reads as just now.
+    public static func ageText(receivedAtMs: Int64, at nowMs: Int64) -> String {
+        let minutes = nowMs > receivedAtMs ? (nowMs - receivedAtMs) / 60_000 : 0
+        if minutes < 1 { return "Updated just now" }
+        if minutes < 60 { return "Updated \(minutes) min ago" }
+        let hours = minutes / 60
+        return hours < 24 ? "Updated \(hours) h ago" : "Updated \(hours / 24) d ago"
+    }
+
+    static func failureText(_ failure: UsageFailure) -> String {
+        switch failure {
+        case .awaitingSource: "no limits reported"
+        case .signedOut: "signed out"
+        case .unsupportedAccount: "account type has no limits"
+        case .sourceUnavailable: "source unavailable"
+        case .malformed: "unreadable reply"
+        case .timedOut: "timed out"
+        }
     }
 
     public static func label(for window: UsageWindow) -> String {
@@ -77,18 +105,22 @@ public enum NotchAllowancePresentation {
         }
     }
 
-    public static func entries(activeProviders: Set<Agent>,
-                               snapshots: [UsageSnapshot]) -> [NotchAllowanceEntry] {
+    /// One entry per provider. The newest source with windows wins, so a new session that has not reported limits yet
+    /// does not hide an earlier reading. A source without windows is chosen only when no source has any.
+    public static func entries(activeProviders: Set<Agent>, snapshots: [UsageSnapshot],
+                               nowMs: Int64) -> [NotchAllowanceEntry] {
         activeProviders.sorted { $0.rawValue < $1.rawValue }.map { provider in
             let source = snapshots.filter { $0.observation.provider == provider.rawValue }.sorted { left, right in
-                if left.isStale != right.isStale { return !left.isStale }
+                let leftHasWindows = !left.observation.windows.isEmpty
+                if leftHasWindows != !right.observation.windows.isEmpty { return leftHasWindows }
                 if left.observation.receivedAtMs != right.observation.receivedAtMs {
                     return left.observation.receivedAtMs > right.observation.receivedAtMs
                 }
                 return left.observation.sourceID.utf8.lexicographicallyPrecedes(right.observation.sourceID.utf8)
             }.first
-            return NotchAllowanceEntry(provider: provider, source: source,
-                                       window: selectedWindow(source?.observation.windows ?? [], provider: provider))
+            let window = selectedWindow(source?.observation.windows ?? [], provider: provider)
+            return NotchAllowanceEntry(provider: provider, source: source, window: window,
+                                       isReset: window?.resetsAtMs.map { $0 <= nowMs } ?? false)
         }
     }
 

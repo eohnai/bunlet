@@ -7,8 +7,8 @@ import Testing
 
 @MainActor
 struct NotchAllowanceStripTests {
-    /// Worst common case beside a 185 pt cutout: Claude has no reading and Codex's reading is stale (over 5 minutes old).
-    @Test func bothProvidersFitBesideTheNotchWhenOneIsStale() throws {
+    /// Worst common case beside a 185 pt cutout: Claude has no reading and Codex shows a full badge with a countdown.
+    @Test func bothProvidersFitBesideTheNotchWhenOneIsMissing() throws {
         let nowMs = Int64(Date().timeIntervalSince1970 * 1_000)
         let store = UsageStore()
         store.apply(UsageObservation(provider: "codex", sourceID: "fixture", accountID: nil,
