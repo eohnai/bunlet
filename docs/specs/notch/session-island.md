@@ -6,7 +6,7 @@ summary: A pill around the camera notch that opens into a panel listing agent se
 
 ## How it works
 
-One fixed transparent window, 740 points wide, sits at the top center of the notched screen. Only the black shape
+One fixed transparent window, 760 points wide, sits at the top center of the notched screen. Only the black shape
 inside it takes the pointer. `IslandGeometry` computes the frame. Exact values are in the
 [island UI reference](../../notes/reference-ui.md).
 
@@ -19,7 +19,7 @@ inside it takes the pointer. `IslandGeometry` computes the frame. Exact values a
   unsent reply text stays as a draft. With **Collapse when the pointer leaves** on, leaving for 300 ms closes it unless
   a text field is being edited. Keyboard focus alone, as after **Open Sessions**, does not count as typing. Escape
   collapses it.
-- **Open:** the panel is 680 to 704 points wide (46% of the screen width) and grows with its content up to 280 points by
+- **Open:** the panel is 700 to 724 points wide (46% of the screen width) and grows with its content up to 280 points by
   default. A saved maximum height wins. The top row has the [quota badges](allowance-strip.md) left of the notch, and
   today's tokens, **Clear all sessions** and **Settings** on the right. Each side keeps its width when it is empty,
   so the buttons stay at the right edge when no quota badge shows.
@@ -52,9 +52,15 @@ There is no unknown state ([0035](../../decisions/0035-remove-the-unknown-sessio
   **Open Sessions**.
 - Check on screen: the closed pill's height on the 13-inch MacBook Air and with an auto-hidden menu bar.
 - Check on screen: response-ready, failed and ended states, and the listing rules from decision 0032.
+- Check on screen: clicks just outside the wider open island's left and right edges reach the app underneath.
 
 ## Decisions
 
 [0017](../../decisions/0017-match-reference-island-ui.md) island UI,
 [0030](../../decisions/0030-keep-requests-visible-and-report-failures.md) requests stay visible,
 [0032](../../decisions/0032-list-sessions-like-the-reference.md) listing rules.
+
+- **Make the open island 20 points wider than the reference (700 to 724, window 760).** Two full quota badges with
+  countdowns need 234 points, and the reference width left 223.5 beside the 179-point notch on a 1470-point screen.
+  The badge gap was narrowed from 12 to 6 points so 10 points per side is enough. Showing the countdown in place of the
+  `5h` label was rejected, because the user preferred a wider island. (2026-11-28)

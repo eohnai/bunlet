@@ -59,7 +59,7 @@ struct NotchPresentationTests {
     @Test func windowIsFixedAtTopCenter() throws {
         let frame = try #require(IslandGeometry.windowFrame(screen: CGRect(x: 0, y: 0, width: 1470, height: 956),
                                                             safeTop: 38))
-        #expect(frame == CGRect(x: 365, y: 644, width: 740, height: 312))
+        #expect(frame == CGRect(x: 355, y: 644, width: 760, height: 312))
     }
 
     @Test(arguments: [CGFloat(1), CGFloat(2)])
@@ -109,14 +109,15 @@ struct NotchPresentationTests {
         #expect(IslandGeometry.pillBodyWidth(notchWidth: 0, hasNotch: false, visibleCount: 1,
                                              phase: .completed, windowWidth: width) == 238)
         #expect(IslandGeometry.pillBodyWidth(notchWidth: 900, hasNotch: true, visibleCount: 1,
-                                             phase: .running, windowWidth: width) == 724)
+                                             phase: .running, windowWidth: width) == 744)
     }
 
     @Test func panelWidthTracksScreenWithinBounds() {
         let width = IslandMetrics.windowWidth
-        #expect(IslandGeometry.panelBodyWidth(screenWidth: 1470, windowWidth: width) == 676.2.clamped680)
-        #expect(IslandGeometry.panelBodyWidth(screenWidth: 0, windowWidth: width) == 680)
-        #expect(IslandGeometry.panelBodyWidth(screenWidth: 3000, windowWidth: width) == 704)
+        // 1470 × 0.46 = 676.2 is below the 700 minimum.
+        #expect(IslandGeometry.panelBodyWidth(screenWidth: 1470, windowWidth: width) == 700)
+        #expect(IslandGeometry.panelBodyWidth(screenWidth: 0, windowWidth: width) == 700)
+        #expect(IslandGeometry.panelBodyWidth(screenWidth: 3000, windowWidth: width) == 724)
     }
 
     @Test func openShapeFitsContentWithinWindow() {
@@ -166,11 +167,6 @@ struct NotchPresentationTests {
         let mixed = [snapshot("a", status: .responseReady), snapshot("b", status: .approvalNeeded)]
         #expect(IslandNotification.next(previous: [], current: mixed) == .attention(mixed[1].key))
     }
-}
-
-private extension Double {
-    /// 1470 × 0.46 = 676.2 is below the 680 minimum.
-    var clamped680: CGFloat { CGFloat(Swift.max(680, self)) }
 }
 
 struct IslandAutoOpenTests {

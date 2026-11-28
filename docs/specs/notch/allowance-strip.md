@@ -25,7 +25,8 @@ Cursor CLI reports no limits.
 - **Hover:** a popup with every reported window and its reset time, how old the reading is ("Updated 12 min ago"), a
   failed read after it, and receiver problems for Claude ([0018](../../decisions/0018-restore-usage-hover-details.md)).
 
-Each side of the notch gets a fixed width. When the full badges do not fit, they switch to a short form without the
+Each side of the notch gets a fixed width. Two full badges fit beside a 179-point notch on a 1470-point screen
+([session island](session-island.md#decisions)). When the full badges do not fit, they switch to a short form without the
 countdown, and with "—" for missing data. Hover still shows everything. Today's token count sits on
 the right with the panel buttons.
 
