@@ -10,7 +10,7 @@ struct NotchCardPresentationTests {
                         reason: nil, currentTurnID: "fictional-turn", turnStartedAtMs: startedAtMs,
                         responseReadyAtMs: stoppedAtMs, pendingRequests: [],
                         captureWatermarkMs: nil, receiptWallMs: nil, receiptMonotonicNs: nil,
-                        expiryMonotonicNs: nil, projectPath: path, paneSelector: nil,
+                        projectPath: path, paneSelector: nil,
                         hasTerminalRestriction: status == .ended)
     }
 

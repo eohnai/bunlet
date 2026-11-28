@@ -52,7 +52,7 @@ struct IntegrationHealthModelTests {
     }
 
     @Test @MainActor
-    func recordedDeliverySurvivesSessionExpiryAndIndependentStoreReplacement() throws {
+    func recordedDeliverySurvivesSessionInvalidationAndIndependentStoreReplacement() throws {
         let frame = Data("""
         {"version":1,"event_id":"00000000-0000-0000-0000-000000000001","agent":"codex","session_id":"fictional-health","hook_event_name":"UserPromptSubmit","observed_at_ms":1000000,"turn_id":"a"}
 
@@ -64,7 +64,7 @@ struct IntegrationHealthModelTests {
         let store = SessionStore()
         #expect(store.apply(SessionObservationV1(envelope: event, receiptWallMs: receipt.wallMs,
                                                  receiptMonotonicNs: receipt.monotonicNs)) == .applied)
-        store.advance(monotonicNs: 121_000_000_000)
+        store.invalidateClocks()
         #expect(store.sessions.first?.status == .unknown)
         #expect(IntegrationHealth.evaluate(evidence).lastDelivery == receipt)
         #expect(SessionStore().sessions.isEmpty)

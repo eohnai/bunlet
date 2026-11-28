@@ -42,9 +42,11 @@ final class PetAppController: NSObject, NSApplicationDelegate {
     @ObservationIgnored private var islandHiddenForPet = false
     /// The pet session panel, opened from the pet's speech bubble.
     @ObservationIgnored private lazy var petSessions = PetSessionPanelController(
-        sessions: sessions, features: features, actions: localActions, navigation: navigation,
+        sessions: sessions, settings: preferences, features: features, actions: localActions, navigation: navigation,
         onOpenFeatures: { [weak self] in self?.showFeatures() }, anchor: { [weak self] in self?.pet?.frameOnScreen })
-    @ObservationIgnored private lazy var petReactions = PetSessionAdapter(sessions: sessions) { [weak self] mood, cue in
+    @ObservationIgnored private lazy var petReactions = PetSessionAdapter(sessions: sessions, listed: { [weak self] all in
+        self?.preferences.visibleSessions(all) ?? all
+    }) { [weak self] mood, cue in
         self?.pet?.setReaction(mood, cue: cue)
     }
     @ObservationIgnored private weak var pet: PetPanelController?

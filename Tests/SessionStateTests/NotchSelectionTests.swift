@@ -9,7 +9,7 @@ struct NotchSelectionTests {
                         reason: nil, currentTurnID: nil, turnStartedAtMs: nil,
                         responseReadyAtMs: nil, pendingRequests: pending,
                         captureWatermarkMs: nil, receiptWallMs: nil, receiptMonotonicNs: nil,
-                        expiryMonotonicNs: nil, projectPath: "/fictional/shared", paneSelector: nil,
+                        projectPath: "/fictional/shared", paneSelector: nil,
                         hasTerminalRestriction: status == .ended)
     }
 

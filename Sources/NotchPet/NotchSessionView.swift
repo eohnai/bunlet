@@ -141,17 +141,13 @@ struct NotchSessionView: View {
         let contentWidth = max(0, windowState.panelWidth - 2 * inset)
         let notchWidth = windowState.hasNotch ? min(windowState.notchWidth, contentWidth) : 0
         let sideWidth = windowState.hasNotch ? (contentWidth - notchWidth) / 2 : nil
-        return HStack(spacing: 0) {
-            Group {
-                if expanded && isVisible && !isSleeping {
-                    NotchAllowanceStrip(store: usageStore, activeProviders: shownLimitProviders,
-                                        showsUsed: settings?.usageValue == .used)
-                }
+        return NotchTopRow(sideWidth: sideWidth, notchWidth: notchWidth) {
+            if expanded && isVisible && !isSleeping {
+                NotchAllowanceStrip(store: usageStore, activeProviders: shownLimitProviders,
+                                    showsUsed: settings?.usageValue == .used)
+                    .padding(.trailing, windowState.hasNotch ? 6 : 0)
             }
-            .padding(.trailing, windowState.hasNotch ? 6 : 0)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(width: sideWidth, alignment: .leading)
-            Color.clear.frame(width: notchWidth)
+        } trailing: {
             HStack(spacing: 12) {
                 if windowState.hasKeyboardFocus {
                     Button("Done", action: endInput).buttonStyle(.plain)
@@ -170,8 +166,6 @@ struct NotchSessionView: View {
                 }
                 IslandIconButton(systemImage: "gearshape", label: "Settings", action: onOpenSettings)
             }
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .frame(width: sideWidth, alignment: .trailing)
         }
         .padding(.horizontal, inset)
         .frame(height: headerHeight)
