@@ -17,7 +17,8 @@ inside it takes the pointer. `IslandGeometry` computes the frame. Exact values a
   is typing. Escape collapses it.
 - **Open:** the panel is 680 to 704 points wide (46% of the screen width) and grows with its content up to 280 points by
   default. A saved maximum height wins. The top row has the [quota badges](allowance-strip.md) left of the notch, and
-  today's tokens, **Clear all sessions** and **Settings** on the right.
+  today's tokens, **Clear all sessions** and **Settings** on the right. Each side keeps its width when it is empty,
+  so the buttons stay at the right edge when no quota badge shows.
 - **Alerts:** new approvals, questions and completions open the panel without taking focus. Completions, and requests
   with no local reply channel, close after the reminder duration (5 seconds by default) unless the pointer is inside. A completion does not open the panel
   while another listed session waits for an answer. Focus-aware suppression applies only when the session's own app
@@ -27,7 +28,8 @@ inside it takes the pointer. `IslandGeometry` computes the frame. Exact values a
 **Which sessions are listed** ([0032](../../decisions/0032-list-sessions-like-the-reference.md)). A session waiting for
 an approval or answer is always listed. Otherwise an ended session leaves at once, an idle or unknown session stays out
 until its first accepted prompt, and any session quiet longer than **Clear quiet sessions after** (7 days by default)
-leaves. Hovering a row shows **✕**. Removed rows stay hidden until the session reports new activity.
+leaves. Hovering a row shows **✕**. Removed rows stay hidden until the session reports new activity. The pet panel,
+the pet's mood and the switch-session shortcut use the same list.
 
 **Order.** Confirmed requests come first, then response ready, working, idle, unknown sessions and unconfirmed
 requests, and ended last. The selected session stays selected while updates arrive.

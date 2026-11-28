@@ -12,6 +12,9 @@ the pet back over the island, or choosing **Return Pet**, docks it again and sho
 ([0020](../../decisions/0020-one-app-with-pet-mode.md)). The pet takes the pointer only where its artwork is opaque.
 
 `PetSessionAdapter` turns session snapshots into a mood: idle, working, attention, response ready, unknown or ended.
+The mood follows the sessions the island lists ([0032](../../decisions/0032-list-sessions-like-the-reference.md)), so
+a hidden session does not change it. Ended sessions are never listed, so Ended shows when every session has ended.
+The pet panel lists the same sessions as the island.
 Each mood picks a pose from the artwork's seven rows: idle, play, sleep, running, attention, complete and drag. A
 response-ready cue plays once per finished response. A text badge spells out attention, unknown and ended, so the
 meaning survives artwork that has only an idle frame.
