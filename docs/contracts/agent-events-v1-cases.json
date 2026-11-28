@@ -5,7 +5,6 @@
     "frame_bytes": 16384,
     "delivery_age_ms": 30000,
     "future_skew_ms": 2000,
-    "freshness_ms": 120000,
     "sessions": 128,
     "event_ids": 4096,
     "turn_ids": 256,
@@ -1248,7 +1247,7 @@
       ]
     },
     {
-      "name": "duplicate does not refresh freshness",
+      "name": "a duplicate changes nothing as time passes",
       "steps": [
         {
           "message": {
@@ -1316,9 +1315,9 @@
             {
               "agent": "codex",
               "session_id": "fictional-session",
-              "status": "unknown",
+              "status": "working",
               "pending": 0,
-              "reason": "expired"
+              "reason": null
             }
           ]
         }
@@ -1703,9 +1702,9 @@
             {
               "agent": "codex",
               "session_id": "fictional-session",
-              "status": "unknown",
+              "status": "working",
               "pending": 0,
-              "reason": "expired"
+              "reason": null
             }
           ]
         }
@@ -2511,16 +2510,16 @@
             {
               "agent": "codex",
               "session_id": "fictional-session",
-              "status": "unknown",
+              "status": "idle",
               "pending": 0,
-              "reason": "expired"
+              "reason": null
             }
           ]
         }
       ]
     },
     {
-      "name": "future tolerance does not add extra lifetime",
+      "name": "a start within the future tolerance stays idle",
       "steps": [
         {
           "message": {
@@ -2564,16 +2563,16 @@
             {
               "agent": "codex",
               "session_id": "fictional-session",
-              "status": "unknown",
+              "status": "idle",
               "pending": 0,
-              "reason": "expired"
+              "reason": null
             }
           ]
         }
       ]
     },
     {
-      "name": "input expiry retains an unconfirmed notice",
+      "name": "an approval stays confirmed as time passes",
       "steps": [
         {
           "message": {
@@ -2630,9 +2629,9 @@
             {
               "agent": "codex",
               "session_id": "fictional-session",
-              "status": "unknown",
+              "status": "approval_needed",
               "pending": 1,
-              "reason": "expired"
+              "reason": null
             }
           ]
         },
@@ -2650,29 +2649,6 @@
           },
           "wall_ms": 1120002,
           "monotonic_ms": 1120002,
-          "outcome": "resolved_but_unknown",
-          "expect": [
-            {
-              "agent": "codex",
-              "session_id": "fictional-session",
-              "status": "unknown",
-              "pending": 0,
-              "reason": "expired"
-            }
-          ]
-        },
-        {
-          "message": {
-            "version": 1,
-            "event_id": "00000000-0000-0000-0000-0000000000a6",
-            "agent": "codex",
-            "session_id": "fictional-session",
-            "hook_event_name": "UserPromptSubmit",
-            "observed_at_ms": 1120003,
-            "turn_id": "b"
-          },
-          "wall_ms": 1120003,
-          "monotonic_ms": 1120003,
           "outcome": "applied",
           "expect": [
             {
@@ -2687,7 +2663,7 @@
       ]
     },
     {
-      "name": "repeated start and submit are not heartbeats",
+      "name": "repeated start and submit change nothing",
       "steps": [
         {
           "message": {
@@ -2764,16 +2740,16 @@
             {
               "agent": "codex",
               "session_id": "fictional-session",
-              "status": "unknown",
+              "status": "working",
               "pending": 0,
-              "reason": "expired"
+              "reason": null
             }
           ]
         }
       ]
     },
     {
-      "name": "repeated request opening is not a heartbeat",
+      "name": "a repeated request opening merges",
       "steps": [
         {
           "message": {
@@ -2855,16 +2831,16 @@
             {
               "agent": "codex",
               "session_id": "fictional-session",
-              "status": "unknown",
+              "status": "approval_needed",
               "pending": 1,
-              "reason": "expired"
+              "reason": null
             }
           ]
         }
       ]
     },
     {
-      "name": "repeated stop is not a heartbeat",
+      "name": "a finished response stays ready as time passes",
       "steps": [
         {
           "message": {
@@ -2942,16 +2918,16 @@
             {
               "agent": "codex",
               "session_id": "fictional-session",
-              "status": "unknown",
+              "status": "response_ready",
               "pending": 0,
-              "reason": "expired"
+              "reason": null
             }
           ]
         }
       ]
     },
     {
-      "name": "unmatched completion does not refresh",
+      "name": "an unmatched completion changes nothing",
       "steps": [
         {
           "message": {
@@ -3008,9 +2984,9 @@
             {
               "agent": "codex",
               "session_id": "fictional-session",
-              "status": "unknown",
+              "status": "working",
               "pending": 0,
-              "reason": "expired"
+              "reason": null
             }
           ]
         }
@@ -3120,7 +3096,7 @@
       ]
     },
     {
-      "name": "stale Otty hints cannot establish activity",
+      "name": "a started session stays idle as time passes",
       "steps": [
         {
           "message": {
@@ -3155,9 +3131,9 @@
             {
               "agent": "codex",
               "session_id": "fictional-session",
-              "status": "unknown",
+              "status": "idle",
               "pending": 0,
-              "reason": "expired"
+              "reason": null
             }
           ]
         }
@@ -3654,7 +3630,7 @@
       ]
     },
     {
-      "name": "delivery rejection does not refresh existing working state",
+      "name": "a rejected delivery leaves working state unchanged",
       "steps": [
         {
           "message": {
@@ -3710,9 +3686,9 @@
             {
               "agent": "codex",
               "session_id": "fictional-session",
-              "status": "unknown",
+              "status": "working",
               "pending": 0,
-              "reason": "expired"
+              "reason": null
             }
           ]
         }

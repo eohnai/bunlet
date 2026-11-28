@@ -35,7 +35,7 @@ trust or changes permissions.
 - Monitoring preferences are per-provider, with the existing global Agents monitoring master switch.
   Pause immediately drops that provider's queued events/refresh, retains unconfirmed requests and
   does not remove hooks. Resume starts a new receipt cutoff; queued old evidence cannot restore
-  freshness. Disconnect pauses first, then explicitly removes only owned configuration. Failures
+  session state. Disconnect pauses first, then explicitly removes only owned configuration. Failures
   remain paused, with a recoverable message. Removing Agents stops everything without changing hooks.
 - Monitoring, allowance, hooks installed, policy, trust and actual delivery are separate evidence.
   No installed boolean means a provider session is connected. No silence means success.

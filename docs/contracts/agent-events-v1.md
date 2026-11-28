@@ -9,7 +9,7 @@ This contract defines the helper's message and the receiver's handling rules.
 
 The helper reads one hook payload and projects only the fields listed below.
 The app's agent adapter translates that projection into a shared session event.
-The shared store applies the ordering and freshness rules.
+The shared store applies the ordering rules.
 Usage snapshots use a separate future contract.
 
 Version 1 supports the seven hook names exercised in the [event investigation](../notes/agent-event-compatibility.md).
@@ -119,7 +119,7 @@ A correlated `Stop` for the current turn can clear all that turn's requests, inc
 Without matching turn identity, it cannot clear requests.
 
 `terminal` is an unverified navigation hint.
-It never proves freshness, working state, account identity, or permission.
+It never proves activity, working state, account identity, or permission.
 The future terminal adapter must validate it against live Otty state and this source session.
 Absent, closed, stale, or ambiguous matches make navigation unavailable.
 Never open a replacement pane automatically.
@@ -129,26 +129,27 @@ Never open a replacement pane automatically.
 Hooks do not supply a verified total source order.
 The helper's timestamp records when it read the hook, not when the agent produced it.
 Receipt order and UUID order cannot establish source order.
-Normal compatible transitions below are provisional observations, bounded by freshness.
+Normal compatible transitions below are provisional observations.
 They are not a guarantee of complete or ordered delivery.
 
 The store keeps a capture-time watermark, current turn, known retired turns, pending requests, and seen event IDs per session.
-It also keeps receipt time and a monotonic expiry deadline.
-A monotonic clock measures elapsed time without wall-clock adjustments.
+It also keeps receipt time.
+A session keeps its last state until a new observation changes it. Elapsed time alone never changes it
+([0034](../decisions/0034-keep-the-last-session-state.md)).
 
 Apply these rules in order:
 
 1. Reject invalid or expired messages before changing session state.
-2. Ignore an identical previously seen event ID. Do not refresh its deadline.
-3. If that ID has different contents, mark its session unknown. Retain its pending requests without refreshing freshness.
+2. Ignore an identical previously seen event ID.
+3. If that ID has different contents, mark its session unknown. Retain its pending requests.
 4. A valid `SessionEnd` takes priority. Set ended, clear requests, and retain a terminal record until app exit.
 5. After end, ignore activity. A later `SessionStart` with the same ID sets unknown with reason `reused_session_id`.
 6. Keep that terminal restriction after a repeated start. Version 1 cannot verify a resumed lifecycle with the same ID.
 7. For any other unseen event, compare `observed_at_ms` with the watermark.
-8. An equal or lower timestamp is ambiguous. Mark unknown, retain requests, and do not advance the deadline or watermark.
-9. An event for a retired turn is delayed. Ignore it without refreshing freshness.
+8. An equal or lower timestamp is ambiguous. Mark unknown, retain requests, and do not advance the watermark.
+9. An event for a retired turn is delayed. Ignore it.
 10. Apply a compatible transition below. Conflicts set unknown and retain unresolved requests.
-11. Advance the watermark and deadline only for a compatible, state-bearing observation.
+11. Advance the watermark only for a compatible, state-bearing observation.
 
 Unresolved input has presentation priority over response-ready state.
 When a session becomes unknown, retain unresolved requests as unconfirmed notices.
@@ -159,7 +160,7 @@ Do not present those notices as current approval or current question requests.
 | First `SessionStart` | Idle; a repeated start cannot clear activity or requests |
 | `UserPromptSubmit` with a turn ID | Working; a new turn can replace idle or response-ready state when no requests remain |
 | First submit without a turn ID | Working provisionally; later events cannot be correlated to that turn |
-| Repeated submit for current turn | Leave state and deadline unchanged |
+| Repeated submit for current turn | Leave state unchanged |
 | New turn while another turn works or has unresolved input | Unknown: `overlapping_turns` |
 | Non-question `PreToolUse` | Working only for a matching current turn with no pending requests |
 | Question opening or approval request | Add or merge the request; a missing turn baseline makes the session unknown |
@@ -177,7 +178,7 @@ Retire the previous turn when accepting that new baseline.
 Unknown state cannot prove that old input was resolved.
 These rules intentionally prefer missing an activity indication over presenting a conflicting observation as current.
 
-## Freshness and bounded memory
+## Time and bounded memory
 
 These are initial policy values, rather than measured transport performance.
 Changing them requires updating this contract and its cases together.
@@ -189,7 +190,6 @@ Changing them requires updating this contract and its cases together.
 | JSON object depth | 2 | Reject deeper input |
 | Maximum delivery age | 30000 ms | Reject older helper observations |
 | Allowed future clock difference | 2000 ms | Reject observations further ahead |
-| Observation freshness | 120000 ms | Expire idle, working, input, and response-ready observations to unknown |
 | Sessions per app run | 128 | Refuse new session keys; do not evict a live session or terminal record |
 | Event IDs per session | 4096 | Set that session unknown at capacity; refuse further unseen events until app restart |
 | Distinct turn IDs per session | 256 | Set unknown at capacity; refuse further unseen events until app restart |
@@ -197,14 +197,10 @@ Changing them requires updating this contract and its cases together.
 
 At receipt, record local wall time and monotonic time separately.
 Reject an observation older than 30000 ms or more than 2000 ms in the future.
-Compute initial age as `max(0, receipt_wall_ms - observed_at_ms)`.
-Set the deadline to `receipt_monotonic_ms + 120000 - initial_age`.
-At the deadline, make the observation unknown and retain requests as unconfirmed.
-No heartbeat has been verified, so a long-running command can become unknown after two minutes.
-That is a stated first-version limitation, not proof of failure or termination.
+A quiet session keeps its last state, because a finished or waiting session is quiet by nature. If an agent exits
+without `SessionEnd`, its last state stays until the island's quiet-session clean-up removes it.
 
-Duplicate IDs, repeated submits or stops, merged request openings, unmatched completions, and rejected messages do not extend freshness.
-When the app sleeps, expire all nonterminal observations on wake before showing them again.
+When the app sleeps, make all nonterminal observations unknown on wake before showing them again.
 A backward wall-clock change or a discontinuous clock makes observations unknown until new evidence arrives.
 A later valid message must still satisfy the ordering rules.
 

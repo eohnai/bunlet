@@ -38,7 +38,7 @@ working.
 ([0020](decisions/0020-one-app-with-pet-mode.md)). `ProviderMonitoringModel` saves one on or off choice per agent.
 
 `AgentServices` owns the event receiver and inbox, the quota receiver and inbox, `AgentUsageController` for Codex reads,
-the expiry timer and lifecycle observers. Each start gets a new generation, and queued callbacks from an older
+and the sleep, wake and clock-change observers. Each start gets a new generation, and queued callbacks from an older
 generation are dropped. `ProviderSetupController` runs Connect, Check, Remove and automatic setup per agent.
 `LocalActionController` owns reply channels.
 

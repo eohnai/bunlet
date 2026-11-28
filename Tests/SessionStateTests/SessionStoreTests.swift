@@ -7,7 +7,7 @@ import Testing
 
 @MainActor
 struct SessionStoreTests {
-    @Test @MainActor func duplicateDoesNotExtendExpiry() throws {
+    @Test @MainActor func aDuplicateChangesNothing() throws {
         let store = SessionStore()
         let frame = Data("""
         {"version":1,"event_id":"00000000-0000-0000-0000-000000000001","agent":"codex","session_id":"fictional","hook_event_name":"UserPromptSubmit","observed_at_ms":1000000,"turn_id":"a"}
@@ -20,9 +20,24 @@ struct SessionStoreTests {
         let duplicate = SessionObservationV1(envelope: envelope, receiptWallMs: 1_010_000,
                                             receiptMonotonicNs: 11_000_000_000)
         #expect(store.apply(duplicate) == .duplicate)
-        store.advance(monotonicNs: 121_000_000_000)
-        #expect(store.sessions.first?.status == .unknown)
-        #expect(store.sessions.first?.reason == .expired)
+        #expect(store.sessions.first?.status == .working)
+    }
+
+    /// Decision 0034: a quiet session keeps its last state. A finished or waiting session sends no events.
+    @Test(arguments: [("UserPromptSubmit", SessionStatus.working), ("PermissionRequest", .approvalNeeded),
+                      ("Stop", .responseReady)])
+    func aQuietSessionKeepsItsLastState(hook: String, expected: SessionStatus) throws {
+        let store = SessionStore()
+        #expect(store.apply(try observation(1)) == .applied)
+        if hook == "PermissionRequest" {
+            #expect(store.apply(try observation(2, hook: hook, toolUseID: "tool", toolName: "Write")) == .applied)
+        } else if hook == "Stop" {
+            #expect(store.apply(try observation(2, hook: hook)) == .applied)
+        }
+        store.advance(monotonicNs: 1_000_002_000_000 + 24 * 3_600_000_000_000)
+        #expect(store.sessions.first?.status == expected)
+        #expect(store.sessions.first?.reason == nil)
+        #expect(store.sessions.first?.pendingRequests.allSatisfy(\.isConfirmed) == true)
     }
 
     private func observation(_ number: Int, hook: String = "UserPromptSubmit", agent: String = "codex",
@@ -79,7 +94,6 @@ struct SessionStoreTests {
         #expect(started.responseReadyAtMs == nil)
         #expect(store.apply(try observation(3, agent: agent, wallMs: 1_001_003)) == .repeatedSubmit)
         #expect(store.sessions.first?.turnStartedAtMs == started.turnStartedAtMs)
-        #expect(store.sessions.first?.expiryMonotonicNs == started.expiryMonotonicNs)
 
         #expect(store.apply(try observation(4, hook: "PermissionRequest", agent: agent,
                                            toolUseID: "tool", toolName: "Write",
@@ -132,14 +146,14 @@ struct SessionStoreTests {
     func matchingStopsKeepFirstTimeWithoutRevivingUnknownTurn(agent: String) throws {
         let store = SessionStore()
         #expect(store.apply(try observation(1, agent: agent)) == .applied)
-        store.advance(monotonicNs: 1_120_001_000_000)
+        store.invalidateClocks()
         #expect(store.sessions.first?.status == .unknown)
         #expect(store.sessions.first?.turnStartedAtMs == 1_000_001)
         #expect(store.apply(try observation(2, hook: "Stop", agent: agent,
                                            observedAtMs: 1_120_002)) == .resolvedButUnknown)
         let stopped = try #require(store.sessions.first)
         #expect(stopped.status == .unknown)
-        #expect(stopped.reason == .expired)
+        #expect(stopped.reason == .clockOrWake)
         #expect(stopped.responseReadyAtMs == 1_120_002)
         #expect(store.apply(try observation(3, hook: "Stop", agent: agent,
                                            observedAtMs: 1_120_003)) == .resolvedButUnknown)
@@ -200,7 +214,7 @@ struct SessionStoreTests {
                 stepsChecked += 1
             }
         }
-        #expect(stepsChecked == 122)
+        #expect(stepsChecked == 121)
     }
 
     @Test func sessionCapacityRetainsTerminalRecords() throws {
@@ -222,11 +236,9 @@ struct SessionStoreTests {
             #expect(store.apply(try observation(n)) == .repeatedSubmit)
         }
         #expect(store.apply(first) == .duplicate)
-        let deadline = store.sessions.first?.expiryMonotonicNs
         #expect(store.apply(try observation(4097)) == .identityCapacity)
         #expect(store.apply(try observation(4098, turnID: "b")) == .identityCapacity)
         #expect(store.sessions.first?.reason == .identityCapacity)
-        #expect(store.sessions.first?.expiryMonotonicNs == deadline)
     }
 
     @Test func turnCapacityDoesNotEvictRetiredIdentities() throws {
@@ -286,7 +298,7 @@ struct SessionStoreTests {
         #expect(store.apply(try observation(1)) == .applied)
         #expect(store.apply(try observation(2, hook: "PermissionRequest",
                                            toolUseID: "tool", toolName: "Write")) == .applied)
-        store.advance(monotonicNs: 1_120_002_000_000)
+        store.invalidateClocks()
         #expect(store.apply(try observation(3, turnID: "b", observedAtMs: 1_120_003)) == .conflict)
         #expect(store.apply(try observation(4, hook: "PostToolUse", toolUseID: "tool", toolName: "Write",
                                            observedAtMs: 1_120_004)) == .resolvedButUnknown)
@@ -301,10 +313,8 @@ struct SessionStoreTests {
         let store = SessionStore()
         #expect(store.apply(try observation(1)) == .applied)
         #expect(store.apply(try observation(2, turnID: "b")) == .conflict)
-        let deadline = store.sessions.first?.expiryMonotonicNs
         #expect(store.apply(try observation(3, turnID: "b")) == .conflict)
         #expect(store.sessions.first?.status == .unknown)
-        #expect(store.sessions.first?.expiryMonotonicNs == deadline)
         #expect(store.apply(try observation(4, turnID: "c")) == .applied)
         #expect(store.sessions.first?.status == .working)
     }
@@ -334,7 +344,7 @@ struct SessionStoreTests {
         #expect(backwards.sessions.first?.reason == .clockOrWake)
     }
 
-    @Test func queuedObservationIsExpiredWhenObserversFirstRead() async throws {
+    @Test func observersReadTheBatchOnlyAfterItIsApplied() async throws {
         let store = SessionStore()
         let event = try observation(1)
         let announced = OSAllocatedUnfairLock(initialState: false)
@@ -344,7 +354,7 @@ struct SessionStoreTests {
         // Observers read after a main-actor hop, so they never see a value within the batch.
         await Task { @MainActor in }.value
         #expect(announced.withLock { $0 })
-        #expect(store.sessions.first?.reason == .expired)
+        #expect(store.sessions.first?.status == .working)
     }
 
     @Test func newEvidenceCanRecoverAfterAMonotonicClockReset() throws {
@@ -352,7 +362,6 @@ struct SessionStoreTests {
         #expect(store.apply(try observation(1)) == .applied)
         #expect(store.apply(try observation(2, turnID: "b", monotonicNs: 1_000_000)) == .applied)
         #expect(store.sessions.first?.status == .working)
-        #expect(store.sessions.first?.expiryMonotonicNs == 120_001_000_000)
         #expect(store.apply(try observation(3, hook: "Stop", turnID: "b", monotonicNs: 2_000_000)) == .applied)
         #expect(store.apply(try observation(4, turnID: "c", monotonicNs: 3_000_000)) == .applied)
         #expect(store.sessions.first?.status == .working)

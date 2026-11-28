@@ -19,7 +19,6 @@ POLICY = {
     "frame_bytes": 16384,
     "delivery_age_ms": 30000,
     "future_skew_ms": 2000,
-    "freshness_ms": 120000,
     "sessions": 128,
     "event_ids": 4096,
     "turn_ids": 256,
@@ -141,7 +140,6 @@ class Session:
     terminal: bool = False
     saturated: bool = False
     watermark: int | None = None
-    deadline: int | None = None
     seen: dict = field(default_factory=dict)
     turns: set = field(default_factory=set)
     retired: set = field(default_factory=set)
@@ -152,8 +150,6 @@ class Session:
 
     def refresh(self, message: dict, wall: int, monotonic: int) -> None:
         self.watermark = message["observed_at_ms"]
-        age = max(0, wall - message["observed_at_ms"])
-        self.deadline = monotonic + POLICY["freshness_ms"] - age
 
     def show_pending(self) -> None:
         self.reason = None
@@ -169,10 +165,7 @@ class ReferenceStore:
         self.sessions: dict[tuple[str, str], Session] = {}
 
     def advance(self, monotonic: int) -> None:
-        for session in self.sessions.values():
-            if (not session.terminal and session.status != "unknown"
-                    and session.deadline is not None and monotonic >= session.deadline):
-                session.unknown("expired")
+        """Elapsed time alone never changes a session (decision 0034)."""
 
     def invalidate_clocks(self) -> None:
         for session in self.sessions.values():
@@ -184,7 +177,6 @@ class ReferenceStore:
 
     def receive_frame(self, frame: bytes, wall: int, monotonic: int) -> str:
         message = decode_frame(frame)
-        self.advance(monotonic)
         age = wall - message["observed_at_ms"]
         if age > POLICY["delivery_age_ms"] or age < -POLICY["future_skew_ms"]:
             return "delivery_time"
@@ -216,7 +208,6 @@ class ReferenceStore:
             session.terminal = True
             session.status, session.reason = "ended", None
             session.pending.clear()
-            session.deadline = None
             return "ended"
         if session.terminal:
             if hook == "SessionStart":
@@ -421,7 +412,6 @@ def check_document() -> None:
         "frame_bytes": "Wire frame, including LF",
         "delivery_age_ms": "Maximum delivery age",
         "future_skew_ms": "Allowed future clock difference",
-        "freshness_ms": "Observation freshness",
         "sessions": "Sessions per app run",
         "event_ids": "Event IDs per session",
         "turn_ids": "Distinct turn IDs per session",

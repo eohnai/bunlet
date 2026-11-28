@@ -10,7 +10,7 @@ struct NotchPresentationTests {
                         reason: nil, currentTurnID: nil, turnStartedAtMs: nil,
                         responseReadyAtMs: nil, pendingRequests: [],
                         captureWatermarkMs: nil, receiptWallMs: nil, receiptMonotonicNs: nil,
-                        expiryMonotonicNs: nil, projectPath: "/fictional/project", paneSelector: nil,
+                        projectPath: "/fictional/project", paneSelector: nil,
                         hasTerminalRestriction: status == .ended)
     }
 
@@ -20,7 +20,7 @@ struct NotchPresentationTests {
                         reason: nil, currentTurnID: nil, turnStartedAtMs: prompted ? 1_000 : nil,
                         responseReadyAtMs: nil, pendingRequests: pending,
                         captureWatermarkMs: nil, receiptWallMs: receiptMs, receiptMonotonicNs: nil,
-                        expiryMonotonicNs: nil, projectPath: "/fictional/project", paneSelector: nil,
+                        projectPath: "/fictional/project", paneSelector: nil,
                         hasTerminalRestriction: false)
     }
 
@@ -192,7 +192,7 @@ struct IslandAutoOpenTests {
                                        reason: nil, currentTurnID: nil, turnStartedAtMs: nil,
                                        responseReadyAtMs: nil, pendingRequests: [],
                                        captureWatermarkMs: nil, receiptWallMs: nil, receiptMonotonicNs: nil,
-                                       expiryMonotonicNs: nil, projectPath: "/fictional/project", paneSelector: nil,
+                                       projectPath: "/fictional/project", paneSelector: nil,
                                        hasTerminalRestriction: false)
         snapshot.terminal = terminal
         return snapshot
@@ -253,7 +253,7 @@ struct RemovedSessionTests {
         SessionSnapshot(key: SessionKey(agent: .claude, sessionID: id), status: .responseReady,
                         reason: nil, currentTurnID: nil, turnStartedAtMs: nil, responseReadyAtMs: nil,
                         pendingRequests: [], captureWatermarkMs: nil, receiptWallMs: nil,
-                        receiptMonotonicNs: receipt, expiryMonotonicNs: nil, projectPath: "/fictional/project",
+                        receiptMonotonicNs: receipt, projectPath: "/fictional/project",
                         paneSelector: nil, hasTerminalRestriction: false)
     }
 

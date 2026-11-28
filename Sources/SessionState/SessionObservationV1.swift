@@ -85,7 +85,6 @@ public enum SessionStatus: String, Sendable {
 
 public enum SessionUnknownReason: String, Sendable {
     case noBaseline = "no_baseline"
-    case expired
     case eventIDConflict = "event_id_conflict"
     case identityCapacity = "identity_capacity"
     case requestCapacity = "request_capacity"
@@ -148,7 +147,6 @@ public struct SessionSnapshot: Equatable, Sendable, Identifiable {
     public let captureWatermarkMs: Int64?
     public let receiptWallMs: Int64?
     public let receiptMonotonicNs: UInt64?
-    public let expiryMonotonicNs: UInt64?
     public let projectPath: String?
     /// An unverified hint. The future terminal adapter must validate it before navigation.
     public let paneSelector: String?

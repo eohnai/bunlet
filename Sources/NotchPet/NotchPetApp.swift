@@ -127,7 +127,6 @@ final class AgentServices: NSObject, AppAgentService {
     private var enabledProviders: Set<Agent>
     private var providerCutoffs: [Agent: (monotonic: UInt64, wall: Int64)] = [:]
     private var eventReceiverState: IntegrationReceiverState = .notStarted
-    private var expiryTimer: DispatchSourceTimer?
     private var receiptCutoffNs: UInt64 = 0
 
     init(sessionStore: SessionStore? = nil, usageStore: UsageStore? = nil, endpoint: BridgeEndpoint = .standard,
@@ -169,7 +168,6 @@ final class AgentServices: NSObject, AppAgentService {
         updateReceiverEvidence()
         if providers.contains(.claude) { startClaudeQuota(current: current) }
         else { stopClaudeQuota() }
-        scheduleExpiry()
     }
 
     func start() {
@@ -180,7 +178,7 @@ final class AgentServices: NSObject, AppAgentService {
         let deliver: BatchHandler = { [weak self] batch, lost in
             guard let self, self.generation == current else { return }
             let monitored = batch.filter { self.enabledProviders.contains($0.envelope.agent) }
-            // Delivery happened even when a clock cutoff prevents it from restoring session freshness.
+            // Delivery happened even when a clock cutoff keeps it out of session state.
             self.integrationHealth.recordDeliveries(monitored)
             // Evidence queued before sleep or a clock change cannot establish a fresh baseline.
             let eligible = monitored.filter {
@@ -190,7 +188,6 @@ final class AgentServices: NSObject, AppAgentService {
             }
             self.sessionStore.applyBatch(eligible, observationsLost: lost,
                                          wallMs: self.wallMs(), monotonicNs: self.monotonicNs())
-            self.scheduleExpiry()
         }
         do {
             ServiceStartLedger.record(.eventReceiver)
@@ -240,8 +237,6 @@ final class AgentServices: NSObject, AppAgentService {
         sessionStore.suspendMonitoring()
         integrationHealth.setReceiver(.stopped)
         eventReceiverState = .stopped
-        expiryTimer?.cancel()
-        expiryTimer = nil
         for (center, observer) in observers { center.removeObserver(observer) }
         observers.removeAll()
     }
@@ -251,8 +246,6 @@ final class AgentServices: NSObject, AppAgentService {
         for agent in Agent.allCases { providerCutoffs[agent] = (receiptCutoffNs, wallMs()) }
         sessionStore.invalidateClocks()
         actions?.refreshEvidence()
-        expiryTimer?.cancel()
-        expiryTimer = nil
     }
 
     private func updateReceiverEvidence() {
@@ -284,27 +277,6 @@ final class AgentServices: NSObject, AppAgentService {
         usageReceiver.stop()
         usageInbox = nil
         usageStore.setReceiverState(.stopped)
-    }
-
-    private func scheduleExpiry() {
-        expiryTimer?.cancel()
-        expiryTimer = nil
-        guard let current = generation, let next = sessionStore.nextExpiryMonotonicNs else { return }
-        let now = monotonicNs()
-        // Check clock continuity once per second while fresh observations exist.
-        // An empty or entirely unknown store has no timer.
-        let delay = min(next > now ? next - now : 0, 1_000_000_000)
-        let timer = DispatchSource.makeTimerSource(queue: .main)
-        timer.schedule(deadline: .now() + .nanoseconds(Int(delay)), leeway: .milliseconds(5))
-        timer.setEventHandler { [weak self] in
-            Task { @MainActor in
-                guard let self, self.generation == current else { return }
-                self.sessionStore.checkClocks(wallMs: self.wallMs(), monotonicNs: self.monotonicNs())
-                self.scheduleExpiry()
-            }
-        }
-        expiryTimer = timer
-        timer.resume()
     }
 
     private func wallMs() -> Int64 { readWall() }

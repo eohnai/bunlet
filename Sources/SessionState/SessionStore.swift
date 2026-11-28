@@ -16,7 +16,6 @@ public final class SessionStore {
     public static let turnIDLimit = 256
     public static let requestLimit = 64
     public static let subagentLimit = 32
-    public static let freshnessNs: UInt64 = 120_000_000_000
 
     private var records: [SessionKey: Record] = [:]
     private var receiptClock = ClockHistory()
@@ -29,12 +28,11 @@ public final class SessionStore {
     public func apply(_ observation: SessionObservationV1) -> SessionApplyResult {
         let result = reduce(observation)
         recordIntake(result)
-        expire(at: horizonNs)
         publish()
         return result
     }
 
-    /// Process one bounded bridge batch, then expire before publishing any snapshots.
+    /// Process one bounded bridge batch, then publish once.
     public func applyBatch(_ batch: [SessionObservationV1], observationsLost: Bool,
                            wallMs: Int64, monotonicNs: UInt64) {
         observeRuntimeClock(wallMs: wallMs, monotonicNs: monotonicNs)
@@ -44,7 +42,6 @@ public final class SessionStore {
             invalidate(reason: .deliveryOverflow)
         }
         horizonNs = max(horizonNs, monotonicNs)
-        expire(at: horizonNs)
         publish()
     }
 
@@ -77,12 +74,6 @@ public final class SessionStore {
         publish()
     }
 
-    public var nextExpiryMonotonicNs: UInt64? {
-        records.values.compactMap { record in
-            !record.terminal && record.status != .unknown ? record.deadlineNs : nil
-        }.min()
-    }
-
     private func recordIntake(_ result: SessionApplyResult) {
         switch result {
         case .sessionCapacity, .identityCapacity, .requestCapacity: capacityIssue = result
@@ -94,16 +85,14 @@ public final class SessionStore {
         let event = observation.envelope
         // Validate public receipt inputs as well as delivery age before recording identities.
         guard (0...9_007_199_254_740_991).contains(observation.receiptWallMs),
-              observation.receiptMonotonicNs <= UInt64.max - Self.freshnessNs,
               let canonical = try? event.frame() else { return .invalidObservation }
         horizonNs = max(horizonNs, observation.receiptMonotonicNs)
-        expire(at: horizonNs)
         let age = observation.receiptWallMs - event.observedAtMs
         guard age <= 30_000, age >= -2000 else { return .deliveryTime }
         let monotonicReset = receiptClock.previous.map { observation.receiptMonotonicNs < $0.monotonic } ?? false
         if receiptClock.observe(wallMs: observation.receiptWallMs, monotonicNs: observation.receiptMonotonicNs) {
             invalidate(reason: .clockOrWake)
-            // Deadlines for new evidence must use the new monotonic clock range.
+            // Later clock checks must use the new monotonic clock range.
             if monotonicReset { horizonNs = observation.receiptMonotonicNs }
         }
 
@@ -155,7 +144,6 @@ public final class SessionStore {
             record.status = .ended
             record.reason = nil
             record.pending.removeAll()
-            record.deadlineNs = nil
             return .ended
         }
         if record.terminal {
@@ -322,13 +310,6 @@ public final class SessionStore {
         } else {
             horizonNs = max(horizonNs, monotonicNs)
         }
-        expire(at: horizonNs)
-    }
-
-    private func expire(at now: UInt64) {
-        for record in records.values where !record.terminal && record.status != .unknown {
-            if let deadline = record.deadlineNs, now >= deadline { record.unknown(.expired) }
-        }
     }
 
     private func invalidate(reason: SessionUnknownReason) {
@@ -369,7 +350,6 @@ private final class Record {
     var terminal = false
     var saturated = false
     var watermarkMs: Int64?
-    var deadlineNs: UInt64?
     var receiptWallMs: Int64?
     var receiptMonotonicNs: UInt64?
     var projectPath: String?
@@ -392,8 +372,6 @@ private final class Record {
 
     func refresh(_ observation: SessionObservationV1) {
         watermarkMs = observation.envelope.observedAtMs
-        let age = max(0, observation.receiptWallMs - observation.envelope.observedAtMs)
-        deadlineNs = observation.receiptMonotonicNs + SessionStore.freshnessNs - UInt64(age) * 1_000_000
         receiptWallMs = observation.receiptWallMs
         receiptMonotonicNs = observation.receiptMonotonicNs
         if let cwd = observation.envelope.cwd { projectPath = cwd }
@@ -423,7 +401,7 @@ private final class Record {
                                turnStartedAtMs: turnStartedAtMs, responseReadyAtMs: responseReadyAtMs,
                                pendingRequests: requests, captureWatermarkMs: watermarkMs,
                                receiptWallMs: receiptWallMs, receiptMonotonicNs: receiptMonotonicNs,
-                               expiryMonotonicNs: deadlineNs, projectPath: projectPath,
+                               projectPath: projectPath,
                                paneSelector: paneSelector, hasTerminalRestriction: terminal,
                                latestPrompt: latestPrompt, lastReply: lastReply, currentTool: currentTool,
                                terminal: location, runningSubagents: subagents.count, turnFailed: failed)
