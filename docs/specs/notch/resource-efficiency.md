@@ -13,7 +13,8 @@ seconds and a 120-second loop while active. Hidden or sleeping surfaces stop the
 
 ## Requirements
 
-- With no sessions and no user action, nothing wakes up to check for work.
+- With no sessions and no user action, nothing wakes up to check for work. The one exception is a single Codex quota
+  read when agent services start ([Codex allowance](../usage/codex-allowance.md)).
 - A static pet pose schedules no animation tick. Optional animation is capped at 30 fps and stops when not visible.
 - Reduce Motion shows a stable pose. Low Power Mode reduces optional motion.
 - Queues, image resources and buffers have explicit bounds. Artwork is decoded once.

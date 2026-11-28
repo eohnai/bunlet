@@ -18,10 +18,13 @@ final class AgentUsageController: AppFeatureService {
     private var task: Task<Void, Never>?
     private var enabledProviders = Set(Agent.allCases)
     private var codexActive = false
+    /// Tests replace the Codex App Server read. Nil reads through the installed Codex executable.
+    private let readOverride: (@MainActor () async -> UsageObservation)?
 
-    init(store: UsageStore, sessions: SessionStore) {
+    init(store: UsageStore, sessions: SessionStore, read: (@MainActor () async -> UsageObservation)? = nil) {
         self.store = store
         self.sessions = sessions
+        self.readOverride = read
     }
 
     func start() {
@@ -31,6 +34,12 @@ final class AgentUsageController: AppFeatureService {
                 NotchPresentation.activeProviders(sessions.sessions).contains(.codex)
         }) { [weak self] active in
             self?.setCodexActive(active)
+        }
+        // One read at start, so the Codex badge shows before a session reports anything. A session that is already
+        // open and quiet sends no event after Bunlet starts. Reading again every 120 seconds still needs an active session.
+        if !codexActive, enabledProviders.contains(.codex) {
+            ServiceStartLedger.record(.agentRefresh)
+            task = readCodex(repeating: false)
         }
     }
 
@@ -44,7 +53,11 @@ final class AgentUsageController: AppFeatureService {
 
     func setEnabledProviders(_ providers: Set<Agent>) {
         enabledProviders = providers
-        if !providers.contains(.codex) { setCodexActive(false) }
+        guard !providers.contains(.codex) else { return }
+        setCodexActive(false)
+        // The start read runs while Codex is not active, so turning Codex off must cancel it separately.
+        task?.cancel()
+        task = nil
     }
 
     private func setCodexActive(_ active: Bool) {
@@ -54,28 +67,26 @@ final class AgentUsageController: AppFeatureService {
         task = nil
         guard active else { return }
         ServiceStartLedger.record(.agentRefresh)
-        task = Task { @MainActor [weak self] in
+        task = readCodex(repeating: true)
+    }
+
+    /// Reads Codex limits once, or repeatedly while Codex stays active. Only one read task exists at a time, so reads
+    /// never overlap: becoming active cancels the start read.
+    private func readCodex(repeating: Bool) -> Task<Void, Never> {
+        Task { @MainActor [weak self] in
             guard let self else { return }
-            let path = getenv("PATH").map { String(cString: $0) }
-            let executable: URL
-            switch AgentPathLocator.executable(agent: .codex, policy: .usage, searchPath: path,
-                                              homeDirectory: FileManager.default.homeDirectoryForCurrentUser,
-                                              desktopApplication: NSWorkspace.shared.urlForApplication(withBundleIdentifier:)) {
-            case .found(let url):
-                executable = url
-            case .notFound:
-                self.status = "Codex executable unavailable."
-                return
-            case .invalidSearchPath:
-                self.status = "Executable search path unavailable."
-                return
+            let read: @MainActor () async -> UsageObservation
+            if let readOverride = self.readOverride {
+                read = readOverride
+            } else {
+                guard let executable = self.codexExecutable() else { return }
+                read = { await CodexUsageConnection.read(executableURL: executable, sourceID: "codex-managed") }
             }
             var failures = 0
             let delays = [5, 15, 30, 60, 120]
             while !Task.isCancelled {
                 ServiceStartLedger.record(.providerProcess)
-                let observation = await CodexUsageConnection.read(executableURL: executable,
-                                                                 sourceID: "codex-managed")
+                let observation = await read()
                 guard !Task.isCancelled else { return }
                 self.store.apply(observation)
                 let delay: Int
@@ -86,11 +97,29 @@ final class AgentUsageController: AppFeatureService {
                 } else {
                     delay = delays[min(failures, delays.count - 1)]
                     failures = min(failures + 1, delays.count)
-                    self.status = "Codex usage unavailable. Retrying in \(delay) seconds."
+                    self.status = repeating ? "Codex usage unavailable. Retrying in \(delay) seconds."
+                        : "Codex usage unavailable. Bunlet reads again when a Codex session starts."
                 }
+                guard repeating else { return }
                 do { try await Task.sleep(for: .seconds(delay)) }
                 catch { return }
             }
+        }
+    }
+
+    private func codexExecutable() -> URL? {
+        let path = getenv("PATH").map { String(cString: $0) }
+        switch AgentPathLocator.executable(agent: .codex, policy: .usage, searchPath: path,
+                                          homeDirectory: FileManager.default.homeDirectoryForCurrentUser,
+                                          desktopApplication: NSWorkspace.shared.urlForApplication(withBundleIdentifier:)) {
+        case .found(let url):
+            return url
+        case .notFound:
+            status = "Codex executable unavailable."
+            return nil
+        case .invalidSearchPath:
+            status = "Executable search path unavailable."
+            return nil
         }
     }
 }

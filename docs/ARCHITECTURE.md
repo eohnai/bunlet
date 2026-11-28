@@ -58,7 +58,8 @@ in `SessionEventInbox` and applies it once to `SessionStore` on the main actor. 
 state, and there is no unknown state ([0035](decisions/0035-remove-the-unknown-session-state.md)). The island, pet and
 sounds react to the new snapshot.
 
-**Quota.** For Codex, `AgentUsageController` reads the App Server while a Codex session is active. For Claude,
+**Quota.** For Codex, `AgentUsageController` reads the App Server once when agent services start, then every 120
+seconds while a Codex session is active. For Claude,
 `NotchPetStatusLine` sends each reading over a separate private datagram socket to `UsageInbox`
 ([quota intake](contracts/usage-intake.md)). Both end in `UsageStore`, which never creates session events. Claude
 readings also feed `TokenLedger`. The badge shows the last reading with no stale state, and a failed read keeps it
