@@ -150,10 +150,6 @@ struct NotchSessionView: View {
             }
         } trailing: {
             HStack(spacing: 12) {
-                if windowState.hasKeyboardFocus {
-                    Button("Done", action: endInput).buttonStyle(.plain)
-                        .font(.system(size: 12, weight: .medium)).foregroundStyle(IslandPalette.mutedText)
-                }
                 // Tokens sit with the panel actions so the left side holds only quota.
                 if expanded && isVisible && !isSleeping, let today = todayTokenLabel {
                     IslandChip(text: "\(today) today", size: 11, monospaced: true)
