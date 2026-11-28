@@ -216,7 +216,7 @@ final class ProviderSetupController {
                             : "No owned \(targetName) needed removal."
                     }
                     if action == .disconnect {
-                        self.message = "Owned integration entries removed where present. This provider remains paused; retained requests are unconfirmed."
+                        self.message = "Owned integration entries removed where present. This provider remains paused, and its sessions left the list."
                     }
                     self.record(result.inspection, scope: action.scope)
                     if action.scope == .lifecycle { self.onInspection(result.inspection.health) }

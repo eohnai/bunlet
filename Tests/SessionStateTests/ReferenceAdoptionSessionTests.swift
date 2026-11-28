@@ -37,7 +37,7 @@ struct ReferenceAdoptionSessionTests {
         #expect(store.sessions.first?.runningSubagents == 1)
         // Subagent events leave the parent's lifecycle evidence untouched, so its next tool event still applies.
         #expect(store.apply(try observation(7, hook: "PreToolUse", toolUseID: "t", toolName: "Task")) == .applied)
-        #expect(store.sessions.first?.status == .working && store.sessions.first?.reason == nil)
+        #expect(store.sessions.first?.status == .working && store.sessions.first?.currentTool == "Task")
         #expect(store.apply(try observation(8, hook: "Stop")) == .applied)
         #expect(store.sessions.first?.runningSubagents == 0)
     }

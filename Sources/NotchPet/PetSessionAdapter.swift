@@ -69,9 +69,10 @@ final class PetSessionAdapter {
     /// Listed sessions decide the mood. Ended sessions are never listed (decision 0032), so Ended still
     /// looks at every session: it shows once all of them have ended.
     static func mood(all: [SessionSnapshot], listed: [SessionSnapshot]) -> PetMood {
-        if listed.contains(where: { $0.pendingRequests.contains(where: \.isConfirmed) }) { return .attention }
-        if listed.contains(where: { $0.status == .unknown || !$0.pendingRequests.isEmpty }) { return .unknown }
+        if listed.contains(where: { $0.status == .approvalNeeded || $0.status == .questionNeeded }) { return .attention }
         if listed.contains(where: { $0.status == .working }) { return .working }
+        // A failed turn outranks a successful one, so the error is not hidden behind "Response ready".
+        if listed.contains(where: { $0.status == .responseReady && $0.turnFailed }) { return .failed }
         if listed.contains(where: { $0.status == .responseReady }) { return .responseReady }
         if listed.isEmpty && !all.isEmpty && all.allSatisfy({ $0.status == .ended }) { return .ended }
         return .idle

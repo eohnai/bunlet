@@ -6,9 +6,10 @@ summary: Each agent has its own switch that pauses or resumes monitoring without
 
 ## How it works
 
-`ProviderMonitoringModel` saves one on or off choice per agent. Turning an agent off pauses it: its live sessions lose
-confirmation, pending requests stay as unconfirmed, ended sessions are kept, and its quota reads stop at once. Events
-from a paused agent are dropped before they reach the session store. Other agents keep running.
+`ProviderMonitoringModel` saves one on or off choice per agent. Turning an agent off pauses it: its sessions leave the
+list, because they can no longer update ([0035](../../decisions/0035-remove-the-unknown-session-state.md)), and its
+quota reads stop at once. Events from a paused agent are dropped before they reach the session store. Other agents
+keep running.
 
 Turning an agent back on sets fresh receipt cutoffs, so queued events from before the pause or before sleep cannot
 restore a session. Resuming never implies working, completion, approval or a resolved request.

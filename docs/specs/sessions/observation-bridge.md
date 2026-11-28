@@ -28,7 +28,7 @@ version-1 events, and Claude's `prompt_id` becomes the turn ID. Accepted events 
 
 ## Out of scope
 
-- Session ordering, requests and unknown state: [session-state](session-state.md).
+- Session ordering and requests: [session-state](session-state.md).
 - Installing hooks: [codex-setup](codex-setup.md) and [claude-setup](claude-setup.md).
 - Replies to agents: the [actions specs](../README.md#actions).
 - Persistent history, retries, acknowledgements and disk spooling.

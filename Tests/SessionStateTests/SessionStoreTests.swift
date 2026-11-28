@@ -36,8 +36,6 @@ struct SessionStoreTests {
         }
         store.advance(monotonicNs: 1_000_002_000_000 + 24 * 3_600_000_000_000)
         #expect(store.sessions.first?.status == expected)
-        #expect(store.sessions.first?.reason == nil)
-        #expect(store.sessions.first?.pendingRequests.allSatisfy(\.isConfirmed) == true)
     }
 
     private func observation(_ number: Int, hook: String = "UserPromptSubmit", agent: String = "codex",
@@ -142,26 +140,124 @@ struct SessionStoreTests {
         #expect(store.sessions.first?.responseReadyAtMs == 1_000_005)
     }
 
+    /// Decision 0035: a wake or clock change keeps the session's state, and later events still apply.
     @Test(arguments: ["codex", "claude"])
-    func matchingStopsKeepFirstTimeWithoutRevivingUnknownTurn(agent: String) throws {
+    func wakeKeepsTheStateAndLaterEventsApply(agent: String) throws {
         let store = SessionStore()
         #expect(store.apply(try observation(1, agent: agent)) == .applied)
         store.invalidateClocks()
-        #expect(store.sessions.first?.status == .unknown)
+        #expect(store.sessions.first?.status == .working)
         #expect(store.sessions.first?.turnStartedAtMs == 1_000_001)
         #expect(store.apply(try observation(2, hook: "Stop", agent: agent,
-                                           observedAtMs: 1_120_002)) == .resolvedButUnknown)
+                                           observedAtMs: 1_120_002)) == .applied)
         let stopped = try #require(store.sessions.first)
-        #expect(stopped.status == .unknown)
-        #expect(stopped.reason == .clockOrWake)
+        #expect(stopped.status == .responseReady)
         #expect(stopped.responseReadyAtMs == 1_120_002)
         #expect(store.apply(try observation(3, hook: "Stop", agent: agent,
-                                           observedAtMs: 1_120_003)) == .resolvedButUnknown)
+                                           observedAtMs: 1_120_003)) == .repeatedStop)
         #expect(store.sessions.first == stopped)
         #expect(store.apply(try observation(4, agent: agent, turnID: "b",
                                            observedAtMs: 1_120_004)) == .applied)
         #expect(store.sessions.first?.turnStartedAtMs == 1_120_004)
         #expect(store.sessions.first?.responseReadyAtMs == nil)
+    }
+
+    /// The session that froze on 2026-11-28: an interrupted turn sends no stop, so a request stayed open and
+    /// every later prompt was refused. The latest prompt now always starts a new turn.
+    @Test(arguments: ["codex", "claude"])
+    func aNewPromptAfterAnInterruptedTurnStartsWork(agent: String) throws {
+        let store = SessionStore()
+        #expect(store.apply(try observation(1, agent: agent)) == .applied)
+        #expect(store.apply(try observation(2, hook: "PermissionRequest", agent: agent,
+                                           toolUseID: "tool", toolName: "Write")) == .applied)
+        #expect(store.sessions.first?.status == .approvalNeeded)
+        #expect(store.apply(try observation(3, agent: agent, turnID: "b", promptPreview: "Next")) == .applied)
+        let next = try #require(store.sessions.first)
+        #expect(next.status == .working && next.currentTurnID == "b" && next.latestPrompt == "Next")
+        #expect(next.pendingRequests.isEmpty)
+        // Late events from the interrupted turn cannot change the new one.
+        #expect(store.apply(try observation(4, hook: "PostToolUse", agent: agent, toolUseID: "tool",
+                                           toolName: "Write")) == .retiredTurn)
+        #expect(store.apply(try observation(5, hook: "Stop", agent: agent)) == .retiredTurn)
+        #expect(store.sessions.first == next)
+    }
+
+    @Test func aStopForAnotherTurnStillShowsTheResponse() throws {
+        let store = SessionStore()
+        #expect(store.apply(try observation(1)) == .applied)
+        #expect(store.apply(try observation(2, hook: "Stop", turnID: "other")) == .applied)
+        #expect(store.sessions.first?.status == .responseReady)
+        #expect(store.apply(try observation(3, hook: "Stop", turnID: nil)) == .repeatedStop)
+    }
+
+    @Test func toolActivityAfterAStopShowsWorkAgain() throws {
+        let store = SessionStore()
+        #expect(store.apply(try observation(1)) == .applied)
+        #expect(store.apply(try observation(2, hook: "Stop")) == .applied)
+        // A tool that finished before the stop and arrived late changes nothing.
+        #expect(store.apply(try observation(3, hook: "PostToolUse", toolUseID: "t", toolName: "Bash")) == .noChange)
+        #expect(store.sessions.first?.status == .responseReady)
+        #expect(store.apply(try observation(4, hook: "PreToolUse", toolUseID: "t", toolName: "Bash")) == .applied)
+        #expect(store.sessions.first?.status == .working)
+        #expect(store.sessions.first?.responseReadyAtMs == nil)
+        #expect(store.apply(try observation(5, hook: "Stop")) == .applied)
+        #expect(store.sessions.first?.status == .responseReady)
+        #expect(store.sessions.first?.responseReadyAtMs == 1_000_005)
+    }
+
+    /// The app can start in the middle of a turn. The first event it sees decides the state.
+    @Test(arguments: [("PreToolUse", SessionStatus.working), ("PermissionRequest", .approvalNeeded),
+                      ("Stop", .responseReady)])
+    func aSessionFirstSeenMidTurnTakesThatEventsState(hook: String, expected: SessionStatus) throws {
+        let store = SessionStore()
+        let tool = hook == "Stop" ? nil : "Bash"
+        #expect(store.apply(try observation(1, hook: hook, toolUseID: tool.map { _ in "t" }, toolName: tool)) == .applied)
+        #expect(store.sessions.first?.status == expected)
+    }
+
+    /// Agents resume a session with the same ID, so a start or prompt after an end reopens it.
+    @Test func aResumedSessionReopensAfterItsEnd() throws {
+        let store = SessionStore()
+        #expect(store.apply(try observation(1)) == .applied)
+        #expect(store.apply(try observation(2, hook: "SessionEnd")) == .ended)
+        #expect(store.apply(try observation(3, hook: "Stop")) == .terminalRestriction)
+        #expect(store.sessions.first?.status == .ended)
+        #expect(store.apply(try observation(4, hook: "SessionStart", turnID: nil)) == .applied)
+        #expect(store.sessions.first?.status == .idle && store.sessions.first?.hasTerminalRestriction == false)
+        // The ended lifecycle's turn is retired.
+        #expect(store.apply(try observation(5, hook: "Stop")) == .retiredTurn)
+        #expect(store.apply(try observation(6, turnID: "b")) == .applied)
+        #expect(store.sessions.first?.status == .working)
+
+        let prompted = SessionStore()
+        #expect(prompted.apply(try observation(7)) == .applied)
+        #expect(prompted.apply(try observation(8, hook: "SessionEnd")) == .ended)
+        #expect(prompted.apply(try observation(9, turnID: "b")) == .applied)
+        #expect(prompted.sessions.first?.status == .working)
+    }
+
+    /// A request without a tool-call ID cannot match exactly. A finished tool with the same name clears it.
+    @Test func aFinishedToolClearsAnUnidentifiedRequestWithTheSameName() throws {
+        let store = SessionStore()
+        #expect(store.apply(try observation(1)) == .applied)
+        #expect(store.apply(try observation(2, hook: "PermissionRequest", toolName: "Bash")) == .applied)
+        #expect(store.sessions.first?.status == .approvalNeeded)
+        #expect(store.apply(try observation(3, hook: "PostToolUse", toolUseID: "t", toolName: "Write")) == .unmatchedCompletion)
+        #expect(store.sessions.first?.status == .approvalNeeded)
+        #expect(store.apply(try observation(4, hook: "PostToolUse", toolUseID: "t", toolName: "Bash")) == .applied)
+        #expect(store.sessions.first?.status == .working)
+        #expect(store.sessions.first?.pendingRequests.isEmpty == true)
+    }
+
+    /// A clock moved backward must not make every later event look out of date.
+    @Test func aBackwardClockDoesNotFreezeTheSession() throws {
+        let store = SessionStore()
+        #expect(store.apply(try observation(1, observedAtMs: 2_000_000)) == .applied)
+        store.checkClocks(wallMs: 2_000_001, monotonicNs: 2_000_001_000_000)
+        store.checkClocks(wallMs: 1_000_000, monotonicNs: 2_000_002_000_000)
+        #expect(store.apply(try observation(2, hook: "Stop", observedAtMs: 1_000_002,
+                                           monotonicNs: 2_000_003_000_000)) == .applied)
+        #expect(store.sessions.first?.status == .responseReady)
     }
 
     @Test func allContractStateSequences() throws {
@@ -206,10 +302,6 @@ struct SessionStoreTests {
                     #expect(actual.key.sessionID == expected["session_id"] as? String, "\(context)")
                     #expect(actual.status.rawValue == expected["status"] as? String, "\(context)")
                     #expect(actual.pendingRequests.count == expected["pending"] as? Int, "\(context)")
-                    #expect(actual.reason?.rawValue == expected["reason"] as? String, "\(context)")
-                    if actual.status == .unknown {
-                        #expect(actual.pendingRequests.allSatisfy { !$0.isConfirmed }, "\(context)")
-                    }
                 }
                 stepsChecked += 1
             }
@@ -228,7 +320,8 @@ struct SessionStoreTests {
         #expect(store.sessions.first { $0.key.sessionID == "fictional-1" }?.status == .ended)
     }
 
-    @Test func eventIDCapacityIsPermanentAndStillRecognizesDuplicates() throws {
+    /// A full session forgets old event IDs instead of refusing events and freezing in its last state.
+    @Test func eventIDCapacityForgetsOldIdentitiesAndKeepsUpdating() throws {
         let store = SessionStore()
         let first = try observation(1)
         #expect(store.apply(first) == .applied)
@@ -236,20 +329,21 @@ struct SessionStoreTests {
             #expect(store.apply(try observation(n)) == .repeatedSubmit)
         }
         #expect(store.apply(first) == .duplicate)
-        #expect(store.apply(try observation(4097)) == .identityCapacity)
-        #expect(store.apply(try observation(4098, turnID: "b")) == .identityCapacity)
-        #expect(store.sessions.first?.reason == .identityCapacity)
+        #expect(store.apply(try observation(4097)) == .repeatedSubmit)
+        #expect(store.apply(try observation(4098, turnID: "b")) == .applied)
+        #expect(store.sessions.first?.status == .working && store.sessions.first?.currentTurnID == "b")
+        #expect(store.apply(try observation(4099, hook: "Stop", turnID: "b")) == .applied)
+        #expect(store.sessions.first?.status == .responseReady)
     }
 
-    @Test func turnCapacityDoesNotEvictRetiredIdentities() throws {
+    @Test func turnCapacityForgetsOldTurnsAndKeepsUpdating() throws {
         let store = SessionStore()
         for n in 0..<SessionStore.turnIDLimit {
             #expect(store.apply(try observation(n * 2 + 1, turnID: "turn-\(n)")) == .applied)
             #expect(store.apply(try observation(n * 2 + 2, hook: "Stop", turnID: "turn-\(n)")) == .applied)
         }
-        #expect(store.apply(try observation(999, turnID: "overflow")) == .identityCapacity)
-        #expect(store.apply(try observation(1000, turnID: "turn-0")) == .identityCapacity)
-        #expect(store.sessions.first?.status == .unknown)
+        #expect(store.apply(try observation(999, turnID: "overflow")) == .applied)
+        #expect(store.sessions.first?.status == .working && store.sessions.first?.currentTurnID == "overflow")
     }
 
     @Test func requestCapacityRetainsEveryExistingNotice() throws {
@@ -262,10 +356,10 @@ struct SessionStoreTests {
         #expect(store.apply(try observation(999, hook: "PermissionRequest",
                                            toolUseID: "overflow", toolName: "Write")) == .requestCapacity)
         let snapshot = try #require(store.sessions.first)
-        #expect(snapshot.reason == .requestCapacity)
+        #expect(snapshot.status == .approvalNeeded)
         #expect(snapshot.pendingRequests.count == 64)
         #expect(Set(snapshot.pendingRequests.compactMap(\.toolUseID)) == Set((0..<64).map { "tool-\($0)" }))
-        #expect(snapshot.pendingRequests.allSatisfy { !$0.isConfirmed })
+        #expect(store.capacityIssue == .requestCapacity)
     }
 
     @Test func byteDistinctUnicodeIdentitiesAndFingerprints() throws {
@@ -277,8 +371,8 @@ struct SessionStoreTests {
 
         let turns = SessionStore()
         #expect(turns.apply(try observation(3, turnID: composed)) == .applied)
-        #expect(turns.apply(try observation(4, turnID: decomposed)) == .conflict)
-        #expect(turns.sessions.first?.reason == .overlappingTurns)
+        #expect(turns.apply(try observation(4, turnID: decomposed)) == .applied)
+        #expect(turns.sessions.first?.currentTurnID == decomposed)
 
         let requests = SessionStore()
         #expect(requests.apply(try observation(5)) == .applied)
@@ -293,55 +387,26 @@ struct SessionStoreTests {
         #expect(conflicts.apply(try observation(8, cwd: "/\(decomposed)")) == .eventIDConflict)
     }
 
-    @Test func freshTurnRecoversOnlyAfterRequestsResolve() throws {
+    @Test func aNewPromptAlwaysStartsANewTurn() throws {
         let store = SessionStore()
         #expect(store.apply(try observation(1)) == .applied)
-        #expect(store.apply(try observation(2, hook: "PermissionRequest",
-                                           toolUseID: "tool", toolName: "Write")) == .applied)
-        store.invalidateClocks()
-        #expect(store.apply(try observation(3, turnID: "b", observedAtMs: 1_120_003)) == .conflict)
-        #expect(store.apply(try observation(4, hook: "PostToolUse", toolUseID: "tool", toolName: "Write",
-                                           observedAtMs: 1_120_004)) == .resolvedButUnknown)
-        #expect(store.sessions.first?.pendingRequests.isEmpty == true)
-        #expect(store.apply(try observation(5, turnID: "c", observedAtMs: 1_120_005)) == .applied)
-        #expect(store.sessions.first?.status == .working)
-        #expect(store.apply(try observation(6, hook: "Stop", turnID: "a",
-                                           observedAtMs: 1_120_006)) == .retiredTurn)
+        #expect(store.apply(try observation(2, turnID: "b")) == .applied)
+        #expect(store.apply(try observation(3, turnID: "b")) == .repeatedSubmit)
+        #expect(store.sessions.first?.status == .working && store.sessions.first?.currentTurnID == "b")
     }
 
-    @Test func recoveryRequiresAnUnseenTurnIdentity() throws {
-        let store = SessionStore()
-        #expect(store.apply(try observation(1)) == .applied)
-        #expect(store.apply(try observation(2, turnID: "b")) == .conflict)
-        #expect(store.apply(try observation(3, turnID: "b")) == .conflict)
-        #expect(store.sessions.first?.status == .unknown)
-        #expect(store.apply(try observation(4, turnID: "c")) == .applied)
-        #expect(store.sessions.first?.status == .working)
-    }
-
-    @Test func clocksAndWakeNeverReviveTerminalSessions() throws {
+    @Test func clocksAndWakeKeepEveryState() throws {
         let store = SessionStore()
         #expect(store.apply(try observation(1)) == .applied)
         #expect(store.apply(try observation(2, hook: "SessionEnd", sessionID: "ended")) == .ended)
         store.checkClocks(wallMs: 1_000_010, monotonicNs: 1_000_010_000_000)
         store.checkClocks(wallMs: 999_000, monotonicNs: 1_000_011_000_000)
-        #expect(store.sessions.first { $0.key.sessionID == "fictional" }?.reason == .clockOrWake)
+        #expect(store.sessions.first { $0.key.sessionID == "fictional" }?.status == .working)
         #expect(store.sessions.first { $0.key.sessionID == "ended" }?.status == .ended)
         store.invalidateClocks()
         store.advance(monotonicNs: UInt64.max)
+        #expect(store.sessions.first { $0.key.sessionID == "fictional" }?.status == .working)
         #expect(store.sessions.first { $0.key.sessionID == "ended" }?.status == .ended)
-
-        let forwards = SessionStore()
-        #expect(forwards.apply(try observation(3)) == .applied)
-        forwards.checkClocks(wallMs: 1_000_003, monotonicNs: 1_000_003_000_000)
-        forwards.checkClocks(wallMs: 1_010_003, monotonicNs: 1_000_004_000_000)
-        #expect(forwards.sessions.first?.reason == .clockOrWake)
-
-        let backwards = SessionStore()
-        #expect(backwards.apply(try observation(4)) == .applied)
-        backwards.advance(monotonicNs: 1_000_004_000_000)
-        backwards.advance(monotonicNs: 1)
-        #expect(backwards.sessions.first?.reason == .clockOrWake)
     }
 
     @Test func observersReadTheBatchOnlyAfterItIsApplied() async throws {
@@ -367,17 +432,23 @@ struct SessionStoreTests {
         #expect(store.sessions.first?.status == .working)
     }
 
-    @Test func metadataNeedsCompatibleEvidenceAndPaneHintsStayUnverified() throws {
+    @Test func anOlderEventChangesNothingAndPaneHintsStayUnverified() throws {
         let store = SessionStore()
         #expect(store.apply(try observation(1, cwd: "/example", pane: "fictional-pane")) == .applied)
         #expect(store.apply(try observation(2, hook: "PreToolUse", toolName: "Write",
-                                           observedAtMs: 1_000_001, cwd: "/wrong", pane: "wrong")) == .ambiguousCaptureOrder)
+                                           observedAtMs: 1_000_000, wallMs: 1_000_002,
+                                           monotonicNs: 1_000_002_000_000, cwd: "/wrong", pane: "wrong")) == .outOfOrder)
         #expect(store.sessions.first?.projectPath == "/example")
         #expect(store.sessions.first?.paneSelector == "fictional-pane")
-        #expect(store.sessions.first?.status == .unknown)
+        #expect(store.sessions.first?.status == .working)
+        // Two hooks can capture in the same millisecond. The later arrival applies.
+        #expect(store.apply(try observation(3, hook: "PermissionRequest", toolUseID: "t", toolName: "Write",
+                                           observedAtMs: 1_000_001, wallMs: 1_000_003,
+                                           monotonicNs: 1_000_003_000_000)) == .applied)
+        #expect(store.sessions.first?.status == .approvalNeeded)
     }
 
-    @Test func boundedInboxRetainsOrderAndMarksOverflowUnknown() async throws {
+    @Test func boundedInboxRetainsOrderAndReportsOverflow() async throws {
         let store = SessionStore()
         let delivered = expectation()
         let inbox = SessionEventInbox { batch, lost in
@@ -392,7 +463,8 @@ struct SessionStoreTests {
         for n in 1...129 { inbox.enqueue(try observation(n, sessionID: "fictional-\(n)")) }
         #expect(await delivered.wait())
         #expect(store.sessions.count == 128)
-        #expect(store.sessions.allSatisfy { $0.reason == .deliveryOverflow })
+        #expect(store.deliveryOverflowed)
+        #expect(store.sessions.allSatisfy { $0.status == .working })
     }
 
     @Test func concurrentInboxProducersKeepSessionsSeparate() async throws {
@@ -465,7 +537,6 @@ struct SessionStoreTests {
             if status == .questionNeeded || status == .approvalNeeded {
                 #expect(snapshot.pendingRequests.count == 1)
                 #expect(snapshot.pendingRequests.first?.toolUseID == "call")
-                #expect(snapshot.pendingRequests.first?.isConfirmed == true)
             } else {
                 #expect(snapshot.pendingRequests.isEmpty)
             }
@@ -486,14 +557,12 @@ struct SessionStoreTests {
         let value = SessionObservationV1(envelope: envelope, receiptWallMs: envelope.observedAtMs,
                                          receiptMonotonicNs: 1_000_000_000)
         #expect(envelope.turnID == nil && envelope.toolUseID == nil)
-        #expect(store.apply(value) == .conflict)
+        #expect(store.apply(value) == .applied)
         let snapshot = try #require(store.sessions.first)
-        #expect(snapshot.status == .unknown && snapshot.currentTurnID == nil)
-        #expect(snapshot.reason == .uncorrelatedActivity)
+        #expect(snapshot.status == .questionNeeded && snapshot.currentTurnID == nil)
         #expect(snapshot.pendingRequests.count == 1)
         #expect(snapshot.pendingRequests.first?.turnID == nil)
         #expect(snapshot.pendingRequests.first?.toolUseID == nil)
-        #expect(snapshot.pendingRequests.first?.isConfirmed == false)
     }
 
     @Test(arguments: ["codex", "claude"])

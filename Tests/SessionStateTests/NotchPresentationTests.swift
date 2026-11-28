@@ -7,7 +7,7 @@ import Testing
 struct NotchPresentationTests {
     private func snapshot(_ id: String, status: SessionStatus = .working) -> SessionSnapshot {
         SessionSnapshot(key: SessionKey(agent: .codex, sessionID: id), status: status,
-                        reason: nil, currentTurnID: nil, turnStartedAtMs: nil,
+                        currentTurnID: nil, turnStartedAtMs: nil,
                         responseReadyAtMs: nil, pendingRequests: [],
                         captureWatermarkMs: nil, receiptWallMs: nil, receiptMonotonicNs: nil,
                         projectPath: "/fictional/project", paneSelector: nil,
@@ -17,7 +17,7 @@ struct NotchPresentationTests {
     private func quiet(_ id: String, _ status: SessionStatus, receiptMs: Int64?, prompted: Bool = true,
                        pending: [SessionRequest] = []) -> SessionSnapshot {
         SessionSnapshot(key: SessionKey(agent: .codex, sessionID: id), status: status,
-                        reason: nil, currentTurnID: nil, turnStartedAtMs: prompted ? 1_000 : nil,
+                        currentTurnID: nil, turnStartedAtMs: prompted ? 1_000 : nil,
                         responseReadyAtMs: nil, pendingRequests: pending,
                         captureWatermarkMs: nil, receiptWallMs: receiptMs, receiptMonotonicNs: nil,
                         projectPath: "/fictional/project", paneSelector: nil,
@@ -28,16 +28,12 @@ struct NotchPresentationTests {
     @Test func quietSessionsLeaveInEveryStateUnlessWaitingForTheUser() {
         let now: Int64 = 10_000_000
         let old = now - 2 * 60 * 60_000
-        let notice = SessionRequest(eventID: "old", turnID: "old", toolUseID: "old",
-                                    toolName: "Bash", kind: .approvalNeeded, isConfirmed: false)
         let sessions = [quiet("idle-old", .idle, receiptMs: old), quiet("idle-new", .idle, receiptMs: now - 60_000),
                         quiet("working-old", .working, receiptMs: old), quiet("ready-old", .responseReady, receiptMs: old),
-                        quiet("unknown-old", .unknown, receiptMs: old),
-                        quiet("unknown-notice-old", .unknown, receiptMs: old, pending: [notice]),
                         quiet("approval-old", .approvalNeeded, receiptMs: old),
                         quiet("question-old", .questionNeeded, receiptMs: old), quiet("idle-none", .idle, receiptMs: nil)]
         let kept = NotchPresentation.listed(sessions, limitMinutes: 60, nowMs: now).map(\.key.sessionID)
-        #expect(kept == ["idle-new", "unknown-notice-old", "approval-old", "question-old", "idle-none"])
+        #expect(kept == ["idle-new", "approval-old", "question-old", "idle-none"])
     }
 
     @Test func endedSessionsLeaveAtOnce() {
@@ -48,22 +44,16 @@ struct NotchPresentationTests {
     }
 
     /// A session seen only at start-up stays out of the list until its first accepted prompt.
-    @Test func idleOrUnknownSessionsWithoutAPromptStayHidden() {
+    @Test func idleSessionsWithoutAPromptStayHidden() {
         let now: Int64 = 10_000_000
-        let notice = SessionRequest(eventID: "old", turnID: "old", toolUseID: "old",
-                                    toolName: "Bash", kind: .approvalNeeded, isConfirmed: false)
         let sessions = [quiet("idle-unprompted", .idle, receiptMs: now, prompted: false),
-                        quiet("unknown-unprompted", .unknown, receiptMs: now, prompted: false),
                         quiet("idle-prompted", .idle, receiptMs: now),
-                        quiet("unknown-prompted", .unknown, receiptMs: now),
                         // Joined mid-turn: no submit was seen, but the session is visibly busy or done.
                         quiet("working-unprompted", .working, receiptMs: now, prompted: false),
                         quiet("ready-unprompted", .responseReady, receiptMs: now, prompted: false),
-                        quiet("approval-unprompted", .approvalNeeded, receiptMs: now, prompted: false),
-                        quiet("unknown-notice-unprompted", .unknown, receiptMs: now, prompted: false, pending: [notice])]
+                        quiet("approval-unprompted", .approvalNeeded, receiptMs: now, prompted: false)]
         #expect(NotchPresentation.listed(sessions, limitMinutes: 60, nowMs: now).map(\.key.sessionID)
-                == ["idle-prompted", "unknown-prompted", "working-unprompted", "ready-unprompted",
-                    "approval-unprompted", "unknown-notice-unprompted"])
+                == ["idle-prompted", "working-unprompted", "ready-unprompted", "approval-unprompted"])
     }
 
     @Test func windowIsFixedAtTopCenter() throws {
@@ -161,7 +151,7 @@ struct NotchPresentationTests {
         #expect(IslandPhase.dominant([snapshot("a", status: .responseReady)]) == .completed)
         #expect(IslandPhase.dominant([snapshot("a", status: .responseReady), snapshot("b")]) == .running)
         #expect(IslandPhase.dominant([snapshot("a"), snapshot("b", status: .approvalNeeded)]) == .attention)
-        #expect(IslandPhase.dominant([snapshot("a", status: .unknown), snapshot("b", status: .ended)]) == .idle)
+        #expect(IslandPhase.dominant([snapshot("a", status: .idle), snapshot("b", status: .ended)]) == .idle)
     }
 
     @Test func notificationsFireOnlyOnEntry() {
@@ -189,7 +179,7 @@ struct IslandAutoOpenTests {
     private func session(_ id: String = "fictional", status: SessionStatus = .working,
                          terminal: HookEnvelopeV1.Terminal? = nil) -> SessionSnapshot {
         var snapshot = SessionSnapshot(key: SessionKey(agent: .claude, sessionID: id), status: status,
-                                       reason: nil, currentTurnID: nil, turnStartedAtMs: nil,
+                                       currentTurnID: nil, turnStartedAtMs: nil,
                                        responseReadyAtMs: nil, pendingRequests: [],
                                        captureWatermarkMs: nil, receiptWallMs: nil, receiptMonotonicNs: nil,
                                        projectPath: "/fictional/project", paneSelector: nil,
@@ -251,7 +241,7 @@ struct IslandAutoOpenTests {
 struct RemovedSessionTests {
     private func session(_ id: String, receipt: UInt64?) -> SessionSnapshot {
         SessionSnapshot(key: SessionKey(agent: .claude, sessionID: id), status: .responseReady,
-                        reason: nil, currentTurnID: nil, turnStartedAtMs: nil, responseReadyAtMs: nil,
+                        currentTurnID: nil, turnStartedAtMs: nil, responseReadyAtMs: nil,
                         pendingRequests: [], captureWatermarkMs: nil, receiptWallMs: nil,
                         receiptMonotonicNs: receipt, projectPath: "/fictional/project",
                         paneSelector: nil, hasTerminalRestriction: false)

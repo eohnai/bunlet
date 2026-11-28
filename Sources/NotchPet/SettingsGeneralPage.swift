@@ -36,7 +36,7 @@ struct GeneralSettingsPage: View {
             Button("Cancel", role: .cancel) {}
             Button("Remove", role: .destructive, action: actions.removeAllHooks)
         } message: {
-            Text("Session tracking stops until you connect again. Pending requests stay unconfirmed, and other tools' hooks are unchanged.")
+            Text("Session tracking stops until you connect again. Tracked sessions leave the list, and other tools' hooks are unchanged.")
         }
     }
 

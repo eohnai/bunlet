@@ -43,9 +43,8 @@ struct FailedTurnTests {
     @Test func aFailureWithoutTurnIdentityChangesNothing() throws {
         let store = SessionStore()
         _ = store.apply(try observation(1, hook: "UserPromptSubmit"))
-        #expect(store.apply(try observation(2, hook: "StopFailure", turnID: nil)) == .conflict)
+        #expect(store.apply(try observation(2, hook: "StopFailure", turnID: nil)) == .noChange)
         #expect(store.sessions.first?.status == .working)
-        #expect(store.sessions.first?.reason == nil)
     }
 
     @Test func onlyClaudeInstallsTheFailureHook() {

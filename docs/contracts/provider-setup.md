@@ -33,7 +33,7 @@ trust or changes permissions.
   then lifecycle entries; failure between
   scopes is reported as partial removal, never rolled back over edits or blindly replayed.
 - Monitoring preferences are per-provider, with the existing global Agents monitoring master switch.
-  Pause immediately drops that provider's queued events/refresh, retains unconfirmed requests and
+  Pause immediately drops that provider's queued events/refresh, removes its sessions and
   does not remove hooks. Resume starts a new receipt cutoff; queued old evidence cannot restore
   session state. Disconnect pauses first, then explicitly removes only owned configuration. Failures
   remain paused, with a recoverable message. Removing Agents stops everything without changing hooks.

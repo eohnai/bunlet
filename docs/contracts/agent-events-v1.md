@@ -109,14 +109,15 @@ Equal session IDs from different agents remain separate.
 Two source session IDs in the same folder also remain separate.
 
 The request key is `(current turn, tool_use_id)` when both identities are available.
-Otherwise, retain an uncorrelated request keyed by `event_id`.
+Otherwise, retain an unidentified request keyed by `event_id`.
 Different requests must not overwrite each other.
 A repeated opening with the same request key merges into the existing request.
-If its request kind changes, mark the session unknown instead of replacing the request.
-A matching `PostToolUse` needs the same turn, tool-call ID, and tool name.
-Do not clear an uncorrelated request using a guessed match.
-A correlated `Stop` for the current turn can clear all that turn's requests, including uncorrelated tool calls.
-Without matching turn identity, it cannot clear requests.
+If its request kind or tool name changes, the latest opening replaces the request.
+A matching `PostToolUse` has the same turn, tool-call ID, and tool name, and closes that request.
+A `PostToolUse` with no exact match closes the oldest unidentified request with the same tool name.
+Display needs no exact match. Local replies stay safe because each reply returns to the exact waiting hook
+([local actions](local-actions-v1.md)).
+Any `Stop` closes every open request, because the agent then waits for the user.
 
 `terminal` is an unverified navigation hint.
 It never proves activity, working state, account identity, or permission.
@@ -129,8 +130,8 @@ Never open a replacement pane automatically.
 Hooks do not supply a verified total source order.
 The helper's timestamp records when it read the hook, not when the agent produced it.
 Receipt order and UUID order cannot establish source order.
-Normal compatible transitions below are provisional observations.
-They are not a guarantee of complete or ordered delivery.
+There is no unknown state. The latest event decides a session's state
+([0035](../decisions/0035-remove-the-unknown-session-state.md)). A wrong state lasts only until the next event.
 
 The store keeps a capture-time watermark, current turn, known retired turns, pending requests, and seen event IDs per session.
 It also keeps receipt time.
@@ -141,42 +142,29 @@ Apply these rules in order:
 
 1. Reject invalid or expired messages before changing session state.
 2. Ignore an identical previously seen event ID.
-3. If that ID has different contents, mark its session unknown. Retain its pending requests.
-4. A valid `SessionEnd` takes priority. Set ended, clear requests, and retain a terminal record until app exit.
-5. After end, ignore activity. A later `SessionStart` with the same ID sets unknown with reason `reused_session_id`.
-6. Keep that terminal restriction after a repeated start. Version 1 cannot verify a resumed lifecycle with the same ID.
-7. For any other unseen event, compare `observed_at_ms` with the watermark.
-8. An equal or lower timestamp is ambiguous. Mark unknown, retain requests, and do not advance the watermark.
-9. An event for a retired turn is delayed. Ignore it.
-10. Apply a compatible transition below. Conflicts set unknown and retain unresolved requests.
-11. Advance the watermark only for a compatible, state-bearing observation.
+3. If that ID has different contents, ignore the second event.
+4. A valid `SessionEnd` takes priority. Set ended, clear requests, and retain a terminal record.
+5. After end, a `SessionStart` or `UserPromptSubmit` reopens the session, because agents resume with the same ID.
+   Reopening retires the ended lifecycle's turn. Ignore any other event after end.
+6. For any other unseen event, compare `observed_at_ms` with the watermark.
+7. A lower timestamp is out of date. Ignore it. An equal timestamp applies in arrival order.
+8. An event for a retired turn is delayed. Ignore it.
+9. Apply the transition below, and advance the watermark when the state changes.
 
-Unresolved input has presentation priority over response-ready state.
-When a session becomes unknown, retain unresolved requests as unconfirmed notices.
-Do not present those notices as current approval or current question requests.
-
-| Incoming event | Compatible transition |
+| Incoming event | Transition |
 |---|---|
-| First `SessionStart` | Idle; a repeated start cannot clear activity or requests |
-| `UserPromptSubmit` with a turn ID | Working; a new turn can replace idle or response-ready state when no requests remain |
-| First submit without a turn ID | Working provisionally; later events cannot be correlated to that turn |
-| Repeated submit for current turn | Leave state unchanged |
-| New turn while another turn works or has unresolved input | Unknown: `overlapping_turns` |
-| Non-question `PreToolUse` | Working only for a matching current turn with no pending requests |
-| Question opening or approval request | Add or merge the request; a missing turn baseline makes the session unknown |
-| Matching `PostToolUse` | Remove that request; working if no requests remain |
-| Unmatched `PostToolUse` while requests remain | Unknown: `uncorrelated_resolution`; retain requests |
-| `Stop` with matching current turn | Response ready; clear that turn's requests |
-| `Stop` without matching current turn | Unknown: `uncorrelated_stop`; retain requests |
-| Tool activity or input for a turn already marked response ready | Unknown: `activity_after_stop` |
+| First `SessionStart`, or a start that reopens the session | Idle; a later start in a live session changes nothing |
+| `UserPromptSubmit` | Working with a new turn; retire the previous turn and close its requests |
+| Repeated submit for the current turn | Leave state unchanged |
+| Non-question `PreToolUse` | Working, unless a request is open; also after a stop |
+| Question opening or approval request | Add or merge the request; question needed or approval needed; also after a stop |
+| `PostToolUse` | Close its request as described above; working if no requests remain |
+| `PostToolUse` after a stop | A late copy; leave state unchanged |
+| `Stop`, for any turn or none | Response ready; close every request |
 
-Question notices take priority over approval notices when both are pending.
-Unknown state stays unknown for the current turn, even if another same-turn event arrives.
-A matching resolution can remove its request while leaving the session unknown.
-A fresh submit with a different, unseen turn ID can establish a new baseline only when no requests remain.
-Retire the previous turn when accepting that new baseline.
-Unknown state cannot prove that old input was resolved.
-These rules intentionally prefer missing an activity indication over presenting a conflicting observation as current.
+Question requests take priority over approval requests when both are open.
+A session first seen in the middle of a turn takes its state from that event.
+A new prompt always starts a new turn, so an interrupted turn without a `Stop` can never block a session.
 
 ## Time and bounded memory
 
@@ -191,23 +179,23 @@ Changing them requires updating this contract and its cases together.
 | Maximum delivery age | 30000 ms | Reject older helper observations |
 | Allowed future clock difference | 2000 ms | Reject observations further ahead |
 | Sessions per app run | 128 | Refuse new session keys; do not evict a live session or terminal record |
-| Event IDs per session | 4096 | Set that session unknown at capacity; refuse further unseen events until app restart |
-| Distinct turn IDs per session | 256 | Set unknown at capacity; refuse further unseen events until app restart |
-| Pending requests per session | 64 | Set unknown at capacity; retain existing requests without evicting one |
+| Event IDs per session | 4096 | At capacity, forget old event and turn IDs and keep applying events |
+| Distinct turn IDs per session | 256 | At capacity, forget old event and turn IDs and keep applying events |
+| Pending requests per session | 64 | Refuse new requests; retain existing requests without evicting one |
 
 At receipt, record local wall time and monotonic time separately.
 Reject an observation older than 30000 ms or more than 2000 ms in the future.
 A quiet session keeps its last state, because a finished or waiting session is quiet by nature. If an agent exits
 without `SessionEnd`, its last state stays until the island's quiet-session clean-up removes it.
 
-When the app sleeps, make all nonterminal observations unknown on wake before showing them again.
-A backward wall-clock change or a discontinuous clock makes observations unknown until new evidence arrives.
-A later valid message must still satisfy the ordering rules.
+A wake, a backward wall-clock change or a discontinuous clock keeps every state. It clears each session's watermark,
+because capture times from before and after the jump cannot be compared. Without this, every later event would look
+out of date and the session would never change again.
 
 At app launch, start with an empty live store. Never restore working state from disk.
 On reconnect, do not replay stored activity. The helper keeps no spool or session history.
-Known ended sessions remain ended until app exit, except the repeated-start ambiguity described above.
-A new app process has no knowledge of earlier terminal records and must label new observations provisionally.
+Known ended sessions remain ended until a start or prompt reopens them.
+A new app process has no knowledge of earlier sessions. Each session takes its state from the first event it sees.
 
 ## Socket lifecycle and failure behavior
 

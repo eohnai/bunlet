@@ -132,30 +132,36 @@ def encode(message: dict) -> bytes:
 
 @dataclass
 class Session:
-    status: str = "unknown"
-    reason: str | None = "no_baseline"
+    # A session first seen mid-turn takes its state from that event (decision 0035).
+    status: str = "idle"
     turn: str | None = None
     baseline: bool = False
     stopped: bool = False
     terminal: bool = False
-    saturated: bool = False
     watermark: int | None = None
     seen: dict = field(default_factory=dict)
     turns: set = field(default_factory=set)
     retired: set = field(default_factory=set)
     pending: dict = field(default_factory=dict)
 
-    def unknown(self, reason: str) -> None:
-        self.status, self.reason = "unknown", reason
-
     def refresh(self, message: dict, wall: int, monotonic: int) -> None:
         self.watermark = message["observed_at_ms"]
 
     def show_pending(self) -> None:
-        self.reason = None
         kinds = {request["kind"] for request in self.pending.values()}
         self.status = ("question_needed" if "question_needed" in kinds else
                        "approval_needed" if kinds else "working")
+
+    def forget_identities(self) -> None:
+        self.seen.clear()
+        self.retired.clear()
+        self.turns = {self.turn} if self.turn is not None else set()
+
+    def reopen(self) -> None:
+        self.terminal, self.status = False, "idle"
+        if self.turn is not None:
+            self.retired.add(self.turn)
+        self.turn, self.baseline, self.stopped = None, False, False
 
 
 class ReferenceStore:
@@ -168,9 +174,9 @@ class ReferenceStore:
         """Elapsed time alone never changes a session (decision 0034)."""
 
     def invalidate_clocks(self) -> None:
+        """A wake or clock change keeps every state. Capture times across it cannot be compared."""
         for session in self.sessions.values():
-            if not session.terminal:
-                session.unknown("clock_or_wake")
+            session.watermark = None
 
     def receive(self, message: dict, wall: int, monotonic: int) -> str:
         return self.receive_frame(encode(message), wall, monotonic)
@@ -189,123 +195,103 @@ class ReferenceStore:
         event_id = message["event_id"]
         digest = hashlib.sha256(encode(message)).digest()
         if event_id in session.seen:
-            if session.seen[event_id] != digest:
-                session.unknown("event_id_conflict")
-                return "event_id_conflict"
-            return "duplicate"
+            # Two different events with one ID cannot both be right, so the second changes nothing.
+            return "duplicate" if session.seen[event_id] == digest else "event_id_conflict"
         turn = message.get("turn_id")
-        if (session.saturated or len(session.seen) >= POLICY["event_ids"]
+        if (len(session.seen) >= POLICY["event_ids"]
                 or (turn is not None and turn not in session.turns
                     and len(session.turns) >= POLICY["turn_ids"])):
-            session.saturated = True
-            session.unknown("identity_capacity")
-            return "identity_capacity"
+            # A full session forgets old identities instead of freezing in its last state.
+            session.forget_identities()
         session.seen[event_id] = digest
         if turn is not None:
             session.turns.add(turn)
         hook = message["hook_event_name"]
         if hook == "SessionEnd":
             session.terminal = True
-            session.status, session.reason = "ended", None
+            session.status = "ended"
             session.pending.clear()
             return "ended"
+        reopened = False
         if session.terminal:
-            if hook == "SessionStart":
-                session.unknown("reused_session_id")
-            return "terminal_restriction"
-        if session.watermark is not None and message["observed_at_ms"] <= session.watermark:
-            session.unknown("ambiguous_capture_order")
-            return "ambiguous_capture_order"
+            # Agents resume with the same session ID. Other late events are copies from before the end.
+            if hook not in {"SessionStart", "UserPromptSubmit"}:
+                return "terminal_restriction"
+            session.reopen()
+            reopened = True
+        if session.watermark is not None and message["observed_at_ms"] < session.watermark:
+            return "out_of_order"
         if turn is not None and turn in session.retired:
             return "retired_turn"
         if hook == "SessionStart":
-            if len(session.seen) == 1:
-                session.status, session.reason = "idle", None
+            if len(session.seen) == 1 or reopened:
+                session.status = "idle"
                 session.refresh(message, wall, monotonic)
                 return "applied"
             return "repeated_start"
         if hook == "UserPromptSubmit":
-            if session.baseline and turn == session.turn:
+            if session.baseline and turn is not None and turn == session.turn:
                 return "repeated_submit"
-            if session.baseline and turn is None:
-                session.unknown("missing_turn_identity")
-                return "conflict"
-            if session.pending or (session.baseline and session.status == "working"):
-                session.unknown("overlapping_turns")
-                return "conflict"
+            # The latest prompt always starts a new turn. An interrupted turn sends no stop.
             if session.turn is not None:
                 session.retired.add(session.turn)
             session.turn, session.baseline, session.stopped = turn, True, False
-            session.status, session.reason = "working", None
+            session.pending.clear()
+            session.status = "working"
             session.refresh(message, wall, monotonic)
             return "applied"
-        correlated = session.baseline and turn is not None and turn == session.turn
         if hook == "Stop":
-            if not correlated:
-                session.unknown("uncorrelated_stop")
-                return "conflict"
-            session.pending = {key: request for key, request in session.pending.items()
-                               if request["turn"] != turn}
+            # Any stop means the agent waits for the user, so no request can still be open.
+            session.pending.clear()
             session.stopped = True
-            if session.status == "unknown":
-                return "resolved_but_unknown"
             if session.status == "response_ready":
                 return "repeated_stop"
-            session.status, session.reason = "response_ready", None
+            session.status = "response_ready"
             session.refresh(message, wall, monotonic)
             return "applied"
         if session.stopped:
-            session.unknown("activity_after_stop")
-            return "conflict"
+            if hook == "PostToolUse":
+                return "no_change"
+            session.stopped = False
         tool_id, tool_name = message.get("tool_use_id"), message["tool_name"]
         question_tool = {"codex": "request_user_input", "claude": "AskUserQuestion"}[message["agent"]]
         opens = hook == "PermissionRequest" or (hook == "PreToolUse" and tool_name == question_tool)
         request_key = (turn, tool_id) if turn is not None and tool_id is not None else event_id
         if opens:
             kind = "question_needed" if tool_name == question_tool else "approval_needed"
-            request = {"turn": turn, "tool": tool_id, "name": tool_name, "kind": kind}
-            if request_key in session.pending:
-                if session.pending[request_key] != request:
-                    session.unknown("request_conflict")
-                    return "conflict"
+            request = {"turn": turn, "tool": tool_id, "name": tool_name, "kind": kind, "event": event_id}
+            existing = session.pending.get(request_key)
+            if existing is not None and existing["name"] == tool_name and existing["kind"] == kind:
                 return "merged_request"
-            if len(session.pending) >= POLICY["requests"]:
-                session.unknown("request_capacity")
+            if existing is None and len(session.pending) >= POLICY["requests"]:
                 return "request_capacity"
             session.pending[request_key] = request
-            if not correlated:
-                session.unknown("uncorrelated_activity")
-                return "conflict"
-            if session.status == "unknown":
-                return "retained_but_unknown"
             session.show_pending()
             session.refresh(message, wall, monotonic)
             return "applied"
         if hook == "PostToolUse":
             request = session.pending.get(request_key)
-            if correlated and request is not None and request["name"] == tool_name:
+            unidentified = sorted((request["event"], key) for key, request in session.pending.items()
+                                  if isinstance(key, str) and request["name"] == tool_name)
+            if request is not None and request["name"] == tool_name:
                 del session.pending[request_key]
-                if session.status == "unknown":
-                    return "resolved_but_unknown"
-                session.show_pending()
-                session.refresh(message, wall, monotonic)
-                return "applied"
-            if session.pending:
-                session.unknown("uncorrelated_resolution")
-                return "conflict"
-            return "unmatched_completion"
-        if not correlated:
-            session.unknown("uncorrelated_activity")
-            return "conflict"
-        if session.status == "unknown" or session.pending:
+            elif unidentified:
+                # A request without a tool-call ID is cleared by a finished tool with the same name.
+                del session.pending[unidentified[0][1]]
+            elif session.pending:
+                return "unmatched_completion"
+            session.show_pending()
+            session.refresh(message, wall, monotonic)
+            return "applied"
+        if session.pending:
             return "no_change"
-        session.status, session.reason = "working", None
+        session.status = "working"
         session.refresh(message, wall, monotonic)
         return "applied"
 
     def snapshot(self) -> list:
         return [{"agent": agent, "session_id": identity, "status": session.status,
-                 "pending": len(session.pending), "reason": session.reason}
+                 "pending": len(session.pending)}
                 for (agent, identity), session in sorted(self.sessions.items())]
 
 
@@ -381,17 +367,19 @@ def check_capacities() -> None:
     for n in range(2, POLICY["event_ids"] + 1):
         assert deliver(store, example_event(n)) == "repeated_submit"
     assert deliver(store, first) == "duplicate"
-    assert deliver(store, example_event(POLICY["event_ids"] + 1)) == "identity_capacity"
+    # A full session forgets old identities and keeps updating instead of freezing.
+    assert deliver(store, example_event(POLICY["event_ids"] + 1)) == "repeated_submit"
     session = next(iter(store.sessions.values()))
-    assert len(session.seen) == POLICY["event_ids"] and session.status == "unknown"
+    assert len(session.seen) == 1 and session.status == "working"
+    assert deliver(store, example_event(POLICY["event_ids"] + 2, turn_id="turn-b")) == "applied"
 
     store = ReferenceStore()
     for n in range(POLICY["turn_ids"]):
         assert deliver(store, example_event(n * 2 + 1, turn_id=f"turn-{n}")) == "applied"
         assert deliver(store, example_event(n * 2 + 2, "Stop", turn_id=f"turn-{n}")) == "applied"
-    assert deliver(store, example_event(999, turn_id="overflow")) == "identity_capacity"
+    assert deliver(store, example_event(999, turn_id="overflow")) == "applied"
     session = next(iter(store.sessions.values()))
-    assert len(session.turns) == POLICY["turn_ids"] and session.status == "unknown"
+    assert "overflow" in session.turns and len(session.turns) <= 2 and session.status == "working"
 
     store = ReferenceStore()
     assert deliver(store, example_event(1)) == "applied"
@@ -401,7 +389,7 @@ def check_capacities() -> None:
     assert deliver(store, example_event(999, "PermissionRequest", tool_name="Bash",
                                         tool_use_id="overflow")) == "request_capacity"
     session = next(iter(store.sessions.values()))
-    assert len(session.pending) == POLICY["requests"] and session.status == "unknown"
+    assert len(session.pending) == POLICY["requests"] and session.status == "approval_needed"
 
 
 def check_document() -> None:

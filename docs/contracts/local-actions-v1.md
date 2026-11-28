@@ -34,7 +34,7 @@ The app requires fresh matching authoritative SessionStore evidence for the same
 Permission/questions must match exactly one confirmed pending request; ambiguous matches and competing
 offers for the same observed request are unavailable. Stop replies require that turn's response-ready
 observation and no unresolved requests. Offers may briefly await observation delivery, never create a
-session themselves. Unknown/ended/paused sessions withdraw capability. Request details and drafts live
+session themselves. Ended and paused sessions withdraw capability. Request details and drafts live
 only in action memory, outside observation data, diagnostics, telemetry and disk.
 
 ## Bounds and failure behavior

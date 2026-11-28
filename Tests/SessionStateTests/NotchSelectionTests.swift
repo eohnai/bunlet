@@ -6,7 +6,7 @@ struct NotchSelectionTests {
     private func snapshot(_ id: String, agent: Agent = .codex, status: SessionStatus = .working,
                           pending: [SessionRequest] = []) -> SessionSnapshot {
         SessionSnapshot(key: SessionKey(agent: agent, sessionID: id), status: status,
-                        reason: nil, currentTurnID: nil, turnStartedAtMs: nil,
+                        currentTurnID: nil, turnStartedAtMs: nil,
                         responseReadyAtMs: nil, pendingRequests: pending,
                         captureWatermarkMs: nil, receiptWallMs: nil, receiptMonotonicNs: nil,
                         projectPath: "/fictional/shared", paneSelector: nil,
@@ -23,38 +23,33 @@ struct NotchSelectionTests {
     @Test func inactiveProvidersDoNotAppear() {
         #expect(NotchPresentation.activeProviders([snapshot("a", status: .ended),
                                                    snapshot("b", agent: .claude, status: .ended)]).isEmpty)
-        #expect(NotchPresentation.activeProviders([snapshot("a", status: .unknown)]).isEmpty)
         #expect(NotchPresentation.activeProviders([snapshot("a"), snapshot("b")]).count == 1)
     }
 
     @Test(arguments: Agent.allCases)
     func providerVisibilityRequiresItsOwnActiveSession(provider: Agent) {
         let other: Agent = provider == .codex ? .claude : .codex
-        let inactive = [snapshot("unknown", agent: other, status: .unknown),
-                        snapshot("ended", agent: other, status: .ended)]
+        let inactive = [snapshot("ended", agent: other, status: .ended)]
         #expect(NotchPresentation.activeProviders(inactive).isEmpty)
         for status in [SessionStatus.idle, .working, .questionNeeded, .approvalNeeded, .responseReady] {
             let active = snapshot("active", agent: provider, status: status)
             #expect(NotchPresentation.activeProviders(inactive + [active]) == [provider])
         }
-        for status in [SessionStatus.unknown, .ended] {
-            #expect(NotchPresentation.activeProviders(inactive + [
-                snapshot("inactive", agent: provider, status: status)
-            ]).isEmpty)
-        }
+        #expect(NotchPresentation.activeProviders(inactive + [
+            snapshot("inactive", agent: provider, status: .ended)
+        ]).isEmpty)
     }
 
-    @Test func confirmedAttentionPrecedesResponseAndUnknownNotices() {
+    @Test func waitingRequestsPrecedeResponseAndWork() {
         let request = SessionRequest(eventID: "event", turnID: "turn", toolUseID: "tool",
-                                     toolName: "Bash", kind: .approvalNeeded, isConfirmed: true)
-        let unconfirmed = SessionRequest(eventID: "old", turnID: "old", toolUseID: "old",
-                                         toolName: "Bash", kind: .approvalNeeded, isConfirmed: false)
-        let sessions = [snapshot("unknown", status: .unknown, pending: [unconfirmed]),
+                                     toolName: "Bash", kind: .approvalNeeded)
+        let question = SessionRequest(eventID: "other", turnID: "other", toolUseID: "other",
+                                      toolName: "AskUserQuestion", kind: .questionNeeded)
+        let sessions = [snapshot("idle", status: .idle), snapshot("question", status: .questionNeeded, pending: [question]),
                         snapshot("working"), snapshot("ready", status: .responseReady),
                         snapshot("approval", status: .approvalNeeded, pending: [request])]
         let ordered = NotchPresentation.ordered(sessions)
-        #expect(ordered.map(\.key.sessionID) == ["approval", "ready", "working", "unknown"])
-        #expect(ordered.last?.pendingRequests == [unconfirmed])
+        #expect(ordered.map(\.key.sessionID) == ["approval", "question", "ready", "working", "idle"])
     }
 
     @Test func validSelectionSurvivesPriorityChanges() {

@@ -7,7 +7,7 @@ struct NotchCardPresentationTests {
                           status: SessionStatus = .working, path: String? = "/fictional/project",
                           startedAtMs: Int64? = 1_000, stoppedAtMs: Int64? = nil) -> SessionSnapshot {
         SessionSnapshot(key: SessionKey(agent: agent, sessionID: id), status: status,
-                        reason: nil, currentTurnID: "fictional-turn", turnStartedAtMs: startedAtMs,
+                        currentTurnID: "fictional-turn", turnStartedAtMs: startedAtMs,
                         responseReadyAtMs: stoppedAtMs, pendingRequests: [],
                         captureWatermarkMs: nil, receiptWallMs: nil, receiptMonotonicNs: nil,
                         projectPath: path, paneSelector: nil,
@@ -70,8 +70,8 @@ struct NotchCardPresentationTests {
         #expect(NotchPresentation.card(for: beforeStart, among: [beforeStart]).timer == .stopped(durationMs: 0))
     }
 
-    @Test(arguments: [SessionStatus.idle, .unknown, .ended])
-    func inactiveOrUnconfirmedSessionsHideEvenRetainedTimes(status: SessionStatus) {
+    @Test(arguments: [SessionStatus.idle, .ended])
+    func inactiveSessionsHideEvenRetainedTimes(status: SessionStatus) {
         let session = snapshot(status: status, stoppedAtMs: 124_999)
         #expect(NotchPresentation.card(for: session, among: [session]).timer == nil)
     }
@@ -94,7 +94,7 @@ struct NotchCardPresentationTests {
         #expect(!NotchPresentation.shouldTickPromptTimers(expanded: false, sessions: sessions))
     }
 
-    @Test(arguments: [SessionStatus.idle, .responseReady, .unknown, .ended])
+    @Test(arguments: [SessionStatus.idle, .responseReady, .ended])
     func stoppedOrHiddenTimersNeedNoUpdates(status: SessionStatus) {
         let session = snapshot(status: status, stoppedAtMs: 124_999)
         #expect(!NotchPresentation.shouldTickPromptTimers(expanded: true, sessions: [session]))
