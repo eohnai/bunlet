@@ -10,16 +10,25 @@ final class PetSessionAdapter {
         let turn: Data
         let stop: Int64
     }
+    /// All sessions, and the keys of those the island lists. Both are observed so removing a row updates the mood.
+    private struct Observed: Equatable, Sendable {
+        let all: [SessionSnapshot]
+        let listed: Set<SessionKey>
+    }
     private let sessions: SessionStore
+    private let listed: @MainActor ([SessionSnapshot]) -> [SessionSnapshot]
     private let onChange: (PetMood, Bool) -> Void
-    private var observation: ObservationLoop<[SessionSnapshot]>?
+    private var observation: ObservationLoop<Observed>?
     private var previous: [SessionKey: SessionSnapshot] = [:]
     private var seen: Set<ReadyIdentity> = []
     private let cueCapacity = 4096
     private(set) var mood: PetMood = .idle
 
-    init(sessions: SessionStore, onChange: @escaping (PetMood, Bool) -> Void) {
+    /// `listed` applies the island's listing rules, so the bubble describes the sessions the panels show.
+    init(sessions: SessionStore, listed: @escaping @MainActor ([SessionSnapshot]) -> [SessionSnapshot] = { $0 },
+         onChange: @escaping (PetMood, Bool) -> Void) {
         self.sessions = sessions
+        self.listed = listed
         self.onChange = onChange
     }
 
@@ -27,7 +36,10 @@ final class PetSessionAdapter {
         guard observation == nil else { return }
         // Existing ready records establish a baseline without replaying a completed response.
         previous = Dictionary(uniqueKeysWithValues: sessions.sessions.map { ($0.key, $0) })
-        observation = ObservationLoop({ [sessions] in sessions.sessions }) { [weak self] in self?.update($0) }
+        observation = ObservationLoop({ [sessions, listed] in
+            let all = sessions.sessions
+            return Observed(all: all, listed: Set(listed(all).map(\.key)))
+        }) { [weak self] in self?.update($0) }
     }
 
     func stop() {
@@ -36,7 +48,8 @@ final class PetSessionAdapter {
         previous = [:]
     }
 
-    private func update(_ snapshots: [SessionSnapshot]) {
+    private func update(_ observed: Observed) {
+        let snapshots = observed.all
         var cue = false
         for session in snapshots where session.status == .responseReady {
             guard let turn = session.currentTurnID, let stop = session.responseReadyAtMs else { continue }
@@ -49,17 +62,18 @@ final class PetSessionAdapter {
             if !alreadyReady && session.turnStartedAtMs != nil { cue = true }
         }
         previous = Dictionary(uniqueKeysWithValues: snapshots.map { ($0.key, $0) })
-        if snapshots.contains(where: { $0.pendingRequests.contains(where: \.isConfirmed) }) {
-            mood = .attention
-        } else if snapshots.contains(where: { $0.status == .unknown || !$0.pendingRequests.isEmpty }) {
-            mood = .unknown
-        } else if snapshots.contains(where: { $0.status == .working }) {
-            mood = .working
-        } else if snapshots.contains(where: { $0.status == .responseReady }) {
-            mood = .responseReady
-        } else if !snapshots.isEmpty && snapshots.allSatisfy({ $0.status == .ended }) {
-            mood = .ended
-        } else { mood = .idle }
+        mood = Self.mood(all: snapshots, listed: snapshots.filter { observed.listed.contains($0.key) })
         onChange(mood, cue && mood == .responseReady)
+    }
+
+    /// Listed sessions decide the mood. Ended sessions are never listed (decision 0032), so Ended still
+    /// looks at every session: it shows once all of them have ended.
+    static func mood(all: [SessionSnapshot], listed: [SessionSnapshot]) -> PetMood {
+        if listed.contains(where: { $0.pendingRequests.contains(where: \.isConfirmed) }) { return .attention }
+        if listed.contains(where: { $0.status == .unknown || !$0.pendingRequests.isEmpty }) { return .unknown }
+        if listed.contains(where: { $0.status == .working }) { return .working }
+        if listed.contains(where: { $0.status == .responseReady }) { return .responseReady }
+        if listed.isEmpty && !all.isEmpty && all.allSatisfy({ $0.status == .ended }) { return .ended }
+        return .idle
     }
 }

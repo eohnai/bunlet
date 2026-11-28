@@ -13,7 +13,7 @@ final class PetSessionPanelController {
     private let model = PetSessionPanelModel()
     private let anchor: () -> CGRect?
 
-    init(sessions: SessionStore, features: FeatureSettingsModel, actions: LocalActionController?,
+    init(sessions: SessionStore, settings: BunletSettings, features: FeatureSettingsModel, actions: LocalActionController?,
          navigation: TerminalNavigation?, onOpenFeatures: @escaping () -> Void, anchor: @escaping () -> CGRect?) {
         self.anchor = anchor
         panel = PetSessionPanel(contentRect: NSRect(x: 0, y: 0, width: Self.width, height: 120),
@@ -28,7 +28,7 @@ final class PetSessionPanelController {
         panel.becomesKeyOnlyIfNeeded = true
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.contentView = NSHostingView(rootView: PetSessionPanelView(
-            sessions: sessions, features: features, actions: actions, navigation: navigation, model: model,
+            sessions: sessions, settings: settings, features: features, actions: actions, navigation: navigation, model: model,
             onOpenFeatures: onOpenFeatures, onResize: { [weak self] height in self?.resize(contentHeight: height) },
             onJumped: { [weak self] in self?.close() }, beginInput: { [weak self] in self?.beginInput() }))
     }
@@ -90,6 +90,7 @@ private final class PetSessionPanel: NSPanel {
 
 private struct PetSessionPanelView: View {
     let sessions: SessionStore
+    let settings: BunletSettings
     let features: FeatureSettingsModel
     let actions: LocalActionController?
     let navigation: TerminalNavigation?
@@ -99,10 +100,13 @@ private struct PetSessionPanelView: View {
     let onJumped: () -> Void
     let beginInput: () -> Void
 
+    /// The same sessions the island lists (decision 0032), so the two lists never disagree.
+    private var listed: [SessionSnapshot] { settings.visibleSessions(sessions.sessions) }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                if sessions.sessions.isEmpty {
+                if listed.isEmpty {
                     empty("No sessions", action: ("Connect agents", onOpenFeatures))
                 } else if model.isOpen {
                     TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -125,11 +129,12 @@ private struct PetSessionPanelView: View {
     }
 
     private func rows(nowMs: Int64) -> some View {
-        VStack(alignment: .leading, spacing: 24) {
-            ForEach(NotchPresentation.ordered(sessions.sessions)) { snapshot in
+        let listed = settings.visibleSessions(sessions.sessions, nowMs: nowMs)
+        return VStack(alignment: .leading, spacing: 24) {
+            ForEach(NotchPresentation.ordered(listed)) { snapshot in
                 VStack(alignment: .leading, spacing: 12) {
                     NotchSessionCard(snapshot: snapshot,
-                                     presentation: NotchPresentation.card(for: snapshot, among: sessions.sessions),
+                                     presentation: NotchPresentation.card(for: snapshot, among: listed),
                                      nowMs: nowMs, isActive: false, detailsOpen: false,
                                      onJump: navigation.map { navigation in { jump(snapshot.key, navigation) } },
                                      onToggleDetails: {})

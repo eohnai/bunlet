@@ -391,7 +391,7 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
             self?.answerPermission(.allowAlways)
         }
         bind(.jump, when: open && navigation != nil) { [weak self] in self?.jumpToFocusedSession() }
-        bind(.switchSession, when: open && sessionStore.sessions.count > 1) { [weak self] in self?.focusNextSession() }
+        bind(.switchSession, when: open && visibleSessions.count > 1) { [weak self] in self?.focusNextSession() }
     }
 
     private func bind(_ shortcut: BunletSettings.Shortcut, when active: Bool, action: @escaping () -> Void) {
@@ -402,7 +402,7 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
     }
 
     private func focusNextSession() {
-        let order = NotchPresentation.ordered(sessionStore.sessions).map(\.key)
+        let order = NotchPresentation.ordered(visibleSessions).map(\.key)
         guard !order.isEmpty else { return }
         let current = state.focusedSession.flatMap { order.firstIndex(of: $0) } ?? -1
         state.focusedSession = order[(current + 1) % order.count]
@@ -432,8 +432,9 @@ final class NotchPanelController: NSObject, AppFeatureService, NSWindowDelegate 
 
     private func jumpToFocusedSession() {
         guard let navigation else { return }
-        let key = state.focusedSession.flatMap { key in sessionStore.sessions.contains { $0.key == key } ? key : nil }
-            ?? NotchPresentation.ordered(sessionStore.sessions).first?.key
+        let listed = visibleSessions
+        let key = state.focusedSession.flatMap { key in listed.contains { $0.key == key } ? key : nil }
+            ?? NotchPresentation.ordered(listed).first?.key
         guard let key, navigation.jump(to: key) else { return }
         setExpanded(false)
     }
